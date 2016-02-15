@@ -1,5 +1,4 @@
-
-# Created by https://www.gitignore.io/api/coq,emacs
+deps/infotheo/Makefile
 
 ### Coq ###
 *.vo
@@ -43,4 +42,3 @@ tramp
 
 # server auth directory
 /server/
-
