@@ -145,6 +145,7 @@ Definition bool_vec_of (s : bg_strategy) : bool_vec n :=
                     | inr ink => s.2 ink
                     end].
 
+(* TODO: name the function [widen_ord le_k_n]... *)
 Definition bg_strategy_of (v : bool_vec n) : bg_strategy :=
   ([ffun ik : 'I_k => v (widen_ord le_k_n ik)],
    [ffun ink : 'I_(n - k) => v (cast_ord knk_eqn (rshift k ink))]).
@@ -234,6 +235,17 @@ apply/forallP/idP =>/= H.
   case: splitP => j /=; first by move/ord_inj<-.
   case: y => [y Hy] /= => K; exfalso; rewrite K in Hy.
   by rewrite ltnNge leq_addr in Hy.
+Qed.
+
+Corollary ex_winA_sigmA :
+  forall (f : Omega),
+  [exists a : bg_StratA, bg_winA (bg_game_of f) a] =
+  (f \in \bigcup_(a in bg_StratA) W_ a).
+Proof.
+move=> f.
+apply/existsP/bigcupP.
+- by case=> a Ha; exists a =>//; rewrite -winA_sigmA.
+- by case=> a Ha Hb; exists a =>//; rewrite winA_sigmA.
 Qed.
 
 End Proba_games.
