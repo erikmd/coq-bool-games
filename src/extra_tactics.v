@@ -53,7 +53,7 @@ Lemma test1 (n : nat) (R : ringType) (f1 f2 g : nat -> R) :
   \big[+%R/0%R]_(i < n) (f1 i * g i) + \big[+%R/0%R]_(i < n) (f2 i * g i))%R.
 Proof.
 set b1 := LHS.
-Fail underbig b1 (rewrite GRing.mulrDr).
-underbig b1 (rewrite GRing.mulrDl).
+Fail underbig b1 rewrite GRing.mulrDr.
+underbig b1 rewrite GRing.mulrDl.
 by rewrite big_split.
 Qed.
