@@ -1,4 +1,5 @@
 deps/infotheo/Makefile
+src/Makefile
 
 ### Coq ###
 *.vo

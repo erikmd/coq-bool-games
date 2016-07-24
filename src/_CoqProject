@@ -1,0 +1,3 @@
+-R . RandomGames
+extra_tactics.v
+random_bool_games.v
