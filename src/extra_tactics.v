@@ -1,17 +1,22 @@
 From mathcomp Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq.
 From mathcomp Require Import div choice fintype tuple finfun bigop.
-From mathcomp Require Import prime binomial ssralg finset.
+From mathcomp Require Import prime binomial ssralg.
 
 (* Erik Martin-Dorel, 2016 *)
 
 (** [under_big] allows one to apply a given tactic under the bigop
     that correspond to the specified arguments. *)
-Ltac under_big R idx op I r P F1 tac :=
-  erewrite (@eq_bigr R idx op I r P F1 _);
-  [|let i := fresh "i" in
-    let Hi := fresh "Hi" in
-    intros i Hi; (tac || fail 4 "Cannot apply" tac); reflexivity];
-  cbv beta.
+Ltac under_big b R idx op I r P F1 tac :=
+  (* erewrite (@eq_bigr R idx op I r P F1 _); (*not robust enough*) *)
+  pattern b;
+  match goal with
+  | [|- ?G b] =>
+    refine (@eq_rect_r _ _ G _ _ (@eq_bigr R idx op I r P F1 _ _));
+    [|let i := fresh "i" in
+      let Hi := fresh "Hi" in
+      intros i Hi; (tac || fail 5 "Cannot apply" tac); reflexivity];
+    cbv beta
+  end.
 
 (* BEGIN 3rdparty *)
 (** The following tactic can be used to add support for patterns to
@@ -36,17 +41,19 @@ Tactic Notation "underbig" open_constr(pat) tactic(tac) :=
   match b' with
   | @BigOp.bigop ?R ?I ?idx ?r ?f =>
     match f with
-    | fun i => @BigBody _ _ i ?op (@?P i) (@?F1 i) =>
-     under_big R idx op I r P F1 tac
+    | fun i => @BigBody ?R ?I i ?op (@?P i) (@?F1 i) =>
+    under_big b' R idx op I r P F1 tac
     end
   end).
 
-Lemma test1 (A : finType) (R : ringType) (f1 f2 g : A -> R) :
-  (\big[+%R/0%R]_(i in A) ((f1 i + f2 i) * g i) =
-  \big[+%R/0%R]_(i in A) (f1 i * g i) + \big[+%R/0%R]_(i in A) (f2 i * g i))%R.
+(* TODO: underbig b in H ... *)
+
+Lemma test1 (n : nat) (R : ringType) (f1 f2 g : nat -> R) :
+  (\big[+%R/0%R]_(i < n) ((f1 i + f2 i) * g i) =
+  \big[+%R/0%R]_(i < n) (f1 i * g i) + \big[+%R/0%R]_(i < n) (f2 i * g i))%R.
 Proof.
 set b1 := LHS.
 Fail underbig b1 (rewrite GRing.mulrDr).
 underbig b1 (rewrite GRing.mulrDl).
-by rewrite big_split /=.
+by rewrite big_split.
 Qed.
