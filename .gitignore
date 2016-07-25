@@ -5,7 +5,7 @@ src/Makefile
 *.vo
 *.glob
 *.v.d
-
+.*.aux
 
 ### Emacs ###
 # -*- mode: gitignore; -*-
