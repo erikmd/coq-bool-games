@@ -14,7 +14,8 @@ Ltac under_big b R idx op I r P F1 tac :=
     refine (@eq_rect_r _ _ G _ _ (@eq_bigr R idx op I r P F1 _ _));
     [|let i := fresh "i" in
       let Hi := fresh "Hi" in
-      intros i Hi; (tac || fail 5 "Cannot apply" tac); reflexivity];
+      move=> i Hi; (tac || fail 5 "Cannot apply" tac); move: i Hi;
+      first reflexivity];
     cbv beta
   end.
 
@@ -56,4 +57,15 @@ set b1 := LHS.
 Fail underbig b1 rewrite GRing.mulrDr.
 underbig b1 rewrite GRing.mulrDl.
 by rewrite big_split.
+
+Lemma test2 (n : nat) (R : fieldType) (f : nat -> R) :
+  (forall k : 'I_n, f k != 0%R) ->
+  (\big[+%R/0%R]_(i < n) (f i / f i) = n%:R)%R.
+Proof.
+move=> Hneq0.
+set b1 := LHS.
+(underbig b1 rewrite GRing.divff); last done.
+rewrite big_const cardT /= size_enum_ord /GRing.natmul.
+case: {Hneq0 b1} n =>// n.
+by rewrite iteropS iterSr GRing.addr0.
 Qed.
