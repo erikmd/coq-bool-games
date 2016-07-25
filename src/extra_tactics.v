@@ -19,8 +19,8 @@ Ltac under_big b tac :=
         refine (@eq_rect_r _ _ G _ b (@eq_bigr R idx op I r P F1 _ _));
         [|let i := fresh "i" in
           let Hi := fresh "Hi" in
-          move=> i Hi; (tac || fail 3 "Cannot apply" tac); move: i Hi;
-          first reflexivity];
+          move=> i Hi; tac; move: i Hi;
+          try reflexivity (* instead of "; first reflexivity" *) ];
         cbv beta
       end
     end
@@ -46,7 +46,7 @@ end.
     only the occurrences of [pat] will be rewritten;
     otherwise the occurrences of the first bigop that matches [pat]
     will be rewritten. *)
-Tactic Notation "underbig" open_constr(pat) tactic(tac) :=
+Tactic Notation "underbig" open_constr(pat) tactic1(tac) :=
   tryif match goal with [|- context [pat]] => is_var pat end
   then under_big pat tac
   else find_pat pat ltac:(fun b => under_big b tac).
@@ -78,7 +78,8 @@ Lemma test2 (n : nat) (R : fieldType) (f : nat -> R) :
   (\big[+%R/0%R]_(i < n) (f i / f i) = n%:R)%R.
 Proof.
 move=> Hneq0.
-(underbig (\big[_/_]_i _) rewrite GRing.divff); last done.
+underbig (\big[_/_]_i _) rewrite GRing.divff //.
+
 rewrite big_const cardT /= size_enum_ord /GRing.natmul.
 case: {Hneq0} n =>// n.
 by rewrite iteropS iterSr GRing.addr0.
