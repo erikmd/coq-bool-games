@@ -53,6 +53,7 @@ Tactic Notation "underbig" open_constr(pat) tactic(tac) :=
 
 (* TODO: underbig b in H ... *)
 
+(* A test lemma covering several testcases. *)
 Lemma test1 (n : nat) (R : ringType) (f1 f2 g : nat -> R) :
   (\big[+%R/0%R]_(i < n) ((f1 i + f2 i) * g i) +
   \big[+%R/0%R]_(i < n) ((f1 i + f2 i) * g i) =
@@ -71,14 +72,14 @@ rewrite big_split /=.
 by rewrite GRing.addrA.
 Qed.
 
+(* A test with a side-condition. *)
 Lemma test2 (n : nat) (R : fieldType) (f : nat -> R) :
   (forall k : 'I_n, f k != 0%R) ->
   (\big[+%R/0%R]_(i < n) (f i / f i) = n%:R)%R.
 Proof.
 move=> Hneq0.
-set b1 := LHS.
-(underbig b1 rewrite GRing.divff); last done.
+(underbig (\big[_/_]_i _) rewrite GRing.divff); last done.
 rewrite big_const cardT /= size_enum_ord /GRing.natmul.
-case: {Hneq0 b1} n =>// n.
+case: {Hneq0} n =>// n.
 by rewrite iteropS iterSr GRing.addr0.
 Qed.
