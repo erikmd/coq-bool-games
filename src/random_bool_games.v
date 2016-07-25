@@ -1,14 +1,16 @@
 Require Import Reals.
 From mathcomp Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq.
 From mathcomp Require Import div choice fintype tuple finfun bigop.
-From mathcomp Require Import prime binomial ssralg finset.
+From mathcomp Require Import prime binomial ssralg finset ssrint.
 From Infotheo Require Import Reals_ext Rbigop proba.
+Require Import bigop_tactics.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
 Local Open Scope R_scope.
+Delimit Scope R_scope with Re.
 
 Section Def.
 
@@ -249,3 +251,101 @@ apply/existsP/bigcupP.
 Qed.
 
 End Proba_games.
+
+Section probability_inclusion_exclusion.
+(** In this section we prove the formula of inclusion-exclusion.
+    This result is more general than lemma [Pr_bigcup] in Infotheo. *)
+Variable A : finType.
+Variable P : dist A.
+
+Variables (B : finType) (E : nat -> {set A}) (n : nat).
+
+Let Pr_capE (n : nat) (k : nat) := \rsum_(J in {set 'I_n} | #|J| == k) Pr P (\bigcap_(j in J) E j).
+
+Lemma setDUKr (E1 E2 : {set A}) : (E1 :|: E2) :\: E2 = E1 :\: E2.
+Proof. by rewrite setDUl setDv setU0. Qed.
+
+Lemma setDUKl (E1 E2 : {set A}) : (E1 :|: E2) :\: E1 = E2 :\: E1.
+Proof. by rewrite setDUl setDv set0U. Qed.
+
+Lemma Pr_union_eq (E1 E2 : {set A}) :
+  Pr P (E1 :|: E2) = Pr P E1 + Pr P E2 - Pr P (E1 :&: E2).
+Proof.
+rewrite -[E1 :|: E2](setID _ E1) Pr_union_disj; last first.
+{ rewrite setDE -setIA [E1 :&: _]setIC -setIA [~: E1 :&: _]setIC setICr.
+  by rewrite !setI0. }
+rewrite setUK setDUKl -{1}[E2 in RHS](setID _ E1) Pr_union_disj; last first.
+{ rewrite setDE -setIA [E1 :&: _]setIC -setIA [~: E1 :&: _]setIC setICr.
+  by rewrite !setI0. }
+by rewrite setIC; ring.
+Qed.
+
+Lemma Rplus_minus_assoc (r1 r2 r3 : R) : r1 + r2 - r3 = r1 + (r2 - r3).
+Proof. by rewrite /Rminus Rplus_assoc. Qed.
+
+Lemma predSn (p : nat) : p.+1.-1 = p.
+Proof. by []. Qed.
+
+Definition Ind (s : {set A}) (x : A) : R := if x \in s then R1 else R0.
+
+(** Expected value of a random variable [X], in the finite case *)
+Definition Exp (X : A -> R) := \rsum_(a in A) X a * P a.
+
+Lemma Exp_Ind s : Exp (Ind s) = Pr P s.
+Proof.
+rewrite /Exp /Ind /Pr (bigID (mem s)) /=.
+rewrite [X in _ + X = _]big1; last by move=> i /negbTE ->; rewrite Rmult_0_l.
+by rewrite Rplus_0_r; apply: eq_bigr => i ->; rewrite Rmult_1_l.
+Qed.
+
+Lemma Exp_ext X2 X1 : X1 =1 X2 -> Exp X1 = Exp X2.
+Proof. by move=> Heq; rewrite /Exp; apply: eq_bigr => i Hi; rewrite Heq. Qed.
+
+Lemma Exp_add X1 X2 : Exp (fun w => X1 w + X2 w) = Exp X1 + Exp X2.
+Proof.
+by rewrite /Exp; set b := LHS; underbig b rewrite Rmult_plus_distr_r; rewrite big_split.
+Qed.
+
+Lemma Exp_rsum I r p (X : I -> A -> R) :
+  Exp (fun x => \big[Rplus/R0]_(i <- r | p i) X i x) =
+  \big[Rplus/R0]_(i <- r | p i) (Exp (X i)).
+Proof.
+rewrite /Exp exchange_big /=; apply: eq_bigr => i Hi.
+by rewrite big_distrl /=.
+Qed.
+
+Lemma Exp_scaler X1 r2 : Exp (fun w => X1 w * r2) = Exp X1 * r2.
+Proof.
+rewrite /Exp big_distrl /=; apply: eq_bigr => i Hi.
+by rewrite !Rmult_assoc; congr Rmult; rewrite Rmult_comm.
+Qed.
+
+Lemma Exp_scalel r1 X2 : Exp (fun w => r1 * X2 w) = r1 * Exp X2.
+Proof.
+rewrite /Exp big_distrr /=; apply: eq_bigr => i Hi.
+by rewrite !Rmult_assoc; congr Rmult; rewrite Rmult_comm.
+Qed.
+
+Let Ind_capE (n : nat) (k : nat) (x : A) :=
+  \rsum_(J in {set 'I_n} | #|J| == k) (Ind (\bigcap_(j in J) E j) x).
+
+Lemma bigcup_incl_excl (x : A) :
+  Ind (\bigcup_(i < n) E i) x =
+  (\rsum_(1 <= k < n.+1) ((-1)^(k-1) * (Ind_capE n k x)))%Re.
+Proof.
+Admitted.
+
+Lemma Ind_capE_correct k : Exp (Ind_capE n k) = Pr_capE n k.
+rewrite /Ind_capE /Pr_capE Exp_rsum; apply: eq_bigr => i Hi.
+by rewrite Exp_Ind.
+Qed.
+
+Theorem Pr_bigcup_incl_excl :
+  Pr P (\bigcup_(i < n) E i) = \big[Rplus/0]_(1 <= k < n.+1) ((-1)^(k-1) * Pr_capE n k).
+Proof.
+rewrite -Exp_Ind.
+set b := LHS; underbig b rewrite bigcup_incl_excl; clear b.
+rewrite -/(Exp _) Exp_rsum.
+apply: eq_bigr => i _.
+by rewrite Exp_scalel Ind_capE_correct.
+Qed.
