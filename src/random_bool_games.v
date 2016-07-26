@@ -303,7 +303,8 @@ Proof. by move=> Heq; rewrite /Exp; apply: eq_bigr => i Hi; rewrite Heq. Qed.
 
 Lemma Exp_add X1 X2 : Exp (fun w => X1 w + X2 w) = Exp X1 + Exp X2.
 Proof.
-by rewrite /Exp; set b := LHS; underbig b rewrite Rmult_plus_distr_r; rewrite big_split.
+rewrite /Exp; set b := LHS; underbig b ? _ rewrite Rmult_plus_distr_r.
+by rewrite big_split.
 Qed.
 
 Lemma Exp_rsum I r p (X : I -> A -> R) :
@@ -344,7 +345,7 @@ Theorem Pr_bigcup_incl_excl :
   Pr P (\bigcup_(i < n) E i) = \big[Rplus/0]_(1 <= k < n.+1) ((-1)^(k-1) * Pr_capE n k).
 Proof.
 rewrite -Exp_Ind.
-set b := LHS; underbig b rewrite bigcup_incl_excl; clear b.
+underbig (bigop _ _ _) ? _ rewrite bigcup_incl_excl.
 rewrite -/(Exp _) Exp_rsum.
 apply: eq_bigr => i _.
 by rewrite Exp_scalel Ind_capE_correct.
