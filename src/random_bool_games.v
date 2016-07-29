@@ -260,13 +260,26 @@ Variable P : dist A.
 
 Variables (B : finType) (E : nat -> {set A}) (n : nat).
 
-Let Pr_capE (n : nat) (k : nat) := \rsum_(J in {set 'I_n} | #|J| == k) Pr P (\bigcap_(j in J) E j).
+Let SumPrCap (n : nat) (k : nat) :=
+  \rsum_(J in {set 'I_n} | #|J| == k) Pr P (\bigcap_(j in J) E j).
 
 Lemma setDUKr (E1 E2 : {set A}) : (E1 :|: E2) :\: E2 = E1 :\: E2.
 Proof. by rewrite setDUl setDv setU0. Qed.
 
 Lemma setDUKl (E1 E2 : {set A}) : (E1 :|: E2) :\: E1 = E2 :\: E1.
 Proof. by rewrite setDUl setDv set0U. Qed.
+
+Lemma bigmul_eq0 (C : finType) (p : pred C) (F : C -> R) :
+  (exists2 i : C, p i & F i = R0) <-> \big[Rmult/R1]_(i : C | p i) F i = R0.
+Proof.
+split.
+{ by case => [i Hi Hi0]; rewrite (bigD1 i) //= Hi0 Rmult_0_l. }
+apply big_ind.
+- by move=> K; exfalso; auto with real.
+- move=> x y Hx Hy Hxy.
+  have [Hx0|Hy0] := Rmult_integral _ _ Hxy; [exact: Hx|exact: Hy].
+- move=> i Hi Hi0; by exists i.
+Qed.
 
 Lemma Pr_union_eq (E1 E2 : {set A}) :
   Pr P (E1 :|: E2) = Pr P E1 + Pr P E2 - Pr P (E1 :&: E2).
@@ -287,6 +300,34 @@ Lemma predSn (p : nat) : p.+1.-1 = p.
 Proof. by []. Qed.
 
 Definition Ind (s : {set A}) (x : A) : R := if x \in s then R1 else R0.
+
+Lemma Ind_set0 (x : A) : Ind set0 x = R0.
+Proof. by rewrite /Ind inE. Qed.
+
+Lemma Ind_inP (s : {set A}) (x : A) : reflect (Ind s x = R1) (x \in s).
+Proof.
+apply: (iffP idP); rewrite /Ind; first by move->.
+by case: ifP =>//; auto with real.
+Qed.
+
+Lemma Ind_notinP (s : {set A}) (x : A) : reflect (Ind s x = R0) (x \notin s).
+Proof.
+apply: (iffP idP); rewrite /Ind => Hmain.
+  by rewrite ifF //; exact: negbTE.
+by apply: negbT; case: ifP Hmain =>// _ H10; exfalso; auto with real.
+Qed.
+
+Lemma Ind_cap (S1 S2 : {set A}) (x : A) :
+  Ind (S1 :&: S2) x = Ind S1 x * Ind S2 x.
+Proof. by rewrite /Ind inE; case: in_mem; case: in_mem=>/=; auto with real. Qed.
+
+Lemma Ind_bigcap (e : nat -> {set A}) (J : {set 'I_n}) x :
+  Ind (\bigcap_(j in J) e j) x = \big[Rmult/R1]_(j in J) (Ind (e j) x).
+Proof.
+apply (big_ind2 (R1 := {set A}) (R2 := R)); last done.
+- by rewrite /Ind inE.
+- by move=> sa a sb b Ha Hb; rewrite -Ha -Hb; apply: Ind_cap.
+Qed.
 
 (** Expected value of a random variable [X], in the finite case *)
 Definition Exp (X : A -> R) := \rsum_(a in A) X a * P a.
@@ -327,22 +368,57 @@ rewrite /Exp big_distrr /=; apply: eq_bigr => i Hi.
 by rewrite !Rmult_assoc; congr Rmult; rewrite Rmult_comm.
 Qed.
 
-Let Ind_capE (n : nat) (k : nat) (x : A) :=
+Let SumIndCap (n : nat) (k : nat) (x : A) :=
   \rsum_(J in {set 'I_n} | #|J| == k) (Ind (\bigcap_(j in J) E j) x).
+
+Lemma big_distr (R : Type) (zero one : R) (times : Monoid.mul_law zero)
+    (plus : Monoid.add_law zero times) (I : finType) (p : pred I)
+    (F1 F2 : I -> R) :
+  \big[times/one]_(i | p i) plus (F1 i) (F2 i) =
+  \big[plus/zero]_(0 <= k < #|p|.+1)
+  \big[plus/zero]_(J in {set I} | #|J :&: finset p| == k)
+  times (\big[times/one]_(j in J) F1 j) (\big[times/one]_(j in ~: J) F2 j).
+Proof.
+pose F12 i (j : 'I_2) := if val j is O then F1 i else F2 i.
+underbig (bigop _ _ _) i Hi
+  rewrite (_ : plus (F1 i) (F2 i) = \big[plus/zero]_(j : 'I_2) F12 i j).
+rewrite (big_distr_big ord0) big_mkord.
+erewrite (partition_big (J := [finType of 'I_#|p|.+1]) _ xpredT).
+{ eapply eq_big =>// i _.
+  erewrite (partition_big (J := [finType of {set I}]) _ (fun J => #|J :&: [set x | p x]| == i)).
+  eapply eq_big =>// j _.
+  admit. admit. } admit. admit.
+Admitted.
 
 Lemma bigcup_incl_excl (x : A) :
   Ind (\bigcup_(i < n) E i) x =
-  (\rsum_(1 <= k < n.+1) ((-1)^(k-1) * (Ind_capE n k x)))%Re.
+  (\rsum_(1 <= k < n.+1) ((-1)^(k-1) * (SumIndCap n k x)))%Re.
 Proof.
+case: n => [|n']; first by rewrite big_ord0 big_geq // Ind_set0.
+set Efull := \bigcup_(i < n.+1) E i.
+have Halg : \big[Rmult/R1]_(i < n.+1) (Ind Efull x - Ind (E i) x) = 0.
+  case Ex : (x \in Efull); last first.
+  { have /Ind_notinP Ex0 := Ex.
+    underbig (bigop _ _ _) ? _ rewrite Ex0.
+    have Ex00 : forall i : 'I_n.+1, Ind (E i) x = 0.
+      move=> i; apply/Ind_notinP.
+      by move/negbT: Ex; rewrite -!in_setC setC_bigcup; move/bigcapP; apply.
+    underbig (bigop _ _ _) ? _ rewrite Ex00; rewrite Rminus_0_r.
+    by apply/bigmul_eq0; exists ord0. }
+  { rewrite /Efull in Ex.
+    have /bigcupP [i Hi Hi0] := Ex.
+    apply/bigmul_eq0; exists i =>//.
+    by rewrite /Efull (Ind_inP _ _ Ex) (Ind_inP _ _ Hi0) /Rminus Rplus_opp_r. }
+rewrite big_distr big_nat_recr //= in Halg.
 Admitted.
 
-Lemma Ind_capE_correct k : Exp (Ind_capE n k) = Pr_capE n k.
-rewrite /Ind_capE /Pr_capE Exp_rsum; apply: eq_bigr => i Hi.
+Lemma Ind_capE_correct k : Exp (SumIndCap n k) = SumPrCap n k.
+rewrite /SumIndCap /SumPrCap Exp_rsum; apply: eq_bigr => i Hi.
 by rewrite Exp_Ind.
 Qed.
 
 Theorem Pr_bigcup_incl_excl :
-  Pr P (\bigcup_(i < n) E i) = \big[Rplus/0]_(1 <= k < n.+1) ((-1)^(k-1) * Pr_capE n k).
+  Pr P (\bigcup_(i < n) E i) = \big[Rplus/0]_(1 <= k < n.+1) ((-1)^(k-1) * SumPrCap n k).
 Proof.
 rewrite -Exp_Ind.
 underbig (bigop _ _ _) ? _ rewrite bigcup_incl_excl.
@@ -350,3 +426,5 @@ rewrite -/(Exp _) Exp_rsum.
 apply: eq_bigr => i _.
 by rewrite Exp_scalel Ind_capE_correct.
 Qed.
+
+End probability_inclusion_exclusion.
