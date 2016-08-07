@@ -57,6 +57,9 @@ Tactic Notation "underbig" open_constr(pat) simple_intropattern(x) simple_introp
   then under_big pat x Hx tac
   else find_pat pat ltac:(fun b => under_big b x Hx tac).
 
+(** A shortcut when we want to rewrite the first occurrence of [bigop _ _ _] *)
+Notation big := (bigop _ _ _) (only parsing).
+
 (** ** When the bigop appears in some hypothesis *)
 
 (** [under_big_in] allows one to apply a given tactic under the bigop
