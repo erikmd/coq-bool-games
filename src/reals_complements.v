@@ -44,3 +44,45 @@ by rewrite -Rle_sub_addr /Rminus Ropp_involutive Rplus_comm.
 Qed.
 
 Definition Rle_sub_addl := (Rle_subl_addl, Rle_subr_addl).
+
+(** Support results to transpose terms w.r.t equality over reals.
+    To this aim, we reuse MathComp naming conventions. *)
+
+Lemma oppRK r : - - r = r.
+Proof Ropp_involutive r.
+
+Lemma addRN r : r + - r = 0.
+Proof Rplus_opp_r r.
+
+Lemma subRR r : r - r = 0.
+Proof addRN r.
+  
+Lemma subR0_eq x y : x - y = 0 -> x = y.
+Proof Rminus_diag_uniq x y.
+
+Lemma subR_eq x y z : (x - z = y) <-> (x = y + z).
+Proof.
+split.
+{ by move<-; rewrite /Rminus Rplus_assoc (Rplus_comm _ z) addRN Rplus_0_r. }
+by move->; rewrite /Rminus Rplus_assoc addRN Rplus_0_r.
+Qed.
+
+Lemma subR_eq0 x y : (x - y = 0) <-> (x = y).
+Proof. by rewrite subR_eq Rplus_0_l. Qed.
+
+Lemma addR_eq0 x y : (x + y = 0) <-> (x = - y).
+Proof. by rewrite -[y in LHS]oppRK subR_eq0. Qed.
+
+Lemma eqR_opp x y : (- x = - y) <-> (x = y).
+Proof.
+split.
+{ by move=> Hopp; rewrite -[LHS]oppRK -[RHS]oppRK Hopp. }
+by move->.
+Qed.
+
+Lemma eqR_oppLR x y : (- x = y) <-> (x = - y).
+Proof.
+split.
+{ by move<-; rewrite oppRK. }
+by move->; rewrite oppRK.
+Qed.
