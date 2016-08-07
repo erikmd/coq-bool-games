@@ -1,6 +1,6 @@
 From mathcomp Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq.
 From mathcomp Require Import div choice fintype tuple finfun bigop.
-From mathcomp Require Import prime binomial ssralg.
+From mathcomp Require Import prime binomial ssralg finset.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -101,7 +101,80 @@ Tactic Notation "underbig" "in" hyp(H) open_constr(pat) simple_intropattern(x) s
   then under_big_in H pat x Hx tac
   else find_pat_in H pat ltac:(fun b => under_big_in H b x Hx tac).
 
-(** ** Tests *)
+(** * Similar material, for the bigop predicates *)
+
+(** ** When the bigop appears in the goal *)
+
+(** [under_bigp] allows one to apply a given tactic for rewriting the
+    predicate of the bigop corresponding to the specified arguments. *)
+Ltac under_bigp b x tac :=
+  let b' := eval hnf in b in
+  match b' with
+  | @BigOp.bigop ?R ?I ?idx ?r ?f =>
+    match f with
+    | fun i => @BigBody ?R ?I i ?op (@?P1 i) (@?F i) =>
+      pattern b;
+      match goal with
+      | [|- ?G b] =>
+        refine (@eq_rect_r _ _ G _ b (@eq_bigl R idx op I r P1 _ F _));
+        [|move=> x; tac;
+          try reflexivity (* instead of "; first reflexivity" *) ];
+        cbv beta
+      end
+    end
+  end.
+
+(** [underbigp] allows one to apply a given tactic for rewriting
+    some bigop predicate:
+    if [pat] is a local variable (let-in) that appears in the goal,
+    only the occurrences of [pat] will be rewritten;
+    otherwise the occurrences of the first bigop that matches [pat]
+    will be rewritten. *)
+Tactic Notation "underbigp" open_constr(pat) simple_intropattern(x) tactic(tac) :=
+  tryif match goal with [|- context [pat]] => is_var pat end
+  then under_bigp pat x tac
+  else find_pat pat ltac:(fun b => under_bigp b x tac).
+
+(** ** When the bigop appears in some hypothesis *)
+
+(** [under_bigp_in] allows one to apply a given tactic for rewriting the
+    predicate of the bigop corresponding to the specified arguments,
+    in some hypothesis *)
+Ltac under_bigp_in H b x tac :=
+  let b' := eval hnf in b in
+  match b' with
+  | @BigOp.bigop ?R ?I ?idx ?r ?f =>
+    match f with
+    | fun i => @BigBody ?R ?I i ?op (@?P1 i) (@?F i) =>
+      pattern b in H;
+      match type of H with
+      | ?G b =>
+        let e := fresh in
+        let new := fresh in
+        refine (let e := G _ in _);
+        shelve_unifiable;
+        suff new : e;
+        [ try clear H ; try rename new into H
+        | refine (@eq_rect _ _ G H _ (@eq_bigl R idx op I r P1 _ F _));
+          move=> x; tac;
+          try reflexivity (* instead of "; first reflexivity" *)
+        ]; try unfold e in * |- *; try clear e ; cbv beta
+      end
+    end
+  end.
+
+(** [underbigp…in] allows one to apply a given tactic for rewriting
+    some bigop predicate:
+    if [pat] is a local variable (let-in) that appears in H,
+    only the occurrences of [pat] will be rewritten;
+    otherwise the occurrences of the first bigop that matches [pat]
+    will be rewritten. *)
+Tactic Notation "underbigp" "in" hyp(H) open_constr(pat) simple_intropattern(x) tactic(tac) :=
+  tryif match type of H with context [pat] => is_var pat end
+  then under_bigp_in H pat x tac
+  else find_pat_in H pat ltac:(fun b => under_bigp_in H b x tac).
+
+(** * Tests *)
 
 Section Tests.
 
@@ -155,6 +228,26 @@ underbig b1 ? _ rewrite GRing.divff.
 done.
 
 move=> *; exact: Hneq0.
+Qed.
+
+(* A test lemma for [underbigp] *)
+Let testp1 (A : finType) (n : nat) (F : A -> nat) :
+  \big[addn/O]_(0 <= k < n)
+  \big[addn/O]_(J in {set A} | #|J :&: [set: A]| == k)
+  \big[addn/O]_(j in J) F j >= 0.
+Proof.
+underbig (bigop _ _ _) ? _ underbigp (bigop _ _ _) ? rewrite setIT.
+done.
+Qed.
+
+(* A test lemma for [underbigp…in] *)
+Let testp2 (A : finType) (n : nat) (F : A -> nat) :
+  \big[addn/O]_(J in {set A} | #|J :&: [set: A]| == 1)
+  \big[addn/O]_(j in J) F j = \big[addn/O]_(j in A) F j -> True.
+Proof.
+move=> H.
+underbigp in H (bigop _ _ _) ? rewrite setIT.
+done.
 Qed.
 
 End Tests.
