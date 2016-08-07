@@ -3,7 +3,7 @@ From mathcomp Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq.
 From mathcomp Require Import div choice fintype tuple finfun bigop.
 From mathcomp Require Import prime binomial ssralg finset ssrint.
 From Infotheo Require Import Reals_ext Rbigop proba.
-Require Import bigop_tactics.
+Require Import bigop_tactics reals_complements.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -371,16 +371,18 @@ Qed.
 Let SumIndCap (n : nat) (k : nat) (x : A) :=
   \rsum_(J in {set 'I_n} | #|J| == k) (Ind (\bigcap_(j in J) E j) x).
 
+(** [big_distr] is a specialization of [big_distr_big] and at the same
+    time a generalized version of [GRing.exprDn] for iterated prod. *)
 Lemma big_distr (R : Type) (zero one : R) (times : Monoid.mul_law zero)
     (plus : Monoid.add_law zero times) (I : finType) (p : pred I)
     (F1 F2 : I -> R) :
   \big[times/one]_(i | p i) plus (F1 i) (F2 i) =
   \big[plus/zero]_(0 <= k < #|p|.+1)
   \big[plus/zero]_(J in {set I} | #|J :&: finset p| == k)
-  times (\big[times/one]_(j in J) F1 j) (\big[times/one]_(j in ~: J) F2 j).
+  times (\big[times/one]_(j in ~: J) F1 j) (\big[times/one]_(j in J) F2 j).
 Proof.
 pose F12 i (j : 'I_2) := if val j is O then F1 i else F2 i.
-underbig (bigop _ _ _) i Hi
+underbig big i Hi
   rewrite (_ : plus (F1 i) (F2 i) = \big[plus/zero]_(j : 'I_2) F12 i j).
 rewrite (big_distr_big ord0) big_mkord.
 erewrite (partition_big (J := [finType of 'I_#|p|.+1]) _ xpredT).
@@ -395,21 +397,24 @@ Lemma bigcup_incl_excl (x : A) :
   (\rsum_(1 <= k < n.+1) ((-1)^(k-1) * (SumIndCap n k x)))%Re.
 Proof.
 case: n => [|n']; first by rewrite big_ord0 big_geq // Ind_set0.
-set Efull := \bigcup_(i < n.+1) E i.
-have Halg : \big[Rmult/R1]_(i < n.+1) (Ind Efull x - Ind (E i) x) = 0.
+set Efull := \bigcup_(i < n'.+1) E i.
+have Halg : \big[Rmult/R1]_(i < n'.+1) (Ind Efull x - Ind (E i) x) = 0.
   case Ex : (x \in Efull); last first.
   { have /Ind_notinP Ex0 := Ex.
-    underbig (bigop _ _ _) ? _ rewrite Ex0.
-    have Ex00 : forall i : 'I_n.+1, Ind (E i) x = 0.
+    underbig big ? _ rewrite Ex0.
+    have Ex00 : forall i : 'I_n'.+1, Ind (E i) x = 0.
       move=> i; apply/Ind_notinP.
       by move/negbT: Ex; rewrite -!in_setC setC_bigcup; move/bigcapP; apply.
-    underbig (bigop _ _ _) ? _ rewrite Ex00; rewrite Rminus_0_r.
+    underbig big ? _ rewrite Ex00; rewrite Rminus_0_r.
     by apply/bigmul_eq0; exists ord0. }
   { rewrite /Efull in Ex.
     have /bigcupP [i Hi Hi0] := Ex.
     apply/bigmul_eq0; exists i =>//.
     by rewrite /Efull (Ind_inP _ _ Ex) (Ind_inP _ _ Hi0) /Rminus Rplus_opp_r. }
-rewrite big_distr big_nat_recr //= in Halg.
+rewrite big_distr big_ltn //= in Halg.
+rewrite -> addR_eq0 in Halg.
+underbigp in Halg big ? rewrite setIT.
+rewrite cardT size_enum_ord in Halg.
 Admitted.
 
 Lemma Ind_capE_correct k : Exp (SumIndCap n k) = SumPrCap n k.
