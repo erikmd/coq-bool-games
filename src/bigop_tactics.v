@@ -52,7 +52,7 @@ end.
     only the occurrences of [pat] will be rewritten;
     otherwise the occurrences of the first bigop that matches [pat]
     will be rewritten. *)
-Tactic Notation "underbig" open_constr(pat) simple_intropattern(x) simple_intropattern(Hx) tactic(tac) :=
+Tactic Notation "under" open_constr(pat) simple_intropattern(x) simple_intropattern(Hx) tactic(tac) :=
   tryif match goal with [|- context [pat]] => is_var pat end
   then under_big pat x Hx tac
   else find_pat pat ltac:(fun b => under_big b x Hx tac).
@@ -99,7 +99,7 @@ Ltac find_pat_in H pat tac :=
     only the occurrences of [pat] will be rewritten;
     otherwise the occurrences of the first bigop that matches [pat]
     will be rewritten. *)
-Tactic Notation "underbig" "in" hyp(H) open_constr(pat) simple_intropattern(x) simple_intropattern(Hx) tactic(tac) :=
+Tactic Notation "under" open_constr(pat) "in" hyp(H) simple_intropattern(x) simple_intropattern(Hx) tactic(tac) :=
   tryif match type of H with context [pat] => is_var pat end
   then under_big_in H pat x Hx tac
   else find_pat_in H pat ltac:(fun b => under_big_in H b x Hx tac).
@@ -133,7 +133,7 @@ Ltac under_bigp b x tac :=
     only the occurrences of [pat] will be rewritten;
     otherwise the occurrences of the first bigop that matches [pat]
     will be rewritten. *)
-Tactic Notation "underbigp" open_constr(pat) simple_intropattern(x) tactic(tac) :=
+Tactic Notation "underp" open_constr(pat) simple_intropattern(x) tactic(tac) :=
   tryif match goal with [|- context [pat]] => is_var pat end
   then under_bigp pat x tac
   else find_pat pat ltac:(fun b => under_bigp b x tac).
@@ -172,12 +172,12 @@ Ltac under_bigp_in H b x tac :=
     only the occurrences of [pat] will be rewritten;
     otherwise the occurrences of the first bigop that matches [pat]
     will be rewritten. *)
-Tactic Notation "underbigp" "in" hyp(H) open_constr(pat) simple_intropattern(x) tactic(tac) :=
+Tactic Notation "underp" open_constr(pat) "in" hyp(H) simple_intropattern(x) tactic(tac) :=
   tryif match type of H with context [pat] => is_var pat end
   then under_bigp_in H pat x tac
   else find_pat_in H pat ltac:(fun b => under_bigp_in H b x tac).
 
-(** * Tests *)
+(** * Tests and examples *)
 
 Section Tests.
 
@@ -189,12 +189,12 @@ Let test1 (n : nat) (R : ringType) (f1 f2 g : nat -> R) :
   \big[+%R/0%R]_(i < n) (f1 i * g i) + \big[+%R/0%R]_(i < n) (f2 i * g i))%R.
 Proof.
 set b1 := {2}(bigop _ _ _).
-Fail underbig b1 ? _ rewrite GRing.mulrDr.
+Fail under b1 ? _ rewrite GRing.mulrDr.
 
-underbig b1 ? _ rewrite GRing.mulrDl. (* only b1 is rewritten *)
+under b1 ? _ rewrite GRing.mulrDl. (* only b1 is rewritten *)
 
 Undo 1. rewrite /b1.
-underbig b1 ? _ rewrite GRing.mulrDl. (* 3 occurrences are rewritten *)
+under b1 ? _ rewrite GRing.mulrDl. (* 3 occurrences are rewritten *)
 
 rewrite big_split /=.
 by rewrite GRing.addrA.
@@ -206,7 +206,7 @@ Let test2 (n : nat) (R : fieldType) (f : nat -> R) :
   (\big[+%R/0%R]_(i < n) (f i / f i) = n%:R)%R.
 Proof.
 move=> Hneq0.
-underbig (bigop _ _ _) ? _ rewrite GRing.divff.
+under big ? _ rewrite GRing.divff.
 2: done.
 
 rewrite big_const cardT /= size_enum_ord /GRing.natmul.
@@ -221,13 +221,13 @@ Let test3 (n : nat) (R : fieldType) (f : nat -> R) :
   \big[+%R/0%R]_(i < n) (f i / f i) = n%:R + n%:R)%R -> True.
 Proof.
 move=> Hneq0 H.
-set b1 := {2}(bigop _ _ _) in H.
-underbig in H b1 ? _ rewrite GRing.divff. (* only b1 is rewritten *)
+set b1 := {2}big in H.
+under b1 in H ? _ rewrite GRing.divff. (* only b1 is rewritten *)
 done.
 
 Undo 2.
 move: H.
-underbig b1 ? _ rewrite GRing.divff.
+under b1 ? _ rewrite GRing.divff.
 done.
 
 move=> *; exact: Hneq0.
@@ -239,7 +239,7 @@ Let testp1 (A : finType) (n : nat) (F : A -> nat) :
   \big[addn/O]_(J in {set A} | #|J :&: [set: A]| == k)
   \big[addn/O]_(j in J) F j >= 0.
 Proof.
-underbig (bigop _ _ _) ? _ underbigp (bigop _ _ _) ? rewrite setIT.
+under big ? _ underp big ? rewrite setIT.
 done.
 Qed.
 
@@ -249,7 +249,7 @@ Let testp2 (A : finType) (n : nat) (F : A -> nat) :
   \big[addn/O]_(j in J) F j = \big[addn/O]_(j in A) F j -> True.
 Proof.
 move=> H.
-underbigp in H (bigop _ _ _) ? rewrite setIT.
+underp big in H ? rewrite setIT.
 done.
 Qed.
 
