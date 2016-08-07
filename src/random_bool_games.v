@@ -344,7 +344,7 @@ Proof. by move=> Heq; rewrite /Exp; apply: eq_bigr => i Hi; rewrite Heq. Qed.
 
 Lemma Exp_add X1 X2 : Exp (fun w => X1 w + X2 w) = Exp X1 + Exp X2.
 Proof.
-rewrite /Exp; set b := LHS; underbig b ? _ rewrite Rmult_plus_distr_r.
+rewrite /Exp; set b := LHS; under b ? _ rewrite Rmult_plus_distr_r.
 by rewrite big_split.
 Qed.
 
@@ -382,7 +382,7 @@ Lemma big_distr (R : Type) (zero one : R) (times : Monoid.mul_law zero)
   times (\big[times/one]_(j in ~: J) F1 j) (\big[times/one]_(j in J) F2 j).
 Proof.
 pose F12 i (j : 'I_2) := if val j is O then F1 i else F2 i.
-underbig big i Hi
+under big i Hi
   rewrite (_ : plus (F1 i) (F2 i) = \big[plus/zero]_(j : 'I_2) F12 i j).
 rewrite (big_distr_big ord0) big_mkord.
 erewrite (partition_big (J := [finType of 'I_#|p|.+1]) _ xpredT).
@@ -401,11 +401,11 @@ set Efull := \bigcup_(i < n'.+1) E i.
 have Halg : \big[Rmult/R1]_(i < n'.+1) (Ind Efull x - Ind (E i) x) = 0.
   case Ex : (x \in Efull); last first.
   { have /Ind_notinP Ex0 := Ex.
-    underbig big ? _ rewrite Ex0.
+    under big ? _ rewrite Ex0.
     have Ex00 : forall i : 'I_n'.+1, Ind (E i) x = 0.
       move=> i; apply/Ind_notinP.
       by move/negbT: Ex; rewrite -!in_setC setC_bigcup; move/bigcapP; apply.
-    underbig big ? _ rewrite Ex00; rewrite Rminus_0_r.
+    under big ? _ rewrite Ex00; rewrite Rminus_0_r.
     by apply/bigmul_eq0; exists ord0. }
   { rewrite /Efull in Ex.
     have /bigcupP [i Hi Hi0] := Ex.
@@ -413,7 +413,7 @@ have Halg : \big[Rmult/R1]_(i < n'.+1) (Ind Efull x - Ind (E i) x) = 0.
     by rewrite /Efull (Ind_inP _ _ Ex) (Ind_inP _ _ Hi0) /Rminus Rplus_opp_r. }
 rewrite big_distr big_ltn //= in Halg.
 rewrite -> addR_eq0 in Halg.
-underbigp in Halg big ? rewrite setIT.
+underp big in Halg ? rewrite setIT.
 rewrite cardT size_enum_ord in Halg.
 Admitted.
 
@@ -426,7 +426,7 @@ Theorem Pr_bigcup_incl_excl :
   Pr P (\bigcup_(i < n) E i) = \big[Rplus/0]_(1 <= k < n.+1) ((-1)^(k-1) * SumPrCap n k).
 Proof.
 rewrite -Exp_Ind.
-underbig (bigop _ _ _) ? _ rewrite bigcup_incl_excl.
+under big ? _ rewrite bigcup_incl_excl.
 rewrite -/(Exp _) Exp_rsum.
 apply: eq_bigr => i _.
 by rewrite Exp_scalel Ind_capE_correct.
