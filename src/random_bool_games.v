@@ -455,7 +455,7 @@ elim: #|B| => [//|k IHk].
 by rewrite /= IHk /= Rmult_comm.
 Qed.
 
-(* Similar to [GRing.prodrN] *)
+(** Similar to [GRing.prodrN] *)
 Lemma bigmul_m1pow (I : finType) (p : pred I) (F : I -> R) :
   \rmul_(i in p) - F i = (-1) ^ #|p| * \rmul_(i in p) F i.
 Proof.
@@ -544,7 +544,7 @@ Qed.
 Let SumPrCap (n : nat) (k : nat) :=
   \rsum_(J in {set 'I_n} | #|J| == k) Pr P (\bigcap_(j in J) E j).
 
-Lemma Ind_capE_correct n k : Exp (SumIndCap n k) = SumPrCap n k.
+Lemma Exp_SumIndCap n k : Exp (SumIndCap n k) = SumPrCap n k.
 rewrite /SumIndCap /SumPrCap Exp_rsum; apply: eq_bigr => i Hi.
 by rewrite Exp_Ind.
 Qed.
@@ -556,7 +556,7 @@ rewrite -Exp_Ind.
 under big ? _ rewrite Ind_bigcup_incl_excl.
 rewrite -/(Exp _) Exp_rsum.
 apply: eq_bigr => i _.
-by rewrite Exp_scalel Ind_capE_correct.
+by rewrite Exp_scalel Exp_SumIndCap.
 Qed.
 
 End probability_inclusion_exclusion.
