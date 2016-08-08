@@ -465,15 +465,6 @@ apply: (big_rec3 (fun a b c => a = b * c)).
 move=> i a b c Hi Habc; rewrite Habc; ring.
 Qed.
 
-End probability_inclusion_exclusion.
-
-Section probability_inclusion_exclusion1.
-
-Variable A : finType.
-Variable P : dist A.
-
-Variables (E : nat -> {set A}).
-
 Let SumIndCap (n : nat) (k : nat) (x : A) :=
   \rsum_(J in {set 'I_n} | #|J| == k) (Ind (\bigcap_(j in J) E j) x).
 
@@ -553,7 +544,7 @@ Qed.
 Let SumPrCap (n : nat) (k : nat) :=
   \rsum_(J in {set 'I_n} | #|J| == k) Pr P (\bigcap_(j in J) E j).
 
-Lemma Ind_capE_correct n k : Exp P (SumIndCap n k) = SumPrCap n k.
+Lemma Ind_capE_correct n k : Exp (SumIndCap n k) = SumPrCap n k.
 rewrite /SumIndCap /SumPrCap Exp_rsum; apply: eq_bigr => i Hi.
 by rewrite Exp_Ind.
 Qed.
@@ -563,9 +554,9 @@ Theorem Pr_bigcup_incl_excl n :
 Proof.
 rewrite -Exp_Ind.
 under big ? _ rewrite Ind_bigcup_incl_excl.
-rewrite -/(Exp P _) Exp_rsum.
+rewrite -/(Exp _) Exp_rsum.
 apply: eq_bigr => i _.
 by rewrite Exp_scalel Ind_capE_correct.
 Qed.
 
-End probability_inclusion_exclusion1.
+End probability_inclusion_exclusion.
