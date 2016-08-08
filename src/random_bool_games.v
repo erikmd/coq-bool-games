@@ -364,27 +364,56 @@ Proof.
 rewrite /Exp big_distrr /=; apply: eq_bigr => i Hi.
 by rewrite !Rmult_assoc; congr Rmult; rewrite Rmult_comm.
 Qed.
-
-(** [big_distr] is a specialization of [big_distr_big] and at the same
+  
+(** [bigA_distr] is a specialization of [bigA_distr_bigA] and at the same
     time a generalized version of [GRing.exprDn] for iterated prod. *)
-Lemma big_distr (R : Type) (zero one : R) (times : Monoid.mul_law zero)
-    (plus : Monoid.add_law zero times) (I : finType) (p : pred I)
+Lemma bigA_distr (R : Type) (zero one : R) (times : Monoid.mul_law zero)
+    (plus : Monoid.add_law zero times)
+    (I : finType)
     (F1 F2 : I -> R) :
-  \big[times/one]_(i | p i) plus (F1 i) (F2 i) =
-  \big[plus/zero]_(0 <= k < #|p|.+1)
-  \big[plus/zero]_(J in {set I} | #|J :&: finset p| == k)
-  times (\big[times/one]_(j in ~: J) F1 j) (\big[times/one]_(j in J) F2 j).
+  \big[times/one]_(i in I) plus (F1 i) (F2 i) =
+  \big[plus/zero]_(0 <= k < #|I|.+1)
+  \big[plus/zero]_(J in {set I} | #|J| == k)
+  \big[times/one]_(j in I) (if j \notin J then F1 j else F2 j).
 Proof.
-pose F12 i (j : 'I_2) := if val j is O then F1 i else F2 i.
+pose F12 i (j : bool) := if ~~ j then F1 i else F2 i.
 under big i Hi
-  rewrite (_ : plus (F1 i) (F2 i) = \big[plus/zero]_(j : 'I_2) F12 i j).
-rewrite (big_distr_big ord0) big_mkord.
-erewrite (partition_big (J := [finType of 'I_#|p|.+1]) _ xpredT).
+  rewrite (_: plus (F1 i) (F2 i) = \big[plus/zero]_(j : bool) F12 i j).
+rewrite bigA_distr_bigA big_mkord (partition_big
+  (fun i : {ffun I -> _} => inord #|[set x | i x]|)
+  (fun j : [finType of 'I_#|I|.+1] => true)) //=.
 { eapply eq_big =>// i _.
-  erewrite (partition_big (J := [finType of {set I}]) _ (fun J => #|J :&: [set x | p x]| == i)).
-  eapply eq_big =>// j _.
-  admit. admit. } admit. admit.
-Admitted.
+  rewrite (reindex (fun s : {set I} => [ffun x => x \in s])); last first.
+  { apply: onW_bij.
+    exists (fun f : {ffun I -> bool} => [set x | f x]).
+    by move=> s; rewrite /finset_of /ffun_of; apply/setP => v; rewrite inE ffunE.
+    by move=> f; rewrite /finset_of /ffun_of; apply/ffunP => v; rewrite ffunE inE. }
+  eapply eq_big.
+  { move=> s; apply/eqP/eqP.
+      move<-; rewrite -[#|s|](@inordK #|I|) ?ltnS ?max_card //.
+      by congr inord; apply: eq_card => v; rewrite inE ffunE.
+    move=> Hi; rewrite -[RHS]inord_val -{}Hi.
+    by congr inord; apply: eq_card => v; rewrite inE ffunE. }
+  by move=> j Hj; apply: eq_bigr => k Hk; rewrite /F12 ffunE. }
+rewrite (reindex (fun x : 'I_2 => (x : nat) == 1%N)); last first.
+  { apply: onW_bij.
+    exists (fun b : bool => inord (nat_of_bool b)).
+    by move=> [x Hx]; rewrite -[RHS]inord_val; case: x Hx =>// x Hx; case: x Hx.
+    by case; rewrite inordK. }
+rewrite 2!big_ord_recl big_ord0 /F12 /=.
+by rewrite Monoid.mulm1.
+Qed.
+
+Lemma bigID2 (R : Type) (I : finType) (J : {set I}) (F1 F2 : I -> R)
+    (idx : R) (op : Monoid.com_law idx) :
+  \big[op/idx]_(j in I) (if j \notin J then F1 j else F2 j) =
+  op (\big[op/idx]_(j in ~: J) F1 j) (\big[op/idx]_(j in J) F2 j).
+Proof.
+rewrite (bigID (mem (setC J)) predT); apply: congr2.
+by apply: eq_big =>// i /andP [H1 H2]; rewrite inE in_setC in H2; rewrite H2.
+apply: eq_big => [i|i /andP [H1 H2]] /=; first by rewrite inE negbK.
+by rewrite ifF //; apply: negbTE; rewrite inE in_setC in H2.
+Qed.
 
 Lemma bigcap_seq_const I (B : {set A}) (r : seq I) :
   (0 < size r)%N -> \bigcap_(i <- r) B = B.
@@ -448,7 +477,7 @@ Variables (E : nat -> {set A}).
 Let SumIndCap (n : nat) (k : nat) (x : A) :=
   \rsum_(J in {set 'I_n} | #|J| == k) (Ind (\bigcap_(j in J) E j) x).
 
-Lemma bigcup_incl_excl (n : nat) (x : A) :
+Lemma Ind_bigcup_incl_excl (n : nat) (x : A) :
   Ind (\bigcup_(i < n) E i) x =
   (\rsum_(1 <= k < n.+1) ((-1)^(k-1) * (SumIndCap n k x)))%Re.
 Proof.
@@ -467,9 +496,10 @@ have Halg : \big[Rmult/R1]_(i < n.+1) (Ind Efull x - Ind (E i) x) = 0.
     have /bigcupP [i Hi Hi0] := Ex.
     apply/bigmul_eq0; exists i =>//.
     by rewrite /Efull (Ind_inP _ _ Ex) (Ind_inP _ _ Hi0) /Rminus Rplus_opp_r. }
-rewrite (@big_distr A P E) big_ltn //= in Halg.
+rewrite (@bigA_distr R R0 R1) in Halg.
+under big in Halg ? _ under big ? _ rewrite bigID2.
+rewrite big_ltn //= in Halg.
 rewrite -> addR_eq0 in Halg.
-underp big in Halg ? rewrite setIT.
 rewrite cardT size_enum_ord (big_pred1 set0) in Halg; last first.
   by move=> i; rewrite pred1E [RHS]eq_sym; apply: cards_eq0.
 rewrite [in X in _ * X = _]big_pred0 in Halg; last by move=> i; rewrite inE.
@@ -481,7 +511,6 @@ rewrite (big_morph Ropp (id1 := R0) (op1 := Rplus)); first last.
   by move=> *; rewrite Ropp_plus_distr.
 rewrite big_nat [RHS]big_nat.
 apply: eq_bigr => i Hi; rewrite /SumIndCap /Efull.
-underp big ? rewrite setIT.
 rewrite m1powD; last first.
   by case/andP: Hi => Hi _ K0; rewrite K0 in Hi.
 rewrite -Ropp_mult_distr_l.
@@ -500,8 +529,26 @@ have [Hlt|Hn1] := ltnP i n.+1; last first.
     rewrite (eqP Hj) cardsT /= card_ord.
     by apply/anti_leq/andP; split; first by case/andP: Hi =>//. }
   by rewrite Rmult_1_l Ind_bigcap. }
-admit.
-Admitted.
+rewrite -!Ind_bigcap bigcap_const; last first.
+{ exists (odflt ord0 (pick [pred x | x \notin j])); first exact: mem_index_enum.
+  case: pickP; first by move=> y Hy; rewrite !inE -in_setC in Hy.
+  move=> /pred0P K; exfalso.
+  rewrite /pred0b in K.
+  have Hcard := cardsC j.
+  rewrite cardsE (eqP K) (eqP Hj) cardT size_enum_ord addn0 in Hcard.
+  by rewrite Hcard ltnn in Hlt. }
+rewrite -Ind_cap -/Efull.
+suff : \bigcap_(j0 in j) E j0 \subset Efull by move/setIidPr->.
+rewrite /Efull.
+pose i0 := odflt ord0 (pick (mem j)).
+have Hi0 : i0 \in j.
+{ rewrite /i0; case: pickP =>//.
+  move=> /pred0P K; exfalso.
+  rewrite /pred0b (eqP Hj) in K.
+  by rewrite (eqP K) /= in Hi. }
+apply: (subset_trans (bigcap_inf i0 Hi0)).
+exact: (bigcup_sup i0 (F := fun i : 'I_n.+1 => E (@nat_of_ord n.+1 i))).
+Qed.
 
 Let SumPrCap (n : nat) (k : nat) :=
   \rsum_(J in {set 'I_n} | #|J| == k) Pr P (\bigcap_(j in J) E j).
@@ -515,7 +562,7 @@ Theorem Pr_bigcup_incl_excl n :
   Pr P (\bigcup_(i < n) E i) = \big[Rplus/0]_(1 <= k < n.+1) ((-1)^(k-1) * SumPrCap n k).
 Proof.
 rewrite -Exp_Ind.
-under big ? _ rewrite bigcup_incl_excl.
+under big ? _ rewrite Ind_bigcup_incl_excl.
 rewrite -/(Exp P _) Exp_rsum.
 apply: eq_bigr => i _.
 by rewrite Exp_scalel Ind_capE_correct.
