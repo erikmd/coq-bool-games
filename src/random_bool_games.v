@@ -113,8 +113,6 @@ Section probability_inclusion_exclusion.
 Variable A : finType.
 Variable P : dist A.
 
-Variables (E : nat -> {set A}).
-
 Lemma setDUKr (E1 E2 : {set A}) : (E1 :|: E2) :\: E2 = E1 :\: E2.
 Proof. by rewrite setDUl setDv setU0. Qed.
 
@@ -320,14 +318,14 @@ apply: (big_rec3 (fun a b c => a = b * c)).
 move=> i a b c Hi Habc; rewrite Habc; ring.
 Qed.
 
-Let SumIndCap (n : nat) (k : nat) (x : A) :=
+Let SumIndCap (n : nat) (E : 'I_n -> {set A}) (k : nat) (x : A) :=
   \rsum_(J in {set 'I_n} | #|J| == k) (Ind (\bigcap_(j in J) E j) x).
 
-Lemma Ind_bigcup_incl_excl (n : nat) (x : A) :
+Lemma Ind_bigcup_incl_excl (n : nat) (E : 'I_n -> {set A}) (x : A) :
   Ind (\bigcup_(i < n) E i) x =
-  (\rsum_(1 <= k < n.+1) ((-1)^(k-1) * (SumIndCap n k x)))%Re.
+  (\rsum_(1 <= k < n.+1) ((-1)^(k-1) * (SumIndCap E k x)))%Re.
 Proof.
-case: n => [|n]; first by rewrite big_ord0 big_geq // Ind_set0.
+case: n E => [|n] E; first by rewrite big_ord0 big_geq // Ind_set0.
 set Efull := \bigcup_(i < n.+1) E i.
 have Halg : \big[Rmult/R1]_(i < n.+1) (Ind Efull x - Ind (E i) x) = 0.
   case Ex : (x \in Efull); last first.
@@ -393,19 +391,21 @@ have Hi0 : i0 \in j.
   rewrite /pred0b (eqP Hj) in K.
   by rewrite (eqP K) /= in Hi. }
 apply: (subset_trans (bigcap_inf i0 Hi0)).
-exact: (bigcup_sup i0 (F := fun i : 'I_n.+1 => E (@nat_of_ord n.+1 i))).
+exact: (bigcup_sup i0).
 Qed.
 
-Let SumPrCap (n : nat) (k : nat) :=
+Let SumPrCap (n : nat) (E : 'I_n -> {set A}) (k : nat) :=
   \rsum_(J in {set 'I_n} | #|J| == k) Pr P (\bigcap_(j in J) E j).
 
-Lemma Exp_SumIndCap n k : Exp (SumIndCap n k) = SumPrCap n k.
+Lemma Exp_SumIndCap n (E : 'I_n -> {set A}) k :
+  Exp (SumIndCap E k) = SumPrCap E k.
+Proof.
 rewrite /SumIndCap /SumPrCap Exp_rsum; apply: eq_bigr => i Hi.
 by rewrite Exp_Ind.
 Qed.
 
-Theorem Pr_bigcup_incl_excl n :
-  Pr P (\bigcup_(i < n) E i) = \big[Rplus/0]_(1 <= k < n.+1) ((-1)^(k-1) * SumPrCap n k).
+Theorem Pr_bigcup_incl_excl n (E : 'I_n -> {set A}) :
+  Pr P (\bigcup_(i < n) E i) = \big[Rplus/0]_(1 <= k < n.+1) ((-1)^(k-1) * SumPrCap E k).
 Proof.
 rewrite -Exp_Ind.
 under big ? _ rewrite Ind_bigcup_incl_excl.
@@ -557,6 +557,113 @@ move=> f.
 apply/existsP/bigcupP.
 - by case=> a Ha; exists a =>//; rewrite -winA_sigmA.
 - by case=> a Ha Hb; exists a =>//; rewrite winA_sigmA.
+Qed.
+
+(** We now need to reindex the bigcup above, as [Pr_bigcup_incl_excl]
+    uses integer indices. *)
+
+Definition ord_of_StratA : bg_StratA -> 'I_#|bool_vec k| := enum_rank.
+
+Definition StratA_of_ord : 'I_#|bool_vec k| -> bg_StratA := enum_val.
+
+Lemma ord_of_StratAK : cancel ord_of_StratA StratA_of_ord.
+Proof. exact: enum_rankK. Qed.
+
+Lemma StratA_of_ordK : cancel StratA_of_ord ord_of_StratA.
+Proof. exact: enum_valK. Qed.
+
+Lemma ord_of_StratA_bij : bijective ord_of_StratA.
+Proof. by exists StratA_of_ord; [apply: ord_of_StratAK|apply: StratA_of_ordK]. Qed.
+
+Lemma StratA_of_ord_bij : bijective StratA_of_ord.
+Proof. by exists ord_of_StratA; [apply: StratA_of_ordK|apply: ord_of_StratAK]. Qed.
+
+(** Similar prerequisites, but for the powerset of ['I_#|bool_vec k|] *)
+
+Definition set_ord_of_StratA (s : {set bg_StratA}) : {set ('I_#|bool_vec k|)} :=
+(* [set x | mem_seq [seq enum_rank i | i <- enum s] x] *)
+   [set x | x \in [seq enum_rank i | i <- enum s]].
+
+Definition set_StratA_of_ord (s : {set ('I_#|bool_vec k|)}) : {set bg_StratA} :=
+  [set x | x \in [seq enum_val i | i <- enum s]].
+
+Lemma map_ord_of_StratAK : cancel (map ord_of_StratA) (map StratA_of_ord).
+Proof. apply: mapK; exact: ord_of_StratAK. Qed.
+
+Lemma map_StratA_of_ordK : cancel (map StratA_of_ord) (map ord_of_StratA).
+Proof. apply: mapK; exact: StratA_of_ordK. Qed.
+
+Lemma mem_enum_set_seqE (T : finType) (s : seq T) (x : T) :
+  (x \in enum [set x0 in s]) = (x \in s).
+Proof. by rewrite !mem_filter !inE (mem_index_enum x) andbT. Qed.
+
+Lemma mem_enum_seqE (T : finType) (s : seq T) (x : T) :
+  (x \in enum s) = (x \in s).
+Proof. by rewrite !mem_filter (mem_index_enum x) andbT. Qed.
+
+Lemma mem_enum_setE (T : finType) (s : {set T}) (x : T) :
+  (x \in enum s) = (x \in s).
+Proof. by rewrite !mem_filter (mem_index_enum x) andbT. Qed.
+
+Lemma set_ord_of_StratAK : cancel set_ord_of_StratA set_StratA_of_ord.
+Proof.
+move=> s; rewrite /set_ord_of_StratA /set_StratA_of_ord.
+apply/setP =>x; rewrite !inE.
+rewrite -{1}(enum_rankK x).
+rewrite mem_map /=; last exact: enum_val_inj.
+rewrite mem_enum_set_seqE mem_map; last exact: enum_rank_inj.
+by rewrite mem_enum_setE.
+Qed.
+
+Lemma set_StratA_of_ordK : cancel set_StratA_of_ord set_ord_of_StratA.
+Proof.
+move=> s; rewrite /set_ord_of_StratA /set_StratA_of_ord.
+apply/setP =>x; rewrite !inE.
+rewrite -{1}(enum_valK x).
+rewrite mem_map /=; last exact: enum_rank_inj.
+rewrite mem_enum_set_seqE mem_map; last exact: enum_val_inj.
+by rewrite mem_enum_setE.
+Qed.
+
+Lemma set_ord_of_StratA_bij : bijective set_ord_of_StratA.
+Proof.
+by exists set_StratA_of_ord; [apply: set_ord_of_StratAK|apply: set_StratA_of_ordK].
+Qed.
+
+Lemma set_StratA_of_ord_bij : bijective set_StratA_of_ord.
+Proof.
+by exists set_ord_of_StratA; [apply: set_StratA_of_ordK|apply: set_ord_of_StratAK].
+Qed.
+
+Theorem Pr_ex_winA_sigmA :
+  Pr P [set f | [exists a : bg_StratA, bg_winA (bg_game_of f) a]] =
+  \rsum_(1 <= i < (2^k).+1) (-1)^(i-1) *
+  \rsum_(J in {set bg_StratA} | #|J| == i) Pr P (\bigcap_(a in J) W_ a).
+Proof.
+have->: [set f | [exists a, bg_winA (bg_game_of f) a]] = \bigcup_(a in bg_StratA) W_ a.
+  by apply/setP => f; rewrite inE ex_winA_sigmA.
+rewrite (reindex StratA_of_ord) /=; last first.
+  by apply: onW_bij; apply: StratA_of_ord_bij.
+underp (\bigcup_(j | _) _) ? rewrite enum_valP.
+rewrite Pr_bigcup_incl_excl {1}card_ffun /= card_bool card_ord.
+apply: eq_bigr => i _.
+congr Rmult.
+rewrite (reindex set_ord_of_StratA) /=; last first.
+  by apply: onW_bij; apply: set_ord_of_StratA_bij.
+apply: eq_big.
+{ move=> j.
+  (* There is no lemma "bijective f -> #|f s| = #|s|"
+     but we can use [on_card_preimset] & [card_image] *)
+  rewrite on_card_preimset; last by apply: onW_bij; exists id; move=> *.
+  f_equal; rewrite card_image //; exact/bij_inj/enum_rank_bij. }
+move=> s Hs; f_equal.
+rewrite (reindex StratA_of_ord) /=; last first.
+  by apply: onW_bij; apply: StratA_of_ord_bij.
+apply: eq_bigl.
+move=> x; rewrite /set_ord_of_StratA !inE.
+rewrite -(mem_map (f := StratA_of_ord)); last exact/bij_inj/StratA_of_ord_bij.
+rewrite -map_comp; rewrite (eq_map (f2 := id)); last exact: ord_of_StratAK.
+by rewrite map_id mem_enum_setE.
 Qed.
 
 End Proba_games.
