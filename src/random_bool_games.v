@@ -107,151 +107,6 @@ Proof. move=> *; exact: le_0_Pr. Qed.
 
 End Proba_example.
 
-Section Proba_games.
-
-Variable n : nat.
-
-(** Let us consider Boolean Games of two players A and B with a random
-    Boolean function of [n] variables as the pay function of A, and
-    its negation as the pay function for B.
-
-    We shall assume that A controls the first [k] variables, and B the
-    remaining [n-k] variables.
-
-    The prefix [bg_] stands for "Boolean Game".
-*)
-
-Variable k : nat.
-
-Hypothesis le_k_n : (k <= n)%N.
-
-Let knk_eqn : (k + (n - k) = n)%N.
-Proof. by apply: subnKC. Qed.
-
-Let eqn_knk : (n = k + (n - k))%N.
-Proof. by rewrite knk_eqn. Qed.
-
-Definition bg_StratA := (bool_vec k)%type.
-
-Definition bg_StratB := (bool_vec (n - k))%type.
-
-Definition bg_Outc := bool.
-(* [true] means player A wins *)
-
-Definition bg_strategy := (bg_StratA * bg_StratB)%type.
-(* [bg_strategy] is isomorphic to [bool_vec n] *)
-
-Definition bool_vec_of (s : bg_strategy) : bool_vec n :=
-  [ffun i : 'I_n => match split (cast_ord eqn_knk i) with
-                    | inl ik => s.1 ik
-                    | inr ink => s.2 ink
-                    end].
-
-(* TODO: name the function [widen_ord le_k_n]... *)
-Definition bg_strategy_of (v : bool_vec n) : bg_strategy :=
-  ([ffun ik : 'I_k => v (widen_ord le_k_n ik)],
-   [ffun ink : 'I_(n - k) => v (cast_ord knk_eqn (rshift k ink))]).
-
-Lemma bool_vec_ofK : cancel bool_vec_of bg_strategy_of.
-Proof.
-move=> s; rewrite /bool_vec_of /bg_strategy_of (surjective_pairing s).
-congr pair; apply/ffunP => v; rewrite !ffunE.
-- case: splitP => /= j; first by move/ord_inj->.
-  case: v => [v Hv] /= => K; exfalso; rewrite K in Hv.
-  by rewrite ltnNge leq_addr in Hv.
-- case: splitP => /= j.
-  + case: j => [j Hv] /= => K; exfalso; rewrite -K in Hv.
-    by rewrite ltnNge leq_addr in Hv.
-  + by move/eqP; rewrite eqn_add2l; move/eqP/ord_inj->.
-Qed.
-
-Lemma bg_strategy_ofK : cancel bg_strategy_of bool_vec_of.
-Proof.
-move=> v; rewrite /bg_strategy_of /bool_vec_of; apply/ffunP=> x; rewrite !ffunE.
-by case: splitP=>/= j H; rewrite ffunE; apply: congr1; apply/ord_inj; rewrite H.
-Qed.
-
-Definition bg_game := {ffun bg_strategy -> bg_Outc}.
-(* [bg_game] is isomorphic to [bool_fun n] *)
-
-Definition bool_fun_of (g : bg_game) : bool_fun n :=
-  [ffun i => g (bg_strategy_of i)].
-
-Definition bg_game_of (f : bool_fun n) : bg_game :=
-  [ffun s => f (bool_vec_of s)].
-
-Lemma bool_fun_ofK : cancel bool_fun_of bg_game_of.
-Proof.
-move=> g; rewrite /bool_fun_of /bg_game_of; apply/ffunP => x; rewrite !ffunE.
-by rewrite bool_vec_ofK.
-Qed.
-
-Lemma bg_game_ofK : cancel bg_game_of bool_fun_of.
-Proof.
-move=> f; rewrite /bool_fun_of /bg_game_of; apply/ffunP => x; rewrite !ffunE.
-by rewrite bg_strategy_ofK.
-Qed.
-
-Definition Omega := bool_fun n.
-
-Variable P : dist [finType of Omega].
-
-Let sigmA := {set Omega}.
-
-(*
-Variable random_f : Omega.
-Definition g := bg_game_of random_f.
-*)
-
-Definition bg_winA (g : bg_game) (a : bg_StratA) : bool :=
-  [forall b : bg_StratB, g (a, b) (* == true *)].
-
-Definition bg_winA_wide (g : bg_game) (s : bg_strategy) : bool :=
-  bg_winA g s.1.
-
-Definition w_ (a : bg_StratA) : Omega :=
-  ffun_of [set w : bool ^ n | [forall i : 'I_k, w (widen_ord le_k_n i) == a i]].
-
-Definition W_ (a : bg_StratA) : sigmA :=
-  [set w : Omega | finset_of (w_ a) ⊆0 finset_of w].
-
-Theorem winA_sigmA :
-  forall (f : Omega) (a : bg_StratA),
-  bg_winA (bg_game_of f) a = (f \in W_ a).
-Proof.
-move=> f a; rewrite /bg_winA /W_.
-apply/forallP/idP =>/= H.
-- rewrite inE /w_; apply/subseteq0P; rewrite !finset_ofK=> x; rewrite ffunE inE.
-  move/forallP => H'.
-  rewrite -(bg_game_ofK f) /bool_fun_of ffunE.
-  have->: bg_strategy_of x = (a, (bg_strategy_of x).2).
-    rewrite [LHS]surjective_pairing; congr pair.
-    rewrite /bg_strategy_of /=.
-    apply/ffunP => ik; rewrite !ffunE.
-    by apply/eqP; exact: H'.
-  exact: H.
-- rewrite inE /w_ in H; move/subseteq0P in H; rewrite !finset_ofK in H.
-  move=> x; move/(_ (bool_vec_of (a, x))) in H.
-  rewrite ffunE inE in H; rewrite /bg_game_of ffunE; apply: H.
-  apply/forallP => y; rewrite /bool_vec_of ffunE.
-  case: splitP => j /=; first by move/ord_inj<-.
-  case: y => [y Hy] /= => K; exfalso; rewrite K in Hy.
-  by rewrite ltnNge leq_addr in Hy.
-Qed.
-
-Corollary ex_winA_sigmA :
-  forall (f : Omega),
-  [exists a : bg_StratA, bg_winA (bg_game_of f) a] =
-  (f \in \bigcup_(a in bg_StratA) W_ a).
-Proof.
-move=> f.
-apply/existsP/bigcupP.
-- by case=> a Ha; exists a =>//; rewrite -winA_sigmA.
-- by case=> a Ha Hb; exists a =>//; rewrite winA_sigmA.
-Qed.
-
-End Proba_games.
-
 Section probability_inclusion_exclusion.
 (** In this section we prove the formula of inclusion-exclusion.
     This result is more general than lemma [Pr_bigcup] in Infotheo. *)
@@ -560,3 +415,148 @@ by rewrite Exp_scalel Exp_SumIndCap.
 Qed.
 
 End probability_inclusion_exclusion.
+
+Section Proba_games.
+
+Variable n : nat.
+
+(** Let us consider Boolean Games of two players A and B with a random
+    Boolean function of [n] variables as the pay function of A, and
+    its negation as the pay function for B.
+
+    We shall assume that A controls the first [k] variables, and B the
+    remaining [n-k] variables.
+
+    The prefix [bg_] stands for "Boolean Game".
+*)
+
+Variable k : nat.
+
+Hypothesis le_k_n : (k <= n)%N.
+
+Let knk_eqn : (k + (n - k) = n)%N.
+Proof. by apply: subnKC. Qed.
+
+Let eqn_knk : (n = k + (n - k))%N.
+Proof. by rewrite knk_eqn. Qed.
+
+Definition bg_StratA := (bool_vec k)%type.
+
+Definition bg_StratB := (bool_vec (n - k))%type.
+
+Definition bg_Outc := bool.
+(* [true] means player A wins *)
+
+Definition bg_strategy := (bg_StratA * bg_StratB)%type.
+(* [bg_strategy] is isomorphic to [bool_vec n] *)
+
+Definition bool_vec_of (s : bg_strategy) : bool_vec n :=
+  [ffun i : 'I_n => match split (cast_ord eqn_knk i) with
+                    | inl ik => s.1 ik
+                    | inr ink => s.2 ink
+                    end].
+
+(* TODO: name the function [widen_ord le_k_n]... *)
+Definition bg_strategy_of (v : bool_vec n) : bg_strategy :=
+  ([ffun ik : 'I_k => v (widen_ord le_k_n ik)],
+   [ffun ink : 'I_(n - k) => v (cast_ord knk_eqn (rshift k ink))]).
+
+Lemma bool_vec_ofK : cancel bool_vec_of bg_strategy_of.
+Proof.
+move=> s; rewrite /bool_vec_of /bg_strategy_of (surjective_pairing s).
+congr pair; apply/ffunP => v; rewrite !ffunE.
+- case: splitP => /= j; first by move/ord_inj->.
+  case: v => [v Hv] /= => K; exfalso; rewrite K in Hv.
+  by rewrite ltnNge leq_addr in Hv.
+- case: splitP => /= j.
+  + case: j => [j Hv] /= => K; exfalso; rewrite -K in Hv.
+    by rewrite ltnNge leq_addr in Hv.
+  + by move/eqP; rewrite eqn_add2l; move/eqP/ord_inj->.
+Qed.
+
+Lemma bg_strategy_ofK : cancel bg_strategy_of bool_vec_of.
+Proof.
+move=> v; rewrite /bg_strategy_of /bool_vec_of; apply/ffunP=> x; rewrite !ffunE.
+by case: splitP=>/= j H; rewrite ffunE; apply: congr1; apply/ord_inj; rewrite H.
+Qed.
+
+Definition bg_game := {ffun bg_strategy -> bg_Outc}.
+(* [bg_game] is isomorphic to [bool_fun n] *)
+
+Definition bool_fun_of (g : bg_game) : bool_fun n :=
+  [ffun i => g (bg_strategy_of i)].
+
+Definition bg_game_of (f : bool_fun n) : bg_game :=
+  [ffun s => f (bool_vec_of s)].
+
+Lemma bool_fun_ofK : cancel bool_fun_of bg_game_of.
+Proof.
+move=> g; rewrite /bool_fun_of /bg_game_of; apply/ffunP => x; rewrite !ffunE.
+by rewrite bool_vec_ofK.
+Qed.
+
+Lemma bg_game_ofK : cancel bg_game_of bool_fun_of.
+Proof.
+move=> f; rewrite /bool_fun_of /bg_game_of; apply/ffunP => x; rewrite !ffunE.
+by rewrite bg_strategy_ofK.
+Qed.
+
+Definition Omega := bool_fun n.
+
+Variable P : dist [finType of Omega].
+
+Let sigmA := {set Omega}.
+
+(*
+Variable random_f : Omega.
+Definition g := bg_game_of random_f.
+*)
+
+Definition bg_winA (g : bg_game) (a : bg_StratA) : bool :=
+  [forall b : bg_StratB, g (a, b) (* == true *)].
+
+Definition bg_winA_wide (g : bg_game) (s : bg_strategy) : bool :=
+  bg_winA g s.1.
+
+Definition w_ (a : bg_StratA) : Omega :=
+  ffun_of [set w : bool ^ n | [forall i : 'I_k, w (widen_ord le_k_n i) == a i]].
+
+Definition W_ (a : bg_StratA) : sigmA :=
+  [set w : Omega | finset_of (w_ a) ⊆0 finset_of w].
+
+Theorem winA_sigmA :
+  forall (f : Omega) (a : bg_StratA),
+  bg_winA (bg_game_of f) a = (f \in W_ a).
+Proof.
+move=> f a; rewrite /bg_winA /W_.
+apply/forallP/idP =>/= H.
+- rewrite inE /w_; apply/subseteq0P; rewrite !finset_ofK=> x; rewrite ffunE inE.
+  move/forallP => H'.
+  rewrite -(bg_game_ofK f) /bool_fun_of ffunE.
+  have->: bg_strategy_of x = (a, (bg_strategy_of x).2).
+    rewrite [LHS]surjective_pairing; congr pair.
+    rewrite /bg_strategy_of /=.
+    apply/ffunP => ik; rewrite !ffunE.
+    by apply/eqP; exact: H'.
+  exact: H.
+- rewrite inE /w_ in H; move/subseteq0P in H; rewrite !finset_ofK in H.
+  move=> x; move/(_ (bool_vec_of (a, x))) in H.
+  rewrite ffunE inE in H; rewrite /bg_game_of ffunE; apply: H.
+  apply/forallP => y; rewrite /bool_vec_of ffunE.
+  case: splitP => j /=; first by move/ord_inj<-.
+  case: y => [y Hy] /= => K; exfalso; rewrite K in Hy.
+  by rewrite ltnNge leq_addr in Hy.
+Qed.
+
+Corollary ex_winA_sigmA :
+  forall (f : Omega),
+  [exists a : bg_StratA, bg_winA (bg_game_of f) a] =
+  (f \in \bigcup_(a in bg_StratA) W_ a).
+Proof.
+move=> f.
+apply/existsP/bigcupP.
+- by case=> a Ha; exists a =>//; rewrite -winA_sigmA.
+- by case=> a Ha Hb; exists a =>//; rewrite winA_sigmA.
+Qed.
+
+End Proba_games.
