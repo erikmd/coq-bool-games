@@ -151,10 +151,10 @@ Lemma dmc_cdiv_cond_entropy_aux : W ``^ n (tb | ta) =
   \rmul_(a : A) \rmul_(b : B) W a b ^ N(a, b | tuple_of_row ta, tuple_of_row tb).
 Proof.
 transitivity (\rmul_(a : A) \rmul_(b : B) \rmul_(i < n)
-  if (a == ta /_ i) && (b == tb /_ i) then W ta /_ i tb /_ i else 1).
+  if (a == ta ``_ i) && (b == tb ``_ i) then W ta ``_ i tb ``_ i else 1).
   rewrite pair_big exchange_big /= /DMC.c; unlock.
   apply eq_bigr => i _.
-  rewrite (bigD1 (ta /_ i, tb /_ i)) //= 2!eqxx andbT.
+  rewrite (bigD1 (ta ``_ i, tb ``_ i)) //= 2!eqxx andbT.
   rewrite big1; first by rewrite mulR1.
   case=> a b /=.
   rewrite xpair_eqE negb_and.

@@ -21,7 +21,7 @@ Variables A B : finType.
 
 (* TODO: rename *)
 Definition prod_tuple n (x : 'rV[A]_n * 'rV[B]_n) : 'rV[A * B]_n :=
-  \row_(k < n) (x.1 /_ k, x.2 /_ k).
+  \row_(k < n) (x.1 ``_ k, x.2 ``_ k).
 
 End prod_tuple_def.
 
@@ -30,7 +30,7 @@ Section tuple_of_prods_to_prod_of_tuples.
 Variable A B : finType.
 
 Definition tuple_prod n (x : 'rV[A * B]_n) : {: 'rV[A]_n * 'rV[B]_n} :=
-  (\row_(k < n) (x /_ k).1, \row_(k < n) (x /_ k).2).
+  (\row_(k < n) (x ``_ k).1, \row_(k < n) (x ``_ k).2).
 
 Lemma prod_tupleK n (x : 'rV[A]_n * 'rV[B]_n) : tuple_prod (prod_tuple x) = x.
 Proof.
@@ -43,7 +43,7 @@ Lemma tuple_prodK n (x : 'rV[A * B]_n) : prod_tuple (tuple_prod x) = x.
 Proof.
 rewrite /tuple_prod /= /prod_tuple /=.
 apply/matrixP => a b; rewrite {a}(ord1 a); rewrite !mxE.
-by case: (x /_ b).
+by case: (x ``_ b).
 Qed.
 
 End tuple_of_prods_to_prod_of_tuples.
@@ -62,13 +62,13 @@ Lemma unzip2_prod_tuple n : forall (x : {: n.-tuple A * n.-tuple B }),
 Proof. case => /= a b; by rewrite unzip2_zip // !size_tuple. Qed.*)
 
 Lemma snd_tnth_prod_tuple n (x : {: 'rV[A]_n * 'rV[B]_n}) i :
-  x.2 /_ i = ((prod_tuple x) /_ i).2.
+  x.2 ``_ i = ((prod_tuple x) ``_ i).2.
 Proof.
 by rewrite /prod_tuple /= mxE /=.
 Qed.
 
 Lemma fst_tnth_prod_tuple n (x : {: 'rV[A]_n * 'rV[B]_n}) i :
-  x.1 /_ i = ((prod_tuple x) /_ i).1.
+  x.1 ``_ i = ((prod_tuple x) ``_ i).1.
 Proof.
 by rewrite /prod_tuple /= mxE /=.
 Qed.

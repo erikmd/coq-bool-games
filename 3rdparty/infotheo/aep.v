@@ -25,7 +25,7 @@ Section map_mlog_prop.
 Variable A : finType.
 Variable P : dist A.
 
-Lemma E_map_mlog k i : `E ((map_mlog k.+1 P) /_ i) = `H P.
+Lemma E_map_mlog k i : `E ((map_mlog k.+1 P) ``_ i) = `H P.
 Proof.
 rewrite /Ex_alt /entropy (big_morph _ morph_Ropp Ropp_0).
 apply eq_bigr=> a _.
@@ -34,7 +34,7 @@ Qed.
 
 Definition aep_sigma2 := (\rsum_(a in A) P a * (log (P a))^2 - (`H P)^2)%R.
 
-Lemma V_map_mlog k i : `V ((map_mlog k.+1 P) /_ i) = aep_sigma2.
+Lemma V_map_mlog k i : `V ((map_mlog k.+1 P) ``_ i) = aep_sigma2.
 Proof.
 rewrite /Var E_trans_id_rem E_map_mlog.
 rewrite /Ex_alt /aep_sigma2 /map_mlog.
@@ -66,7 +66,7 @@ Qed.
 End map_mlog_prop.
 
 Definition sum_mlog_prod A (P : dist A) n : rvar [finType of 'rV[A]_n] :=
-  mkRvar (P `^ n) (fun t => \rsum_(i < n) - log (P t /_ i))%R.
+  mkRvar (P `^ n) (fun t => \rsum_(i < n) - log (P t ``_ i))%R.
 
 Lemma sum_mlog_prod_isum_map_mlog A (P : dist A) : forall n,
   sum_mlog_prod P n.+1 \=isum map_mlog n.+1 P.

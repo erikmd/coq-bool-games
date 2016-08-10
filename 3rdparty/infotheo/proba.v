@@ -152,10 +152,9 @@ Qed.
 
 Lemma restrict g : \rsum_(t in A) (f t * g t)%R = \rsum_(t in C) (f t * g t)%R.
 Proof.
-rewrite /= -[X in _ X]addR0 (bigID (fun x => x \in C)) /=.
-congr (_ + _)%R.
-apply/esym/Req_0_rmul => /= i Hi.
-by rewrite /f (negbTE Hi) mul0R.
+rewrite (bigID (fun x => x \in C)) /= addRC (eq_bigr (fun=> 0)).
+by rewrite big_const // iter_Rplus mulR0 add0R.
+move=> a aC; by rewrite /f (negbTE aC) mul0R.
 Qed.
 
 Lemma big_distrr g : \rsum_(t in C) (f t * g t)%R = (/ INR #|C| * \rsum_(t in C) g t)%R.
@@ -246,7 +245,7 @@ Local Open Scope vec_ext_scope.
 Lemma dist2rV1 : forall A, dist A -> {dist 'rV[A]_1}.
 Proof.
 move=> A d.
-apply makeDist with (fun x : 'rV[A]_1 => d (x /_ ord0)).
+apply makeDist with (fun x : 'rV[A]_1 => d (x ``_ ord0)).
 move=> a; by apply Rle0f.
 rewrite -(pmf1 d).
 by apply: rsum_rV_1.
@@ -266,7 +265,7 @@ Variable n : nat.
 
 Local Open Scope vec_ext_scope.
 
-Definition f (t : 'rV[A]_n) := \rmul_(i < n) P t /_ i.
+Definition f (t : 'rV[A]_n) := \rmul_(i < n) P t ``_ i.
 
 Lemma f0 (t : 'rV[A]_n) : 0 <= f t.
 Proof. apply Rle_0_big_mult => ?; by apply Rle0f. Qed.
@@ -280,7 +279,7 @@ suff : \rsum_(g : {ffun 'I_n -> A }) \rmul_(i < n) P' i (g i) = 1.
 
 Local Open Scope ring_scope.
 
-  rewrite (reindex_onto (fun j : 'rV[A]_n => finfun (fun x => j /_ x))
+  rewrite (reindex_onto (fun j : 'rV[A]_n => finfun (fun x => j ``_ x))
                         (fun i => \row_(j < n) i j)) /=.
   - move=> H; rewrite /f -{2}H {H}.
     apply eq_big => t /=.
@@ -309,7 +308,7 @@ Local Open Scope vec_ext_scope.
 
 (* TODO: rename *)
 Lemma tuple_pmf_singleton A (d : dist A) (i : 'rV[A]_1) :
-  forall a : 'rV[A]_1, (d `^ 1) a = d (a /_ ord0).
+  forall a : 'rV[A]_1, (d `^ 1) a = d (a ``_ ord0).
 Proof.
 move=> a.
 rewrite /TupleDist.d /= /TupleDist.f /index_enum -enumT enum_ordS big_cons.
@@ -320,11 +319,11 @@ Qed.
 Local Open Scope ring_scope.
 
 Lemma rsum_rmul_rV_pmf_tnth A n k (P : dist A) :
-  \rsum_(t : 'rV[ 'rV[A]_n]_k) \rmul_(m < k) (P `^ n) t /_ m = 1%R.
+  \rsum_(t : 'rV[ 'rV[A]_n]_k) \rmul_(m < k) (P `^ n) t ``_ m = 1%R.
 Proof.
 transitivity (\rsum_(j : {ffun 'I_k -> 'rV[A]_n})
   \rmul_(m : 'I_k) TupleDist.f P (j m)).
-  rewrite (reindex_onto (fun p : 'rV_k => [ffun i => p /_ i]) (fun x : {ffun 'I_k -> 'rV_n} => \row_(i < k) x i)) //=; last first.
+  rewrite (reindex_onto (fun p : 'rV_k => [ffun i => p ``_ i]) (fun x : {ffun 'I_k -> 'rV_n} => \row_(i < k) x i)) //=; last first.
     move=> f _.
     apply/ffunP => /= k0.
     by rewrite ffunE mxE.
@@ -675,13 +674,13 @@ Lemma rvar2tuple1 : forall A, rvar A -> {rvar 'rV[A]_1}.
 Proof.
 move=> A [d f]; apply mkRvar.
 - exact (d `^ 1).
-- exact (fun x => f (x /_ ord0)).
+- exact (fun x => f (x ``_ ord0)).
 Defined.
 
 
 Definition cast_rv A : 'rV[rvar A]_1 -> {rvar 'rV[A]_1}.
 move=> t.
-exact (rvar2tuple1 (t /_ ord0)).
+exact (rvar2tuple1 (t ``_ ord0)).
 Defined.
 
 Definition img (A : finType) (f : A -> R) :=
@@ -788,6 +787,59 @@ apply rsum_rV_1 => // m.
 by rewrite -tuple_pmf_singleton.
 Qed.
 
+(* TODO: move *)
+Lemma RltnNge r1 r2 : (r1 <b r2) = ~~ (r1 >b= r2).
+Proof.
+rewrite /Rlt_bool /Rge_bool.
+destruct (Rlt_dec) as [H|H]; destruct (Rge_dec) as [H'|H'] => //.
+by fourier.
+apply Rnot_lt_le in H.
+apply Rnot_ge_gt in H'.
+by fourier.
+Qed.
+
+Section markov_inquality.
+
+Variable A : finType.
+Variable X : rvar A.
+Hypothesis X_nonneg : forall a, 0 <= X a.
+
+Definition pr_geq (X : rvar A) r := Pr `p_X [set x | X x >b= r].
+
+Notation "'Pr[' X '>=' r ']'" := (pr_geq X r) (at level 5, X at next level, r at next level, format "Pr[  X  >=  r  ]") : proba_scope.
+
+Lemma markov (r : R) : 0 < r -> Pr[X >= r] <= `E X / r.
+Proof.
+move=> r_pos.
+rewrite /Rdiv.
+apply: (Rmult_le_reg_l r) => //.
+rewrite -Rmult_assoc.
+rewrite Rinv_r_simpl_m; last first.
+  apply: not_eq_sym.
+  by apply: Rlt_not_eq.
+rewrite /Ex_alt.
+rewrite (bigID [pred a' | X a' >b= r]) /=.
+rewrite -[a in a <= _]Rplus_0_r.
+apply Rplus_le_compat; last first.
+  apply Rle_big_0_P_g => a' _.
+  apply Rmult_le_pos.
+  by apply X_nonneg.
+  by apply Rle0f.
+apply (Rle_trans _ (\rsum_(i | X i >b= r) r * `p_ X i)).
+  rewrite big_distrr /=.
+  apply Req_le.
+  apply eq_bigl.
+  move=> a'.
+  by rewrite inE.
+apply Rle_big_P_f_g.
+move=> a' Xa'r.
+apply Rmult_le_compat_r.
+apply Rle0f.
+by apply/RleP.
+Qed.
+
+End markov_inquality.
+
 (** * Variance *)
 
 Section variance_definition.
@@ -888,7 +940,7 @@ Variable P2 : {dist 'rV[A]_n}.
 Variable P : {dist 'rV[A]_n.+1}.
 
 Definition joint :=
-  (forall x, P1 x = \rsum_(t in 'rV[A]_n.+1 | t /_ ord0 == x) P t) /\
+  (forall x, P1 x = \rsum_(t in 'rV[A]_n.+1 | t ``_ ord0 == x) P t) /\
   (forall x, P2 x = \rsum_(t in 'rV[A]_n.+1 | rbehead t == x) P t).
 
 End joint_dist.
@@ -897,10 +949,10 @@ End joint_dist.
 Lemma TupleDist0 {B : finType} (x : 'rV[B]_0) P : P `^ 0 x = 1.
 Proof. by rewrite /= /TupleDist.f big_ord0. Qed.
 
-Lemma TupleDist1 {B : finType} (x : 'rV[B]_1) P : P `^ 1 x = P (x /_ ord0).
+Lemma TupleDist1 {B : finType} (x : 'rV[B]_1) P : P `^ 1 x = P (x ``_ ord0).
 Proof. by rewrite /= /TupleDist.f big_ord_recl big_ord0 mulR1. Qed.
 
-Lemma TupleDistn {B : finType} {n} (x : 'rV[B]_n.+1) P : P `^ n.+1 x = (P (x /_ ord0) * P `^ n (rbehead x))%R.
+Lemma TupleDistn {B : finType} {n} (x : 'rV[B]_n.+1) P : P `^ n.+1 x = (P (x ``_ ord0) * P `^ n (rbehead x))%R.
 Proof.
 rewrite /= /TupleDist.f big_ord_recl.
 congr (_ * _)%R.
@@ -956,7 +1008,7 @@ Variable n : nat.
 (** The random variables %$Xs$%#Xs# are identically distributed with distribution %$P$%#P#: *)
 
 (*Definition id_dist (Xs : n.-tuple (rvar A)) := forall i, `p_(Xs \_ i) = P.*)
-Definition id_dist (Xs : 'rV[rvar A]_n) := forall i, `p_(Xs /_ i) = P.
+Definition id_dist (Xs : 'rV[rvar A]_n) := forall i, `p_(Xs ``_ i) = P.
 
 End identically_distributed.
 
@@ -971,7 +1023,7 @@ Variable Y : {rvar 'rV[A]_n}.
 Variable P : {dist 'rV[A]_n.+1}.
 
 Definition inde_rv := forall x y,
-  Pr P [set xy : 'rV_n.+1 | (X (xy /_ ord0) == x) && (Y (rbehead xy) == y)] =
+  Pr P [set xy : 'rV_n.+1 | (X (xy ``_ ord0) == x) && (Y (rbehead xy) == y)] =
   (Pr[X = x] * Pr[Y = y])%R.
 
 End independent_random_variables.
@@ -982,24 +1034,24 @@ Notation "X _| P |_ Y" := (inde_rv X Y P) (at level 50) : proba_scope.
 
 Lemma inde_rv_tuple_pmf_dist A (P : dist A) n (x y : R) (Xs : 'rV[rvar A]_n.+2) :
   id_dist P Xs ->
-    Pr (P `^ n.+2) [set xy : 'rV__ | (- log (P (xy /_ ord0)) == x)%R &&
+    Pr (P `^ n.+2) [set xy : 'rV__ | (- log (P (xy ``_ ord0)) == x)%R &&
       (\rsum_(i : 'I_n.+1)
-       - log (`p_ ((rbehead Xs) /_ i) (rbehead xy) /_ i) == y)%R] =
+       - log (`p_ ((rbehead Xs) ``_ i) (rbehead xy) ``_ i) == y)%R] =
     (Pr P [set a | - log (P a) == x] *
     Pr (P `^ n.+1) [set ta : 'rV__ |
-      \rsum_(i : 'I_n.+1) - log (`p_ ((rbehead Xs) /_ i) ta /_ i) == y])%R.
+      \rsum_(i : 'I_n.+1) - log (`p_ ((rbehead Xs) ``_ i) ta ``_ i) == y])%R.
 Proof.
 move=> Hid_dist.
 rewrite /Pr.
 move: (big_head_rbehead_P_set A n.+1
   (fun i : 'rV[A]_n.+2 => P `^ _ i)
   [set a | (- log (P a) == x)%R]
-  [set t : 'rV__ | \rsum_(i < n.+1) - log (`p_ ((rbehead Xs) /_ i) t /_ i) == y])%R => H.
+  [set t : 'rV__ | \rsum_(i < n.+1) - log (`p_ ((rbehead Xs) ``_ i) t ``_ i) == y])%R => H.
 eapply trans_eq.
   eapply trans_eq; last by symmetry; apply H.
   apply eq_bigl => ta /=; by rewrite !inE.
 transitivity (\rsum_(a in [set a | (- log (P a) == x)%R])
-  \rsum_(a' in [set ta : 'rV__ | \rsum_(i < n.+1) - log (`p_ ((rbehead Xs) /_ i) ta /_ i) == y])
+  \rsum_(a' in [set ta : 'rV__ | \rsum_(i < n.+1) - log (`p_ ((rbehead Xs) ``_ i) ta ``_ i) == y])
   P a * P `^ _ a')%R.
   apply eq_bigr => a _.
   apply eq_bigr => ta _.
@@ -1021,7 +1073,7 @@ Variable X2 : {rvar 'rV[A]_n.+1}.
 Variable X : {rvar 'rV[A]_n.+2}.
 
 Definition sum := joint `p_X1 `p_X2 `p_X /\
-  X =1 fun x => (X1 (x /_ ord0) + X2 (rbehead x))%R.
+  X =1 fun x => (X1 (x ``_ ord0) + X2 (rbehead x))%R.
 
 End sum_two_rand_var_def.
 
@@ -1044,7 +1096,7 @@ Proof.
 case=> Hjoint Hsum.
 rewrite /Ex_alt /=.
 transitivity (\rsum_(ta in 'rV[A]_n.+2)
-  (X1 (ta /_ ord0) * `p_X ta + X2 (rbehead ta) * `p_X ta)%R).
+  (X1 (ta ``_ ord0) * `p_X ta + X2 (rbehead ta) * `p_X ta)%R).
 - apply eq_bigr => ta _; by rewrite Hsum mulRDl.
 - rewrite big_split => //=; f_equal.
   + transitivity (\rsum_(a in A) (X1 a * \rsum_(ta in 'rV[A]_n.+1) `p_X (row_mx (\row_(k < 1) a) ta)))%R.
@@ -1071,7 +1123,7 @@ Qed.
 (* TODO: relation with theorem 6.4 of probook (E(XY)=E(X)E(Y))? *)
 
 Lemma E_id_rem_helper : X \= X1 @+ X2 -> X1 _| `p_X |_ X2 ->
-  \rsum_(i in 'rV[A]_n.+2)(X1 (i /_ ord0) * X2 (rbehead i) * `p_X i)%R =
+  \rsum_(i in 'rV[A]_n.+2)(X1 (i ``_ ord0) * X2 (rbehead i) * `p_X i)%R =
     (`E X1 * `E X2)%R.
 Proof.
 case=> Hjoint Hsum Hinde.
@@ -1129,13 +1181,13 @@ Proof.
 case=> Hsum1 Hsum2 Hinde.
 rewrite {1}/Ex_alt.
 apply trans_eq with (\rsum_(i in 'rV[A]_n.+2)
-      ((X1 (i /_ ord0) + X2 (rbehead i)) ^ 2%N * `p_X i))%R.
+      ((X1 (i ``_ ord0) + X2 (rbehead i)) ^ 2%N * `p_X i))%R.
   apply eq_bigr => i _; by rewrite /sq_rv /= Hsum2.
 apply trans_eq with (\rsum_(i in 'rV[A]_n.+2)
-      ((X1 (i /_ ord0)) ^ 2 + 2 * X1 (i /_ ord0) * X2 (rbehead i) + (X2 (rbehead i)) ^ 2) * `p_X i)%R.
+      ((X1 (i ``_ ord0)) ^ 2 + 2 * X1 (i ``_ ord0) * X2 (rbehead i) + (X2 (rbehead i)) ^ 2) * `p_X i)%R.
   apply eq_bigr => i _; by rewrite id_rem_plus.
 apply trans_eq with (\rsum_(i in 'rV[A]_n.+2)
-      ((X1 (i /_ ord0)) ^ 2 * `p_X i +  2 * X1 (i /_ ord0) * X2 (rbehead i) * `p_X i +
+      ((X1 (i ``_ ord0)) ^ 2 * `p_X i +  2 * X1 (i ``_ ord0) * X2 (rbehead i) * `p_X i +
         (X2 (rbehead i)) ^ 2 * `p_X i))%R.
   apply eq_bigr => i Hi; by field.
 rewrite !big_split [pow]lock /= -lock.
@@ -1198,7 +1250,7 @@ Section sum_n_rand_var.
 Variable A : finType.
 
 Lemma E_linear_n : forall n (Xs : 'rV[rvar A]_n) X,
-  X \=sum Xs -> `E X = \rsum_(i < n) `E Xs /_ i.
+  X \=sum Xs -> `E X = \rsum_(i < n) `E Xs ``_ i.
 Proof.
 elim => [Xs Xbar | [_ Xs Xbar | n IHn Xs Xbar] ].
 - by inversion 1.
@@ -1214,13 +1266,13 @@ elim => [Xs Xbar | [_ Xs Xbar | n IHn Xs Xbar] ].
   subst Z Xs.
   move: {IHn}(IHn _ _ H3) => IHn'.
   rewrite big_ord_recl.
-  have -> : \rsum_(i : 'I_n.+1) `E ((row_mx (\row_(k < 1) X) Xs0) /_ (lift ord0 i)) =
-       \rsum_(i : 'I_n.+1) `E (Xs0 /_ i).
+  have -> : \rsum_(i : 'I_n.+1) `E ((row_mx (\row_(k < 1) X) Xs0) ``_ (lift ord0 i)) =
+       \rsum_(i : 'I_n.+1) `E (Xs0 ``_ i).
     apply eq_bigr => i _ /=.
     rewrite /`E /=.
     apply eq_bigr => a _ /=.
     set tmp := row_mx _ _ _ _.
-    suff : tmp = Xs0 /_ i by move=> ->.
+    suff : tmp = Xs0 ``_ i by move=> ->.
     rewrite /tmp.
     rewrite mxE.
     case: splitP => //.
@@ -1270,7 +1322,7 @@ Qed.
 Lemma V_linearity_isum : forall n
   (X : {rvar 'rV[A]_n}) (Xs : 'rV[rvar A]_n),
   X \=isum Xs ->
-  forall sigma2, (forall i, `V (Xs /_ i) = sigma2) ->
+  forall sigma2, (forall i, `V (Xs ``_ i) = sigma2) ->
   `V X = (INR n * sigma2)%R.
 Proof.
 elim.
@@ -1285,7 +1337,7 @@ case=> [_ | n IH] Xsum Xs Hsum s Hs.
   by apply Hs.
 have {IH}IH : forall Xsum (Xs : 'rV[rvar A]_n.+1),
   Xsum \=isum Xs ->
-  forall sigma2, (forall i, `V (Xs /_ i) = sigma2) ->
+  forall sigma2, (forall i, `V (Xs ``_ i) = sigma2) ->
     `V Xsum = (INR n.+1 * sigma2)%R by apply IH.
 move: Hsum; inversion 1.
 apply Eqdep_dec.inj_pair2_eq_dec in H0; last by exact eq_nat_dec.
@@ -1307,7 +1359,7 @@ Qed.
 (** The variance of the average for independent random variables: *)
 
 Lemma V_average_isum n (X : {rvar 'rV[A]_n}) Xs (sum_Xs : X \=isum Xs) :
-  forall sigma2, (forall i, `V (Xs /_ i) = sigma2) ->
+  forall sigma2, (forall i, `V (Xs ``_ i) = sigma2) ->
   (INR n * `V (X '/ n))%R = sigma2.
 Proof.
 move=> s Hs.
@@ -1326,8 +1378,8 @@ Variable A : finType.
 Variable P : dist A.
 Variable n : nat.
 Variable Xs : 'rV[rvar A]_n.+1.     Hypothesis Xs_id : id_dist P Xs.
-Variable miu : R.                   Hypothesis E_Xs : forall i, `E Xs /_ i = miu.
-Variable sigma2 : R.                Hypothesis V_Xs : forall i, `V Xs /_ i = sigma2.
+Variable miu : R.                   Hypothesis E_Xs : forall i, `E Xs ``_ i = miu.
+Variable sigma2 : R.                Hypothesis V_Xs : forall i, `V Xs ``_ i = sigma2.
 Variable X : {rvar 'rV[A]_n.+1}.
 Variable X_Xs : X \=isum Xs.
 

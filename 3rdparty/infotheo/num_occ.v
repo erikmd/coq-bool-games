@@ -10,43 +10,35 @@ Import Prenex Implicits.
 Local Open Scope tuple_ext_scope.
 Local Open Scope nat_scope.
 
-Section num_occ_seq_def.
+Lemma count_true_negb r s (rs : size s = r) :
+  count (pred1 true) s = r - count (pred1 false) s.
+Proof.
+rewrite -rs -(count_predC (pred1 false) s) addnC addnK.
+by apply/eq_count => -[].
+Qed.
+
+Lemma count_map_negb r s (rs : size s = r) b :
+  count (pred1 false) [seq (pred1 (~~ b)) i | i <- s] =
+  count (pred1 true) [seq (pred1 b) i | i <- s].
+Proof. rewrite 2!count_map; apply/eq_count => -[] /=; by case: b. Qed.
+
+(** Number of symbol occurrences: *)
+Section num_occ_def.
 
 Variables (A : eqType) (a : A) (t : seq A).
 
-Lemma count_true_negb r v (r_v : size v = r) :
-  count (pred1 true) v = r - count (pred1 false) v.
-Proof.
-rewrite -r_v -(@count_predC _ (pred1 true) v).
-have : predC (pred1 true) =1 pred1 false by case.
-move/eq_count => ->.
-by rewrite -addnBA // subnn addn0.
-Qed.
-
-Lemma count_map_negb b : forall r v, size v = r ->
-  count (pred1 false) [seq (pred1 (~~ b)) i | i <- v] =
-  count (pred1 true) [seq (pred1 b) i | i <- v].
-Proof.
-elim; first by case.
-move=> r IH [|h tl] //= [t_r].
-rewrite {}IH //; by case: h; case: b.
-Qed.
-
-(** Number of symbol occurrences: *)
-
 Definition num_occ := count (pred1 a) t.
 
-End num_occ_seq_def.
+End num_occ_def.
 
 Notation "'N(' a '|' t ')'" := (num_occ a t) : num_occ_scope.
 Local Open Scope num_occ_scope.
 
-Section num_occ_seq_prop.
+Section num_occ_prop.
 
 Variables (A : eqType) (a : A) (t : seq A).
 
-Lemma num_occ0 : N(a | [::]) = 0.
-Proof. done. Qed.
+Lemma num_occ0 : N(a | [::]) = 0. Proof. done. Qed.
 
 Lemma num_occ_cons (x y : A) : N(x | y :: t) = (x == y) + N(x | t).
 Proof. by rewrite eq_sym. Qed.
@@ -72,7 +64,7 @@ elim : t => // hd tl IH /=.
 by rewrite IH rev_cons /= {2}/num_occ -cats1 count_cat /= addn0 addnC.
 Qed.
 
-End num_occ_seq_prop.
+End num_occ_prop.
 
 Lemma num_occ_sum_bool : forall t : seq bool, N(true | t) = \sum_(i <- t) i.
 Proof.
@@ -87,12 +79,12 @@ Proof. by rewrite /num_occ -[X in _ <= X](size_tuple t) count_size. Qed.
 
 Variables (A : finType) (n : nat) (a : A) (t : n.-tuple A).
 
-Lemma num_occ_alt : N(a | t) = #| [set i | t \_ i == a] |.
+Definition set_occ := [set i | t \_ i == a].
+
+Lemma num_occ_alt : N(a | t) = #| set_occ |.
 Proof.
-rewrite /num_occ cardEdef /enum_mem -enumT /= size_filter.
-transitivity (count (mem [set i | i == a]) (map (fun i => t \_ i) (enum 'I_n))); last first.
-  rewrite count_map //; apply eq_in_count => n0 Hn0 /=; by rewrite !in_set.
-rewrite map_tnth_enum; apply eq_count => a0 /=; by rewrite in_set.
+rewrite cardE -sum1_size big_filter /= /num_occ -sum1_count big_tuple.
+apply/eq_bigl => i; by rewrite !inE.
 Qed.
 
 Lemma num_occ_thead (ta : n.+1.-tuple A) :
@@ -111,22 +103,18 @@ End num_occ_tuple.
 
 Section num_occ_tuple_facts.
 
-Variable (A : finType) (n : nat) (ta : n.-tuple A).
+Variable (A : finType) (n : nat) (t : n.-tuple A).
 
-Lemma sum_num_occ_alt : \sum_(a in A) N(a | ta) = n.
+Lemma sum_num_occ_alt : \sum_(a in A) N(a | t) = n.
 Proof.
-elim : n ta => [[] [] // Hi|m IH y].
-  transitivity (\sum_(a : A) 0) => //; by rewrite sum_nat_const muln0.
-transitivity (\sum_(a in A) N(a | [tuple of [:: thead y]]) +
-              \sum_(a in A) N(a | tbehead y) ).
-  rewrite -big_split /=.
-  apply eq_bigr => i _; by apply num_occ_thead.
-by rewrite IH sum_num_occ_seq1 add1n.
+elim : n t => [[] [] // Hi|m IH y].
+  by rewrite (eq_bigr (fun=> 0)) // big_const iter_addn.
+rewrite (eq_bigr (fun a => N(a | [tuple of [:: thead y]]) + N(a | tbehead y))).
+  by rewrite big_split /= (IH (tbehead y)) sum_num_occ_seq1 add1n.
+move=> a _; by apply num_occ_thead.
 Qed.
 
-Definition set_occ (a : A) := [set i | ta \_ i == a].
-
-Lemma sum_num_occ_all : \sum_(i < #|A|) N(enum_val i | ta) = n.
+Lemma sum_num_occ_all : \sum_(i < #|A|) N(enum_val i | t) = n.
 Proof.
 symmetry.
 rewrite -{1}sum_num_occ_alt.
@@ -136,10 +124,10 @@ Qed.
 
 Local Open Scope group_scope.
 
-Lemma num_occ_perm (a : A) (s : 'S_n) : N( a | perm_tuple s ta) = N( a | ta ).
+Lemma num_occ_perm (a : A) (s : 'S_n) : N(a | perm_tuple s t) = N(a | t).
 Proof.
 rewrite 2!num_occ_alt.
-rewrite (_ : [set i | (perm_tuple s ta) \_ i == a] = s^-1 @: [set i | tnth ta i == a]).
+rewrite (_ : set_occ a (perm_tuple s t) = s^-1 @: set_occ a t).
 apply/card_imset/perm_inj.
 apply/eqP.
 rewrite eqEsubset.
@@ -150,7 +138,7 @@ apply/andP; split; apply/subsetP => i.
   rewrite in_set.
   move/eqP : H => <-; by rewrite /perm_tuple tnth_map tnth_ord_tuple.
 - rewrite in_set.
-  case/imsetP => t.
+  case/imsetP => j.
   rewrite in_set.
   move/eqP => <- ->.
   by rewrite tnth_map tnth_ord_tuple permKV.
@@ -160,21 +148,20 @@ Local Close Scope group_scope.
 
 End num_occ_tuple_facts.
 
-Section num_co_occ_seq_def.
+(** Number of pair of symbols occurrences: *)
+Section num_co_occ_def.
 
 Variables (A B : eqType) (a : A) (b : B) (ta : seq A) (tb : seq B).
 
 Local Open Scope nat_scope.
 
-(** Number of pair of symbols occurrences: *)
-
 Definition num_co_occ := N( (a, b) | zip ta tb ).
 
-End num_co_occ_seq_def.
+End num_co_occ_def.
 
 Notation "'N(' a ',' b '|' ta ',' tb ')'" := (num_co_occ a b ta tb) : num_occ_scope.
 
-Section num_co_occ_seq_prop.
+Section num_co_occ_prop.
 
 Variables (A B : eqType) (a : A) (b : B) (ta : seq A) (tb : seq B).
 
@@ -193,11 +180,13 @@ apply eq_filter; case=> a' b' /=.
 by rewrite 2!xpair_eqE andbC.
 Qed.
 
-End num_co_occ_seq_prop.
+End num_co_occ_prop.
 
 Section num_co_occ_tuple.
 
 Variables (A B : finType) (n : nat) (a : A) (b : B) (ta : n.-tuple A) (tb : n.-tuple B).
+
+Definition set_co_occ := [set i | (ta \_ i == a) && (tb \_ i == b)].
 
 Lemma num_co_occ_leq_n : N(a, b | ta, tb) <= n.
 Proof. rewrite /num_co_occ ; by apply num_occ_leq_n. Qed.
@@ -205,13 +194,11 @@ Proof. rewrite /num_co_occ ; by apply num_occ_leq_n. Qed.
 Lemma num_co_occ_ub : N(a, b | ta, tb) < n.+1.
 Proof. rewrite ltnS ; apply num_co_occ_leq_n. Qed.
 
-Lemma num_co_occ_alt : N(a, b | ta, tb) = #| [set i | (ta \_ i == a) && (tb \_ i == b)] |.
+Lemma num_co_occ_alt : N(a, b | ta, tb) = #| set_co_occ |.
 Proof.
-rewrite /num_co_occ num_occ_alt.
-congr (#| _ |).
-f_equal.
-apply/setP => i.
-rewrite !in_set /zip_tuple (tnth_nth (a, b)) nth_zip; last by rewrite !size_tuple.
+rewrite /num_co_occ num_occ_alt /set_occ.
+apply eq_card => i.
+rewrite !in_set /zip_tuple (tnth_nth (a, b)) nth_zip ?size_tuple //.
 by rewrite -2!tnth_nth xpair_eqE.
 Qed.
 
@@ -229,12 +216,10 @@ rewrite (_ : \sum_p N(p.1, p.2 | ta, tb) = \sum_p N(p | zip_tuple ta tb)).
 f_equal.
 Qed.
 
-Definition set_co_occ (a : A) (b : B) := [set i | (ta \_ i == a) && (tb \_ i == b)].
-
 Definition set_set_co_occ a :=
-  [set set_co_occ a b | b in B & [exists i, i \in set_co_occ a b]].
+  [set set_co_occ a b ta tb | b in B & [exists i, i \in set_co_occ a b ta tb]].
 
-Lemma cover_set_set_co_occ a : cover (set_set_co_occ a) = set_occ ta a.
+Lemma cover_set_set_co_occ a : cover (set_set_co_occ a) = set_occ a ta.
 Proof.
 apply/setP => i.
 rewrite cover_imset.
@@ -297,53 +282,32 @@ Qed.
 
 End num_co_occ_facts.
 
-Lemma num_co_occ_num_occ_aux {A B : finType} ta tb (a : A) :
-  \sum_(i in B) N(a, i | [tuple of [:: ta]], [tuple of [:: tb]]) =
-  (ta == a).
+Lemma num_co_occ_num_occ1 {A B : finType} a' b' (a : A) :
+  \sum_(i in B) N(a, i | [tuple of [:: a']], [tuple of [:: b']]) = (a' == a).
 Proof.
-case/boolP : (ta == a) => H.
-- move/eqP in H.
-  subst ta.
-  rewrite /num_co_occ /num_occ /= (bigD1 tb) //= eqxx /= addn0 add1n.
-  f_equal.
-  transitivity (\sum_(i | i != tb) 0).
-    apply eq_bigr => i Hi.
-    rewrite xpair_eqE eqxx.
-    move/negbTE : Hi.
-    rewrite eq_sym.
-    by move=> ->.
+case/boolP : (a' == a) => [/eqP ->{a'} | a'a].
+- rewrite /num_co_occ /num_occ /= (bigD1 b') //= eqxx /= addn0 add1n; congr S.
+  rewrite (eq_bigr (fun=> 0)).
   by rewrite big_const iter_addn.
-- transitivity (\sum_(i in B) 0).
-    apply eq_bigr => i _.
-    rewrite /num_co_occ /num_occ /= xpair_eqE.
-    by move/negbTE : H => ->.
+  move=> b bb'; by rewrite xpair_eqE eqxx /= addn0 eq_sym (negbTE bb').
+- rewrite (eq_bigr (fun=> 0)).
   by rewrite big_const iter_addn.
+  move=> b _; by rewrite /num_co_occ /num_occ /= xpair_eqE (negbTE a'a).
 Qed.
 
 Lemma num_co_occ_num_occ {A B : finType} : forall n (ta : n.-tuple A) (tb : n.-tuple B) a,
    \sum_(b in B) N(a, b | ta, tb) = N(a | ta).
 Proof.
 elim => [ta tb a | n IH ta tb a].
-  rewrite (tuple0 ta) (tuple0 tb) /=.
-  transitivity (\sum_(b in B) O).
-    apply eq_bigr => i _.
-    by rewrite /num_co_occ.
-  by rewrite big_const iter_addn mul0n add0n.
+  rewrite (tuple0 ta) (tuple0 tb) /= (eq_bigr (fun=> 0)) //.
+  by rewrite big_const iter_addn !Monoid.simpm.
 move: {IH}(IH (tbehead ta) (tbehead tb) a) => IH.
-rewrite (tuple_eta ta) (tuple_eta tb) /=.
-symmetry.
-rewrite /num_occ.
-symmetry in IH.
-rewrite /num_occ /= in IH.
-transitivity (\sum_(b in B)
-      (N(a, b | [tuple of [:: thead ta]], [tuple of [:: thead tb]]) +
-      N(a, b | tbehead ta, tbehead tb))).
-  rewrite big_split /=.
-  congr (_ + _) => //.
-  by rewrite num_co_occ_num_occ_aux.
-apply eq_bigr => b _.
-symmetry.
-by rewrite /num_co_occ num_occ_thead.
+rewrite [in X in _ = X]/num_occ /= in IH.
+rewrite (tuple_eta ta) (tuple_eta tb) /= [in RHS]/num_occ.
+rewrite (eq_bigr (fun b =>
+  N(a, b | [:: thead ta], [:: thead tb]) + N(a, b | tbehead ta, tbehead tb))).
+  by rewrite big_split /= IH num_co_occ_num_occ1.
+move=> b' _; by rewrite /num_co_occ num_occ_thead.
 Qed.
 
 Section tuple_sort.
@@ -384,7 +348,8 @@ rewrite nth_iota; last by rewrite size_iota in Hi.
 by rewrite add0n.
 Qed.
 
-Lemma sorted_inv {A :eqType} (leT: rel A) s (Htrans : transitive leT) (Hsorted : sorted leT s) : forall x0, forall a b, a < b < size s -> leT (nth x0 s a) (nth x0 s b).
+Lemma sorted_inv {A : eqType} (leT : rel A) s (Htrans : transitive leT) (Hsorted : sorted leT s) :
+  forall x0, forall a b, a < b < size s -> leT (nth x0 s a) (nth x0 s b).
 Proof.
 move=> x0 a b /= /andP [Hab Hbs].
 set f := nth x0 s.
@@ -405,7 +370,8 @@ apply subseq_sorted with s => //.
 rewrite /sorted; by case/andP.
 Qed.
 
-Lemma sorted_tuple_inv {A : eqType} (leT : rel A) k (t : k.-tuple A) (Htrans : transitive leT) (Hsorted : sorted leT t) (a b : 'I_k) : a < b -> leT t\_a t\_b.
+Lemma sorted_tuple_inv {A : eqType} (leT : rel A) k (t : k.-tuple A) (Htrans : transitive leT)
+  (Hsorted : sorted leT t) (a b : 'I_k) : a < b -> leT (t \_ a) (t \_ b).
 Proof.
 move=> Hab.
 rewrite (tnth_nth t\_b) {2}(tnth_nth t\_b).
@@ -449,7 +415,7 @@ rewrite sum_num_occ_rec addnC; symmetry.
 by rewrite -{1}(addn0 N(enum_val k | ta)) -(subnn (sum_num_occ k)) addnBA.
 Qed.
 
-Lemma full_sum_num_occ (k : nat) :  #|A| <= k ->
+Lemma full_sum_num_occ (k : nat) : #|A| <= k ->
   sum_num_occ k = \sum_(i < #|A|) N(enum_val i | ta).
 Proof. move=> Hk; apply eq_bigl => i; by rewrite (leq_trans (ltn_ord i) Hk). Qed.
 
@@ -464,7 +430,7 @@ case/boolP : (k < #|A|) => Hcase.
   rewrite !full_sum_num_occ //; by apply (leq_trans Hcase).
 Qed.
 
-Lemma sum_num_occ_inc (k l : nat) :  k <= l -> sum_num_occ k <= sum_num_occ l.
+Lemma sum_num_occ_inc (k l : nat) : k <= l -> sum_num_occ k <= sum_num_occ l.
 Proof.
 move=> kl.
 have -> : l = k + (l - k) by rewrite subnKC.

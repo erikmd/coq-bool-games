@@ -430,16 +430,16 @@ Lemma tuple_dist_type t : tuple_of_row t \in T_{P} ->
 Proof.
 move=> Hx.
 rewrite (_ : P `^ n t = TupleDist.f P t) // /TupleDist.f.
-rewrite (_ : \rmul_(i < n) P (t /_ i) =
-  \rmul_(a : A) (\rmul_(i < n) (if a == t /_ i then P t /_ i else 1))); last first.
+rewrite (_ : \rmul_(i < n) P (t ``_ i) =
+  \rmul_(a : A) (\rmul_(i < n) (if a == t ``_ i then P t ``_ i else 1))); last first.
   rewrite exchange_big ; apply eq_big ; first done.
   move=> i _.
-  rewrite (bigID (fun y => y == t /_ i)) /=.
+  rewrite (bigID (fun y => y == t ``_ i)) /=.
   rewrite -/(INR n.+1) big_pred1_eq eqxx big1 ; first by rewrite Rmult_1_r.
   by move=> i0 /negbTE ->.
 apply eq_bigr => a _.
 rewrite -big_mkcond /= -/(INR n.+1).
-transitivity (\big[Rmult/1]_(i < n | t /_ i == a) (INR (type.f P a) / INR n)).
+transitivity (\big[Rmult/1]_(i < n | t ``_ i == a) (INR (type.f P a) / INR n)).
   apply eq_big => // i.
   move/eqP => ->.
   by rewrite INR_type_fun.

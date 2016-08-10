@@ -31,12 +31,12 @@ Qed.
 
 End AboutRingType.
 
-Notation "x '/_' i" := (x ord0 i) (at level 9) : vec_ext_scope.
+Notation "x '``_' i" := (x ord0 i) (at level 9) : vec_ext_scope.
 
 Local Open Scope vec_ext_scope.
 
 Definition row_set B n (n0 : 'I_n) (x : B) (d : 'rV_n) :=
-  \row_(i < n) if i == n0 then x else d /_ i.
+  \row_(i < n) if i == n0 then x else d ``_ i.
 
 Notation "v `[ i := x ]" := (row_set i x v) (at level 20) : vec_ext_scope.
 
@@ -55,7 +55,7 @@ Section row_mx_ext.
 
 Context {A : Type}.
 
-Definition rbehead {n} (x : 'rV[A]_n.+1) := \row_(i < n) x /_ (lift ord0 i).
+Definition rbehead {n} (x : 'rV[A]_n.+1) := \row_(i < n) x ``_ (lift ord0 i).
 
 Lemma rbehead_row_mx {n} (x : 'rV_n) (i : A) : rbehead (row_mx (\row_(j < 1) i) x) = x.
 Proof.
@@ -79,8 +79,8 @@ by rewrite add1n.
 Qed.
 
 Lemma row_mx_rbehead {n} (x : 'rV_(1 + n)) (i : A) (b : 'I_(1 + n)) :
-  x /_ ord0 = i ->
-  (row_mx (\row__ i) (rbehead x)) ord0 b = x /_ b.
+  x ``_ ord0 = i ->
+  (row_mx (\row__ i) (rbehead x)) ord0 b = x ``_ b.
 Proof.
 move=> xi.
 rewrite /rbehead mxE.
@@ -167,7 +167,7 @@ Section AboutRowTuple.
 
 Variables A B : predArgType.
 
-Definition tuple_of_row n (v : 'rV[A]_n) := [tuple v /_ i | i < n].
+Definition tuple_of_row n (v : 'rV[A]_n) := [tuple v ``_ i | i < n].
 
 Local Open Scope tuple_ext_scope.
 

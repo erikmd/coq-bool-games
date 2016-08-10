@@ -78,17 +78,17 @@ Local Notation "'`Ch_' n" := (channel_ext n) (at level 9, n at next level, forma
 
 Local Open Scope vec_ext_scope.
 
-Definition f (va vb : 'rV_n) := \rmul_(i < n) W (va /_ i) (vb /_ i).
+Definition f (va vb : 'rV_n) := \rmul_(i < n) W (va ``_ i) (vb ``_ i).
 
 Lemma f0 va vb : 0 <= f va vb.
 Proof. apply Rle_0_big_mult => /= i; by apply Rle0f. Qed.
 
 Lemma f1 va : \rsum_(vb in 'rV_n) f va vb = 1%R.
 Proof.
-set f' := fun i b => W va /_ i b.
+set f' := fun i b => W va ``_ i b.
 suff H : \rsum_(g : {ffun 'I_n -> B}) \rmul_(i < n) f' i (g i) = 1%R.
   rewrite -{}[RHS]H /f'.
-  rewrite (reindex_onto (fun vb : 'rV_n => [ffun x => vb /_ x])
+  rewrite (reindex_onto (fun vb : 'rV_n => [ffun x => vb ``_ x])
     (fun g  => \row_(k < n) g k)) /=; last first.
     move=> g _; apply/ffunP => /= i; by rewrite ffunE mxE.
   apply eq_big => vb.
@@ -162,13 +162,13 @@ Local Open Scope ring_scope.
 
 Lemma tuple_pmf_out_dist (W : `Ch_1(A, B)) (P : dist A) n (b : 'rV_ _):
    \rsum_(j0 : 'rV[A]_n)
-      ((\rmul_(i < n) W j0 /_ i b /_ i) * P `^ _ j0)%R =
+      ((\rmul_(i < n) W j0 ``_ i b ``_ i) * P `^ _ j0)%R =
    TupleDist.f (`O(P , W)) b.
 Proof.
 rewrite /TupleDist.f /=.
 apply/esym.
 rewrite bigA_distr_big_dep /=.
-rewrite (reindex_onto (fun p : 'rV_ _ => [ffun x => p /_ x]) (fun y => \row_(k < n) y k)) //=; last first.
+rewrite (reindex_onto (fun p : 'rV_ _ => [ffun x => p ``_ x]) (fun y => \row_(k < n) y k)) //=; last first.
   move=> i _.
   apply/ffunP => /= n0.
   by rewrite ffunE mxE.

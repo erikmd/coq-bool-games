@@ -274,9 +274,9 @@ Proof.
 move=> m tb d.
 rewrite /DMC.c; unlock => /=.
 rewrite /DMC.f /= /BSC.f /=.
-transitivity ((\rmul_(i < n | (f m) /_ i == tb /_ i) (1 - p)) *
-              (\rmul_(i < n | (f m) /_ i != tb /_ i) p))%R.
-  rewrite (bigID [pred i | (f m) /_ i == tb /_ i]) /=.
+transitivity ((\rmul_(i < n | (f m) ``_ i == tb ``_ i) (1 - p)) *
+              (\rmul_(i < n | (f m) ``_ i != tb ``_ i) p))%R.
+  rewrite (bigID [pred i | (f m) ``_ i == tb ``_ i]) /=.
   f_equal.
   by apply eq_bigr => //= i ->.
   by apply eq_bigr => //= i /negbTE ->.

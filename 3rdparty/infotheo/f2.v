@@ -136,20 +136,20 @@ apply/polyP => i.
 by rewrite coef0 coef_add_poly F2_add.
 Qed.
 
-Lemma poly_rV_scale n (a : 'F_2) (p : { poly 'F_2 }) :
+(*Lemma poly_rV_scale n (a : 'F_2) (p : { poly 'F_2 }) :
  poly_rV (a%:P * p) = a%:M *m (@poly_rV _ n p).
-Proof. by rewrite mul_polyC linearZ /= mul_scalar_mx. Qed.
+Proof. by rewrite mul_polyC linearZ /= mul_scalar_mx. Qed.*)
 
 (* TODO: move *)
 From mathcomp Require Import polydiv.
 
-Lemma scale_modp (p d : {poly 'F_2}) (c : 'F_2) :
+(*Lemma scale_modp (p d : {poly 'F_2}) (c : 'F_2) :
   (c%:P * p) %% d = c%:P * (p %% d).
 Proof.
 rewrite (F2_0_1 c); case: (_ =P _) => /= _.
 - by rewrite polyC0 2!mul0r mod0p.
 - by rewrite polyC1 2!mul1r.
-Qed.
+Qed.*)
 
 (** Furthermore, polynomials over %$\mathbb{F}_2$%#F_2# enjoy special properties
     w.r.t. their coefficients, e.g.: *)
@@ -197,7 +197,22 @@ rewrite lead_coef_eq0.
 by apply/negP.
 Qed.
 
-Lemma col_nth n (i j : bitseq) : (size i <= n)%nat -> size j = size i ->
+Lemma row_nth n (i j : bitseq) : (size i <= n)%nat -> size j = size i ->
+  \row_(i0 < n) F2_of_bool (nth false i i0) =
+  \row_(i0 < n) F2_of_bool (nth false j i0) -> i = j.
+Proof.
+move=> Hi Hj /matrixP Heq.
+apply/esym.
+apply (@eq_from_nth _ false _ _ Hj) => i0 Hi0.
+rewrite Hj in Hi0.
+have {Hi0}Hi0 : (i0 < n)%nat.
+  apply leq_ltn_trans with ((size i).-1)%nat;
+    rewrite -ltnS prednK //; by apply leq_ltn_trans with i0.
+move: (Heq 0 (Ordinal Hi0)).
+rewrite !mxE /=; by do 2 case: nth.
+Qed.
+
+(*Lemma col_nth n (i j : bitseq) : (size i <= n)%nat -> size j = size i ->
   \col_(i0 < n) F2_of_bool (nth false i i0) =
   \col_(i0 < n) F2_of_bool (nth false j i0) -> i = j.
 Proof.
@@ -210,6 +225,6 @@ have {Hi0}Hi0 : (i0 < n)%nat.
     rewrite -ltnS prednK //; by apply leq_ltn_trans with i0.
 move: (Heq (Ordinal Hi0) 0).
 rewrite !mxE /=; by do 2 case: nth.
-Qed.
+Qed.*)
 
 End AboutF2.

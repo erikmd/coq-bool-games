@@ -507,7 +507,7 @@ Local Open Scope vec_ext_scope.
 
 (* TODO: rename? move? *)
 Lemma card_dH_vec {n} (t t' : 'rV['F_2]_n) :
-  #| [pred i | t' /_ i != t /_ i ] | = dH t t'.
+  #| [pred i | t' ``_ i != t ``_ i ] | = dH t t'.
 Proof.
 rewrite /dH /wH num_occ.num_occ_alt /=.
 apply eq_card => /= i.
@@ -526,9 +526,9 @@ by rewrite subr_eq0.
 Qed.
 
 Lemma card_dHC {n} (t t': 'rV['F_2]_n) :
-  #| [pred i | t' /_ i == t /_ i ] | = (n - dH t t')%nat.
+  #| [pred i | t' ``_ i == t ``_ i ] | = (n - dH t t')%nat.
 Proof.
-move: (cardC [pred i | t' /_i == t /_i ]).
+move: (cardC [pred i | t' ``_i == t ``_i ]).
 rewrite card_ord => H.
 by rewrite -[in X in _ = (X - _)%nat]H -card_dH_vec -addnBA // subnn addn0.
 Qed.
@@ -544,14 +544,16 @@ End HammingMetric.
 (** Here is a function that transforms natural numbers into their binary encodings
    (presented in the form of column-vectors) (e.g., $nat2bin\,3\,1 = \left[ \begin{array}{c} 0 \\ 0 \\ 1 \end{array} \right]$, $nat2bin\,3\,2 = \left[ \begin{array}{c} 0 \\ 1 \\ 0 \end{array} \right]$, $nat2bin\,3\,3 = \left[ \begin{array}{c} 0 \\ 1 \\ 1 \end{array} \right]$, etc.): *)
 
-Definition nat2bin_cV (r i : nat) : 'cV_r := bitseq_F2col (size_nat2bin i r).
+Definition nat2bin_rV (r i : nat) : 'rV_r := bitseq_F2row (size_nat2bin i r).
+
+Definition nat2bin_cV (r i : nat) : 'cV_r := (nat2bin_rV r i)^T.
 
 (** The only natural that maps to the null row vector is 0: *)
 
-Lemma nat2bin_cV_not_zero r i : i <> O -> i < expn 2 r -> nat2bin_cV r i <> 0.
+Lemma nat2bin_rV_not_zero r i : i <> O -> i < expn 2 r -> nat2bin_rV r i <> 0.
 Proof.
 move=> Hi W.
-rewrite /nat2bin_cV /bitseq_F2col /bitseq_to_col.
+rewrite /nat2bin_rV /bitseq_F2row /bitseq_to_row.
 move: (nat2bin_nseq_false i r Hi W) => H.
 contradict H.
 apply eq_from_nth with false.
@@ -559,28 +561,25 @@ apply eq_from_nth with false.
 - move=> j Hj.
   rewrite (_ : size _ = r) in Hj; last first.
     apply/eqP. by apply size_nat2bin.
-  move/colP : H => /(_ (Ordinal Hj)).
+  move/rowP : H => /(_ (Ordinal Hj)).
   rewrite !mxE /= => Hj'.
   rewrite nth_nseq Hj.
   by apply F2_of_bool_0_inv.
 Qed.
 
-Lemma nat2bin_cV_inj n i j : nat_of_pos i < expn 2 n -> nat_of_pos j < expn 2 n ->
-  nat2bin_cV n (nat_of_pos i) = nat2bin_cV n (nat_of_pos j) -> i = j.
+Lemma nat2bin_rV_inj n i j : nat_of_pos i < expn 2 n -> nat_of_pos j < expn 2 n ->
+  nat2bin_rV n (nat_of_pos i) = nat2bin_rV n (nat_of_pos j) -> i = j.
 Proof.
 move=> Hi Hj.
-rewrite /nat2bin_cV /bitseq_F2col /bitseq_to_col.
-move/col_nth => X.
+rewrite /nat2bin_rV /bitseq_F2row /bitseq_to_row.
+move/row_nth => X.
 have Htmp : size (nat2bin (nat_of_pos i) n) <= n.
   move: (size_nat2bin (nat_of_pos i) n).
   by move/eqP => ->.
 apply X in Htmp => //; last first.
-  apply trans_eq with n.
-  - apply/eqP.
-    by apply size_nat2bin.
-  - symmetry.
-    apply/eqP.
-    by apply size_nat2bin.
+  apply (@trans_eq _ _ n).
+  - by apply/eqP/size_nat2bin.
+  - by apply/esym/eqP/size_nat2bin.
 rewrite /nat2bin in Htmp.
 move: (N2bitseq_leading_bit (bin_of_nat (nat_of_pos i))) => U.
 lapply U; last by apply bin_of_nat_nat_of_pos_not_0.
@@ -613,8 +612,8 @@ Qed.
 
 (** No sum of two non-zero binaries maps to zero: *)
 
-Lemma nat2bin_cV_plus_nat2bin_cV_not_zero r i j : i <> j ->
-  i <> O -> j <> O -> i < expn 2 r -> j < expn 2 r -> nat2bin_cV r i + nat2bin_cV r j <> 0.
+Lemma nat2bin_rV_plus_nat2bin_rV_not_zero r i j : i <> j ->
+  i <> O -> j <> O -> i < expn 2 r -> j < expn 2 r -> nat2bin_rV r i + nat2bin_rV r j <> 0.
 Proof.
 move=> Hij Hi Hj Hin Hjn.
 destruct i => //.
@@ -630,17 +629,16 @@ have [jj Hjj] : exists jj, j.+1 = nat_of_pos jj.
   rewrite -Pnat.nat_of_P_o_P_of_succ_nat_eq_succ.
   by rewrite BinPos_nat_of_P_nat_of_pos.
 rewrite Hii Hjj in Hij.
-apply nat2bin_cV_inj in Hij; last 2 first.
+apply nat2bin_rV_inj in Hij; last 2 first.
   by rewrite -Hii.
   by rewrite -Hjj.
-subst ii.
-by rewrite Hjj.
+rewrite Hjj; by subst ii.
 Qed.
 
-Definition nat2bin_rV (r i : nat) : 'rV_r := bitseq_F2row (size_nat2bin i r).
+(*Definition nat2bin_rV (r i : nat) : 'rV_r := bitseq_F2row (size_nat2bin i r).*)
 
-Lemma tr_nat2bin_cV m i : (nat2bin_cV m i)^T = nat2bin_rV m i.
-Proof. apply/rowP => y; by rewrite !mxE. Qed.
+(*Lemma tr_nat2bin_cV m i : (nat2bin_cV m i)^T = nat2bin_rV m i.
+Proof. apply/rowP => y; by rewrite !mxE. Qed.*)
 
 Lemma wH_two_pow p m : p < m -> wH (nat2bin_rV m (expn 2 p)) = 1%nat.
 Proof.
@@ -827,27 +825,27 @@ Proof. by rewrite /bin2nat_cV trmx0 bin2nat_rV_0. Qed.
 Lemma bin2nat_rV_tr n (y : 'rV_n) : bin2nat_rV y = bin2nat_cV (y^T).
 Proof. by rewrite /bin2nat_cV trmxK. Qed.
 
-Lemma mulmx_nat2vin_col n m (M : 'M_(n, m)) (k : 'I_m) :
-  M *m (nat2bin_cV m (expn 2 k)) = col (Ordinal (rev_ord_proof k)) M.
+Lemma mulmx_nat2bin_row n m (M : 'M_(m, n)) (k : 'I_m) :
+  (nat2bin_rV m (expn 2 k)) *m M = row (Ordinal (rev_ord_proof k)) M.
 Proof.
-rewrite /nat2bin_cV.
-apply/colP => x.
+rewrite /nat2bin_rV.
+apply/rowP => x.
 rewrite !mxE /=.
-transitivity (\sum_(j < m) M x j * nth false (nat2bin (expn 2 k) m) j).
-  apply eq_bigr => i _; by rewrite /bitseq_F2col /bitseq_to_col mxE.
+transitivity (\sum_(j < m) (F2_of_bool (nth false (nat2bin (expn 2 k) m) j) * M j x)).
+  apply eq_bigr => i _; by rewrite mxE.
 rewrite nat2bin_two_pow //.
 pose mk := Ordinal (rev_ord_proof k).
 rewrite -/mk (bigID (pred1 mk)) /= big_pred1_eq.
 set tmp1 := nth _ _ _.
 have -> : tmp1 = true.
   by rewrite /tmp1 {tmp1} nth_cat size_nseq {1}/mk ltnn subnn.
-rewrite mulr1.
+rewrite mul1r.
 set lhs := \sum_ (_ | _) _.
 suff -> : lhs = 0 by rewrite addr0.
 transitivity (\sum_(i | i != mk) (0 : 'F_2)).
   apply eq_bigr => i imk.
   set rhs := nth _ _ _.
-  suff -> : rhs = false by rewrite mulr0.
+  suff -> : rhs = false by rewrite mul0r.
   rewrite /rhs nth_cat size_nseq.
   case: ifP => Hcase; first by rewrite nth_nseq Hcase.
   rewrite (_ : true :: _ = [:: true] ++ nseq k false) // nth_cat /=.
@@ -864,27 +862,27 @@ Qed.
 Lemma tuple_of_row_ord0 (s : 'rV['F_2]_0) : tuple_of_row s = [tuple of [::]].
 Proof. apply eq_from_tnth; by case. Qed.
 
-Lemma bin2nat_cV_ord0 (s : 'cV_0) : bin2nat_cV s = O.
-Proof. by rewrite /bin2nat_cV /bin2nat_rV N_bin_to_nat tuple_of_row_ord0. Qed.
+Lemma bin2nat_rV_ord0 (s : 'rV_0) : bin2nat_rV s = O.
+Proof. by rewrite /bin2nat_rV N_bin_to_nat tuple_of_row_ord0. Qed.
 
-Lemma nat2bin_cV_0 n : nat2bin_cV n 0 = 0.
+Lemma nat2bin_rV_0 n : nat2bin_rV n 0 = 0.
 Proof.
-rewrite /nat2bin_cV /bitseq_F2col /bitseq_to_col nat2bin_0_n.
-apply/colP => b /=.
+rewrite /nat2bin_rV /bitseq_F2row /bitseq_to_row nat2bin_0_n.
+apply/rowP => b /=.
 rewrite 2!mxE nth_nseq; by case: ifP.
 Qed.
 
-Lemma bin2nat_cVK n (s : 'cV_n) : nat2bin_cV n (bin2nat_cV s) = s.
+Lemma bin2nat_rVK n (s : 'rV_n) : nat2bin_rV n (bin2nat_rV s) = s.
 Proof.
 destruct n as [|n].
-  apply/colP; by case.
-apply/colP => y.
-rewrite mxE /bin2nat_cV /bin2nat_rV.
+  apply/rowP; by case.
+apply/rowP => y.
+rewrite mxE /bin2nat_rV.
 set tmp := [seq bool_of_F2 i | i <- _].
 rewrite [X in nat2bin _ X](_ : _ = size tmp); last by rewrite size_map size_tuple.
 rewrite bitseq2NK; last by rewrite size_tuple.
 rewrite /tmp (nth_map (0 : 'F_2)); last by rewrite size_tuple.
-rewrite bool_of_F2K (_ : _ `_ _ = tnth (tuple_of_row s^T) y); last first.
+rewrite bool_of_F2K (_ : _ `_ _ = tnth (tuple_of_row s) y); last first.
   apply set_nth_default; by rewrite size_tuple.
-by rewrite tnth_mktuple mxE.
+by rewrite tnth_mktuple.
 Qed.

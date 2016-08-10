@@ -2,7 +2,7 @@
 From mathcomp Require Import ssreflect ssrbool ssrfun eqtype ssrnat div seq choice fintype.
 From mathcomp Require Import finfun bigop finset.
 Require Import Reals Fourier.
-Require Import Reals_ext Ranalysis_ext ssr_ext log2 ln_facts Rbigop proba.
+Require Import Reals_ext Ranalysis_ext ssr_ext log2 ln_facts Rbigop Rssr proba.
 Require Import divergence log_sum variation_dist.
 
 Set Implicit Arguments.
@@ -142,8 +142,9 @@ have [A0_P_neq0 | A0_P_0] : {0 < P_A 0} + {0%R = P_A 0}.
       rewrite Habs; by move/Rlt_irrefl.
   + have H2 : P_A 1 = 0%R.
       move/(Req_0_rmul_inv _ _ (Rle0f Q)): A1_Q_0 => A1_Q_0.
-      rewrite /P_A /bipart /= /bipart_pmf /= -Req_0_rmul // => i Hi.
-      by rewrite P_dom_by_Q // -A1_Q_0.
+      rewrite /P_A /bipart /= /bipart_pmf (eq_bigr (fun=> 0%R)).
+      by rewrite big_const iter_Rplus mulR0.
+      move=> a a_A_1; by rewrite P_dom_by_Q // -A1_Q_0.
     rewrite H2 !Rmult_0_l !Rplus_0_r.
     have H3 : Q_A 0 = 1%R.
       rewrite -[X in X = _]Rplus_0_r [X in _ + X = _]A1_Q_0 -(pmf1 Q).
@@ -172,8 +173,9 @@ have [A0_P_neq0 | A0_P_0] : {0 < P_A 0} + {0%R = P_A 0}.
   + (* contradiction H1 / Bi_true_Q_0 *)
     move/(Req_0_rmul_inv _ _ (Rle0f Q)): A1_Q_0 => A1_Q_0.
     have : P_A 1 = 0%R.
-      symmetry.
-      apply: Req_0_rmul => i Hi; by rewrite P_dom_by_Q // -A1_Q_0.
+      rewrite /P_A /bipart /= /bipart_pmf (eq_bigr (fun=> 0%R)).
+      by rewrite big_const iter_Rplus mulR0.
+      move=> a a_A_1; by rewrite P_dom_by_Q // -A1_Q_0.
     move=> abs; rewrite abs in H1. fourier.
 Qed.
 

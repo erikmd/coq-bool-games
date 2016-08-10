@@ -1,3 +1,4 @@
+(* infotheo (c) AIST. R. Affeldt, M. Hagiwara, J. Senizergues. GNU GPLv3. *)
 From mathcomp Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq choice fintype.
 From mathcomp Require Import div finfun bigop prime binomial ssralg finset fingroup finalg.
 From mathcomp Require Import perm zmodp matrix.

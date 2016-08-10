@@ -5,6 +5,7 @@ log2.v
 ln_facts.v
 ssr_ext.v
 Rbigop.v
+Rbigop_max.v
 proba.v
 natbin.v
 tuple_prod.v
@@ -37,4 +38,5 @@ arg_rmax.v
 error_exponent.v
 success_decode_bound.v
 channel_coding_converse.v
+erasure_channel.v
 -R . Infotheo
