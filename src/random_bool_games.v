@@ -1,9 +1,11 @@
-Require Import Reals.
+Require Import Reals Psatz.
 From mathcomp Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq.
 From mathcomp Require Import div choice fintype tuple finfun bigop.
-From mathcomp Require Import prime binomial ssralg finset ssrint.
-From Infotheo Require Import Reals_ext Rbigop proba.
-Require Import bigop_tactics reals_complements.
+From mathcomp Require Import prime binomial ssralg finset ssrint matrix.
+From Infotheo Require Import Reals_ext Rssr ssr_ext ssralg_ext Rbigop proba.
+Require Import Rbigop_complements bigop_tactics reals_complements.
+
+(** * A Coq theory of random Boolean games *)
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -11,6 +13,25 @@ Unset Printing Implicit Defensive.
 
 Local Open Scope R_scope.
 Delimit Scope R_scope with Re.
+
+Section Prelim_fintype.
+
+Lemma mem_enumT (T : finType) (x : T) : (x \in enum T).
+Proof. by rewrite enumT mem_index_enum. Qed.
+
+Lemma mem_enum_set_seqE (T : finType) (s : seq T) (x : T) :
+  (x \in enum [set x0 in s]) = (x \in s).
+Proof. by rewrite !mem_filter !inE (mem_index_enum x) andbT. Qed.
+
+Lemma mem_enum_seqE (T : finType) (s : seq T) (x : T) :
+  (x \in enum s) = (x \in s).
+Proof. by rewrite !mem_filter (mem_index_enum x) andbT. Qed.
+
+Lemma mem_enum_setE (T : finType) (s : {set T}) (x : T) :
+  (x \in enum s) = (x \in s).
+Proof. by rewrite !mem_filter (mem_index_enum x) andbT. Qed.
+
+End Prelim_fintype.
 
 Section Def.
 
@@ -99,8 +120,6 @@ Let Omega := {set bool_vec n}.
 Let sigmA := {set Omega}.
 
 Variable P : dist [finType of Omega].
-
-(* Definition P_of (E : sigmA) := \rsum_(a in E) P a. *)
 
 Lemma example : forall w0, 0 <= Pr P [set w | w0 ⊆0 w].
 Proof. move=> *; exact: le_0_Pr. Qed.
@@ -428,6 +447,28 @@ Qed.
 
 End probability_inclusion_exclusion.
 
+Section Pushforward_distribution.
+
+Definition dist_img {A B : finType} (X : A -> B) (PA : dist A) : dist B.
+Proof.
+refine (mkDist (pmf := (mkPosFun (pos_f := fun b => Pr PA [set x | X x == b]) _)) _).
+Unshelve. 2: move=> ?; exact: le_0_Pr.
+rewrite -[RHS](pmf1 PA) (sum_parti'_finType _ _ X).
+rewrite [RHS]big_uniq /= ?undup_uniq //.
+rewrite (bigID (mem (undup [seq X i | i <- enum A])) predT) /=.
+rewrite [X in _ + X = _]big1 ?Rplus_0_r; last first.
+  move=> b Hb; rewrite (_: [set x | X x == b] = set0) ?Pr_0 //.
+  apply/setP => a; rewrite !inE.
+  rewrite mem_undup in Hb.
+  apply/negbTE/eqP => K; rewrite -K in Hb.
+  have K' := @map_f _ _ X (enum A) a.
+  rewrite mem_enumT in K'.
+  by rewrite K' in Hb.
+by apply: eq_bigr => b Hb; apply: eq_bigl => a; rewrite inE.
+Qed.
+
+End Pushforward_distribution.
+
 Section Proba_games.
 
 Variable n : nat.
@@ -457,10 +498,11 @@ Definition bg_StratA := (bool_vec k)%type.
 Definition bg_StratB := (bool_vec (n - k))%type.
 
 Definition bg_Outc := bool.
-(* [true] means player A wins *)
+(** [true] means player A wins *)
 
 Definition bg_strategy := (bg_StratA * bg_StratB)%type.
-(* [bg_strategy] is isomorphic to [bool_vec n] *)
+
+(** [bg_strategy] is isomorphic to [bool_vec n] *)
 
 Definition bool_vec_of (s : bg_strategy) : bool_vec n :=
   [ffun i : 'I_n => match split (cast_ord eqn_knk i) with
@@ -493,7 +535,8 @@ by case: splitP=>/= j H; rewrite ffunE; apply: congr1; apply/ord_inj; rewrite H.
 Qed.
 
 Definition bg_game := {ffun bg_strategy -> bg_Outc}.
-(* [bg_game] is isomorphic to [bool_fun n] *)
+
+(** [bg_game] is isomorphic to [bool_fun n] *)
 
 Definition bool_fun_of (g : bg_game) : bool_fun n :=
   [ffun i => g (bg_strategy_of i)].
@@ -593,8 +636,7 @@ Proof. by exists ord_of_StratA; [apply: StratA_of_ordK|apply: ord_of_StratAK]. Q
 (** Similar prerequisites, but for the powerset of ['I_#|bool_vec k|] *)
 
 Definition set_ord_of_StratA (s : {set bg_StratA}) : {set ('I_#|bool_vec k|)} :=
-(* [set x | mem_seq [seq enum_rank i | i <- enum s] x] *)
-   [set x | x \in [seq enum_rank i | i <- enum s]].
+  [set x | x \in [seq enum_rank i | i <- enum s]].
 
 Definition set_StratA_of_ord (s : {set ('I_#|bool_vec k|)}) : {set bg_StratA} :=
   [set x | x \in [seq enum_val i | i <- enum s]].
@@ -604,18 +646,6 @@ Proof. apply: mapK; exact: ord_of_StratAK. Qed.
 
 Lemma map_StratA_of_ordK : cancel (map StratA_of_ord) (map ord_of_StratA).
 Proof. apply: mapK; exact: StratA_of_ordK. Qed.
-
-Lemma mem_enum_set_seqE (T : finType) (s : seq T) (x : T) :
-  (x \in enum [set x0 in s]) = (x \in s).
-Proof. by rewrite !mem_filter !inE (mem_index_enum x) andbT. Qed.
-
-Lemma mem_enum_seqE (T : finType) (s : seq T) (x : T) :
-  (x \in enum s) = (x \in s).
-Proof. by rewrite !mem_filter (mem_index_enum x) andbT. Qed.
-
-Lemma mem_enum_setE (T : finType) (s : {set T}) (x : T) :
-  (x \in enum s) = (x \in s).
-Proof. by rewrite !mem_filter (mem_index_enum x) andbT. Qed.
 
 Lemma set_ord_of_StratAK : cancel set_ord_of_StratA set_StratA_of_ord.
 Proof.
@@ -677,5 +707,123 @@ rewrite -(mem_map (f := StratA_of_ord)); last exact/bij_inj/StratA_of_ord_bij.
 rewrite -map_comp; rewrite (eq_map (f2 := id)); last exact: ord_of_StratAK.
 by rewrite map_id mem_enum_setE.
 Qed.
+
+(** ** Probability of Winning Strategies *)
+
+(** We now consider Boolean functions whose truth-set is built from
+    2^n independent Bernoulli trials with probability [p] of success. *)
+
+Variable p : R.
+
+(*
+Hypothesis p_0_1_strict : 0 < p < 1.
+
+Let p_0_1 : 0 <= p <= 1.
+Proof. by case: p_0_1_strict => H1 H2; split; apply: Rlt_le. Qed.
+*)
+
+Hypothesis p_0_1 : 0 <= p <= 1.
+
+Let q_0_1 : 0 <= 1 - p <= 1.
+Proof. by case: p_0_1 => H1 H2; split; lra. Qed.
+
+(*
+(* As [R] is not a finType, it would be cumbersome to define the
+   probability law of a real-valued random variable with respect to its image. *)
+Definition dist_of {A : finType} (X : rvar A) :
+  dist (adhoc_seq_sub_finType (img X)).
+Proof.
+refine (@mkDist (adhoc_seq_sub_finType (img X))
+                (@mkPosFun _ (fun r => pr X (ssval r)) _) _).
+Unshelve.
+2: move=> ?; exact: le_0_Pr.
+simpl.
+rewrite -[RHS](pmf1 (rv_dist X)).
+rewrite (sum_parti_finType _ X).
+Abort.
+*)
+
+Lemma enum_bool : enum bool_finType = [:: true; false].
+Proof. by rewrite /enum_mem Finite.EnumDef.enumDef. Qed.
+
+Local Open Scope proba_scope.
+
+Definition distb : {dist bool} := bdist card_bool q_0_1.
+
+Lemma qqE : 1 - (1 - p) = p.
+Proof. lra. Qed.
+
+Lemma distbT : distb true = p.
+rewrite /= ffunE /ssr_ext.Two_set.val0 /=.
+by rewrite (enum_val_nth true) /= enum_bool qqE.
+Qed.
+
+Lemma distbF : distb false = 1 - p.
+rewrite /= ffunE /ssr_ext.Two_set.val0 /=.
+by rewrite (enum_val_nth true) /= enum_bool.
+Qed.
+
+Definition bool_row_pow n := 'rV[bool]_(2^n).
+
+Definition dist_Bernoulli_aux : {dist bool_row_pow n} := TupleDist.d distb (2^n).
+
+(** [bool_vec n] is isomorphic to ['I_(2^n)] *)
+
+Lemma card_bool_vec : #|bool_vec n| = (2 ^ n)%N.
+Proof. by rewrite /bool_vec card_ffun card_bool card_ord. Qed.
+
+Definition ord_of_bool_vec : bool_vec n -> 'I_(2 ^ n) :=
+  cast_ord card_bool_vec \o enum_rank.
+
+Definition bool_vec_of_ord : 'I_(2 ^ n) -> bool_vec n :=
+  enum_val \o cast_ord (esym card_bool_vec).
+
+Lemma ord_of_bool_vecK : cancel ord_of_bool_vec bool_vec_of_ord.
+Proof.
+move=> v; rewrite /ord_of_bool_vec /bool_vec_of_ord /=.
+by rewrite cast_ordK enum_rankK.
+Qed.
+
+Lemma bool_vec_of_ordK : cancel bool_vec_of_ord ord_of_bool_vec.
+Proof.
+move=> v; rewrite /ord_of_bool_vec /bool_vec_of_ord /=.
+by rewrite enum_valK cast_ordKV.
+Qed.
+
+Lemma ord_of_bool_vec_bij : bijective ord_of_bool_vec.
+Proof.
+by exists bool_vec_of_ord; [apply: ord_of_bool_vecK|apply: bool_vec_of_ordK].
+Qed.
+
+Lemma bool_vec_of_ord_bij : bijective bool_vec_of_ord.
+Proof.
+by exists ord_of_bool_vec; [apply: bool_vec_of_ordK|apply: ord_of_bool_vecK].
+Qed.
+
+(** [bool_row_pow n] is isomorphic to [bool_fun n] *)
+
+Local Open Scope ring_scope.
+Local Open Scope vec_ext_scope.
+
+Definition bool_fun_of_row (g : bool_row_pow n) : bool_fun n :=
+  [ffun v => g ``_ (ord_of_bool_vec v)].
+
+Definition row_of_bool_fun (f : bool_fun n) : bool_row_pow n :=
+  \matrix_(i, j) f (bool_vec_of_ord j).
+
+Lemma bool_fun_of_rowK : cancel bool_fun_of_row row_of_bool_fun.
+Proof.
+move=> r; rewrite /bool_fun_of_row /row_of_bool_fun.
+by apply/matrixP => i j; rewrite mxE ffunE bool_vec_of_ordK [i]ord1.
+Qed.
+
+Lemma row_of_bool_funK : cancel row_of_bool_fun bool_fun_of_row.
+Proof.
+move=> f; rewrite /bool_fun_of_row /row_of_bool_fun.
+by apply/ffunP => v; rewrite ffunE mxE ord_of_bool_vecK.
+Qed.
+
+Definition dist_Bernoulli : {dist bool_fun n} :=
+  dist_img bool_fun_of_row dist_Bernoulli_aux.
 
 End Proba_games.
