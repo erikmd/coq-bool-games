@@ -2,7 +2,7 @@ Require Import Reals Psatz.
 From mathcomp Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq.
 From mathcomp Require Import div choice fintype tuple finfun bigop.
 From mathcomp Require Import prime binomial ssralg finset ssrint matrix.
-From Infotheo Require Import Reals_ext Rssr ssr_ext ssralg_ext Rbigop proba.
+From Infotheo Require Import Reals_ext Rssr ssr_ext ssralg_ext Rbigop proba num_occ.
 Require Import Rbigop_complements bigop_tactics reals_complements.
 
 (** * A Coq theory of random Boolean games *)
@@ -327,14 +327,14 @@ Proof.
 by case: k => [//|k _]; rewrite subn1 /= Ropp_mult_distr_l oppRK Rmult_1_l.
 Qed.
 
-Lemma m1powE k : (-1) ^ k = \rmul_(i < k) (-1)%Re.
+Lemma bigmul_constE (x0 : R) (k : nat) : \rmul_(i < k) x0 = (x0 ^ k)%Re.
 Proof.
 rewrite big_const cardT size_enum_ord.
 elim: k => [//|k IHk].
 by rewrite /= IHk /= Rmult_comm.
 Qed.
 
-Lemma m1pow_cardE (I : finType) (B : pred I) : (-1) ^ #|B| = \rmul_(i in B) (-1)%Re.
+Lemma bigmul_card_constE (I : finType) (B : pred I) x0 : \rmul_(i in B) x0 = x0 ^ #|B|.
 Proof.
 rewrite big_const.
 elim: #|B| => [//|k IHk].
@@ -345,7 +345,7 @@ Qed.
 Lemma bigmul_m1pow (I : finType) (p : pred I) (F : I -> R) :
   \rmul_(i in p) - F i = (-1) ^ #|p| * \rmul_(i in p) F i.
 Proof.
-rewrite m1pow_cardE.
+rewrite -bigmul_card_constE.
 apply: (big_rec3 (fun a b c => a = b * c)).
 { by rewrite Rmult_1_l. }
 move=> i a b c Hi Habc; rewrite Habc; ring.
@@ -451,10 +451,13 @@ End probability_inclusion_exclusion.
 
 Section Pushforward_distribution.
 
-Definition dist_img {A B : finType} (X : A -> B) (PA : dist A) : dist B.
+Lemma dist_img_proof {A B : finType} (X : A -> B) (PA : dist A) :
+  \rsum_(a in B)
+     {|
+     pos_f := fun b : B => Pr PA [set x | X x == b];
+     Rle0f := fun c : B => le_0_Pr PA [set x | X x == c] |} a = 1
+.
 Proof.
-refine (mkDist (pmf := (mkPosFun (pos_f := fun b => Pr PA [set x | X x == b]) _)) _).
-Unshelve. 2: move=> ?; exact: le_0_Pr.
 rewrite -[RHS](pmf1 PA) (sum_parti'_finType _ _ X).
 rewrite [RHS]big_uniq /= ?undup_uniq //.
 rewrite (bigID (mem (undup [seq X i | i <- enum A])) predT) /=.
@@ -468,6 +471,13 @@ rewrite [X in _ + X = _]big1 ?Rplus_0_r; last first.
   by rewrite K' in Hb.
 by apply: eq_bigr => b Hb; apply: eq_bigl => a; rewrite inE.
 Qed.
+
+Definition dist_img {A B : finType} (X : A -> B) (PA : dist A) : dist B.
+Proof.
+refine (mkDist (pmf := (mkPosFun (pos_f := fun b => Pr PA [set x | X x == b])
+  (fun c => le_0_Pr PA [set x | X x == c]))) _).
+exact: dist_img_proof.
+Defined.
 
 End Pushforward_distribution.
 
@@ -737,15 +747,21 @@ Definition distb : {dist bool} := bdist card_bool q_0_1.
 Lemma qqE : 1 - (1 - p) = p.
 Proof. lra. Qed.
 
-Lemma distbT : distb true = p.
-rewrite /= ffunE /ssr_ext.Two_set.val0 /=.
-by rewrite (enum_val_nth true) /= enum_bool qqE.
+Lemma val0_bool : Two_set.val0 card_bool = true.
+Proof.
+by rewrite /ssr_ext.Two_set.val0 /= (enum_val_nth true) /= enum_bool.
 Qed.
 
-Lemma distbF : distb false = 1 - p.
-rewrite /= ffunE /ssr_ext.Two_set.val0 /=.
-by rewrite (enum_val_nth true) /= enum_bool.
+Lemma val1_bool : Two_set.val1 card_bool = false.
+Proof.
+by rewrite /ssr_ext.Two_set.val1 /= (enum_val_nth true) /= enum_bool.
 Qed.
+
+Lemma distbT : distb true = p.
+Proof. by rewrite /= ffunE val0_bool qqE. Qed.
+
+Lemma distbF : distb false = 1 - p.
+Proof. by rewrite /= ffunE val0_bool. Qed.
 
 Definition bool_row_pow n := 'rV[bool]_(2^n).
 
@@ -804,7 +820,52 @@ move=> f; rewrite /bool_fun_of_row /row_of_bool_fun.
 by apply/ffunP => v; rewrite ffunE mxE ord_of_bool_vecK.
 Qed.
 
+Lemma row_of_bool_fun_bij : bijective row_of_bool_fun.
+Proof.
+by exists bool_fun_of_row; [apply: row_of_bool_funK|apply: bool_fun_of_rowK].
+Qed.
+
+Lemma bool_fun_of_row_bij : bijective bool_fun_of_row.
+Proof.
+by exists row_of_bool_fun; [apply: bool_fun_of_rowK|apply: row_of_bool_funK].
+Qed.
+
 Definition dist_Bernoulli : {dist bool_fun n} :=
   dist_img bool_fun_of_row dist_Bernoulli_aux.
+
+Definition num_true (f : bool_fun n) := #|finset_of f|.
+
+Definition num_false (f : bool_fun n) := #|~: finset_of f|.
+
+Lemma num_falseE f : num_false f = (2^n - num_true f)%N.
+Proof. by rewrite /num_false /num_true cardsCs card_bool_vec setCK. Qed.
+
+Theorem dist_BernoulliE f :
+  dist_Bernoulli f = p ^ (num_true f) * (1 - p) ^ (num_false f).
+Proof.
+rewrite /dist_Bernoulli /dist_img /=.
+rewrite /dist_Bernoulli_aux /TupleDist.d /Pr /=.
+rewrite /TupleDist.f num_falseE.
+underp big ? rewrite in_set.
+rewrite (reindex row_of_bool_fun) /=; last first.
+  apply: onW_bij; exact: row_of_bool_fun_bij.
+underp big ? rewrite row_of_bool_funK.
+rewrite big_pred1_eq.
+under big ? _ rewrite ffunE /row_of_bool_fun mxE.
+rewrite (reindex ord_of_bool_vec) /=; last first.
+  apply: onW_bij; exact: ord_of_bool_vec_bij.
+under big ? _ rewrite ord_of_bool_vecK val0_bool.
+rewrite (bigID f predT) /=.
+under big i Hi rewrite Hi eqxx qqE.
+rewrite bigmul_card_constE.
+under big i Hi rewrite (negbTE Hi) /=.
+rewrite bigmul_card_constE /=.
+rewrite /num_true.
+congr Rmult; congr pow.
+{ by rewrite cardsE. }
+rewrite -num_falseE /num_false.
+apply: eq_card => i /=.
+by rewrite !inE. (* . *)
+Qed.
 
 End Proba_games.
