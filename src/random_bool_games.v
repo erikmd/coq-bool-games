@@ -179,45 +179,57 @@ apply (big_ind2 (R1 := {set A}) (R2 := R)); last done.
 - by move=> sa a sb b Ha Hb; rewrite -Ha -Hb; apply: Ind_cap.
 Qed.
 
-(** Expected value of a random variable [X], in the finite case *)
-Definition Exp (X : A -> R) := \rsum_(a in A) X a * P a.
+(** In Infotheo, random variables [X : rvar A] are defined as a record
+    gathering a distribution [P : dist A] and a function [f : A -> R].
 
-Lemma Exp_Ind s : Exp (Ind s) = Pr P s.
+    For convenience, we locally define the function [rv] for building
+    such random variables, endowed with the ambient distribution [P]. *)
+
+Let rv : (A -> R) -> rvar A := mkRvar P.
+
+Local Open Scope proba_scope.
+
+Lemma Ex_altE (X : A -> R) : `E (rv X) = \rsum_(a in A) X a * P a.
+Proof. done. Qed.
+
+Lemma E_Ind s : `E (rv (Ind s)) = Pr P s.
 Proof.
-rewrite /Exp /Ind /Pr (bigID (mem s)) /=.
+rewrite /Ex_alt /Ind /Pr (bigID (mem s)) /=.
 rewrite [X in _ + X = _]big1; last by move=> i /negbTE ->; rewrite Rmult_0_l.
 by rewrite Rplus_0_r; apply: eq_bigr => i ->; rewrite Rmult_1_l.
 Qed.
 
-Lemma Exp_ext X2 X1 : X1 =1 X2 -> Exp X1 = Exp X2.
-Proof. by move=> Heq; rewrite /Exp; apply: eq_bigr => i Hi; rewrite Heq. Qed.
-
-Lemma Exp_add X1 X2 : Exp (fun w => X1 w + X2 w) = Exp X1 + Exp X2.
+Lemma E_ext X2 X1 : X1 =1 X2 -> `E (rv X1) = `E (rv X2).
 Proof.
-rewrite /Exp; set b := LHS; under b ? _ rewrite Rmult_plus_distr_r.
+by move=> Heq; rewrite /Ex_alt; apply: eq_bigr => i Hi /=; rewrite Heq.
+Qed.
+
+Lemma E_add X1 X2 : `E (rv (fun w => X1 w + X2 w)) = `E (rv X1) + `E (rv X2).
+Proof.
+rewrite /Ex_alt; set b := LHS; under b ? _ rewrite Rmult_plus_distr_r.
 by rewrite big_split.
 Qed.
 
-Lemma Exp_rsum I r p (X : I -> A -> R) :
-  Exp (fun x => \big[Rplus/R0]_(i <- r | p i) X i x) =
-  \big[Rplus/R0]_(i <- r | p i) (Exp (X i)).
+Lemma E_rsum I r p (X : I -> A -> R) :
+  `E (rv (fun x => \big[Rplus/R0]_(i <- r | p i) X i x)) =
+  \big[Rplus/R0]_(i <- r | p i) (`E (rv (X i))).
 Proof.
-rewrite /Exp exchange_big /=; apply: eq_bigr => i Hi.
+rewrite /Ex_alt exchange_big /=; apply: eq_bigr => i Hi.
 by rewrite big_distrl /=.
 Qed.
 
-Lemma Exp_scaler X1 r2 : Exp (fun w => X1 w * r2) = Exp X1 * r2.
+Lemma E_scaler X1 r2 : `E (rv (fun w => X1 w * r2)) = `E (rv X1) * r2.
 Proof.
-rewrite /Exp big_distrl /=; apply: eq_bigr => i Hi.
+rewrite /Ex_alt big_distrl /=; apply: eq_bigr => i Hi.
 by rewrite !Rmult_assoc; congr Rmult; rewrite Rmult_comm.
 Qed.
 
-Lemma Exp_scalel r1 X2 : Exp (fun w => r1 * X2 w) = r1 * Exp X2.
+Lemma E_scalel r1 X2 : `E (rv (fun w => r1 * X2 w)) = r1 * `E (rv X2).
 Proof.
-rewrite /Exp big_distrr /=; apply: eq_bigr => i Hi.
+rewrite /Ex_alt big_distrr /=; apply: eq_bigr => i Hi.
 by rewrite !Rmult_assoc; congr Rmult; rewrite Rmult_comm.
 Qed.
-  
+
 (** [bigA_distr] is a specialization of [bigA_distr_bigA] and at the same
     time a generalized version of [GRing.exprDn] for iterated prod. *)
 Lemma bigA_distr (R : Type) (zero one : R) (times : Monoid.mul_law zero)
@@ -397,21 +409,21 @@ Qed.
 Let SumPrCap (n : nat) (E : 'I_n -> {set A}) (k : nat) :=
   \rsum_(J in {set 'I_n} | #|J| == k) Pr P (\bigcap_(j in J) E j).
 
-Lemma Exp_SumIndCap n (E : 'I_n -> {set A}) k :
-  Exp (SumIndCap E k) = SumPrCap E k.
+Lemma E_SumIndCap n (E : 'I_n -> {set A}) k :
+  `E (rv (SumIndCap E k)) = SumPrCap E k.
 Proof.
-rewrite /SumIndCap /SumPrCap Exp_rsum; apply: eq_bigr => i Hi.
-by rewrite Exp_Ind.
+rewrite /SumIndCap /SumPrCap E_rsum; apply: eq_bigr => i Hi.
+by rewrite E_Ind.
 Qed.
 
 Theorem Pr_bigcup_incl_excl n (E : 'I_n -> {set A}) :
   Pr P (\bigcup_(i < n) E i) = \big[Rplus/0]_(1 <= k < n.+1) ((-1)^(k-1) * SumPrCap E k).
 Proof.
-rewrite -Exp_Ind.
-under big ? _ rewrite Ind_bigcup_incl_excl.
-rewrite -/(Exp _) Exp_rsum.
+rewrite -E_Ind.
+under big ? _ rewrite /= Ind_bigcup_incl_excl.
+rewrite -Ex_altE E_rsum.
 apply: eq_bigr => i _.
-by rewrite Exp_scalel Exp_SumIndCap.
+by rewrite E_scalel E_SumIndCap.
 Qed.
 
 End probability_inclusion_exclusion.
