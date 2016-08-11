@@ -11,7 +11,6 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
-Local Open Scope R_scope.
 Delimit Scope R_scope with Re.
 
 Section Prelim_fintype.
@@ -105,6 +104,11 @@ End Def.
 Infix "⊆0" := (@subseteq0 _) (at level 70).
 Infix "⇒0" := (@implies0 _) (at level 70).
 Infix "⊆1" := (@subseteq1 _) (at level 70).
+
+Local Open Scope ring_scope.
+Local Open Scope R_scope.
+Local Open Scope proba_scope.
+Local Open Scope vec_ext_scope.
 
 Section Proba_example.
 
@@ -205,8 +209,6 @@ Qed.
     such random variables, endowed with the ambient distribution [P]. *)
 
 Let rv : (A -> R) -> rvar A := mkRvar P.
-
-Local Open Scope proba_scope.
 
 Lemma Ex_altE (X : A -> R) : `E (rv X) = \rsum_(a in A) X a * P a.
 Proof. done. Qed.
@@ -727,26 +729,8 @@ Hypothesis p_0_1 : 0 <= p <= 1.
 Let q_0_1 : 0 <= 1 - p <= 1.
 Proof. by case: p_0_1 => H1 H2; split; lra. Qed.
 
-(*
-(* As [R] is not a finType, it would be cumbersome to define the
-   probability law of a real-valued random variable with respect to its image. *)
-Definition dist_of {A : finType} (X : rvar A) :
-  dist (adhoc_seq_sub_finType (img X)).
-Proof.
-refine (@mkDist (adhoc_seq_sub_finType (img X))
-                (@mkPosFun _ (fun r => pr X (ssval r)) _) _).
-Unshelve.
-2: move=> ?; exact: le_0_Pr.
-simpl.
-rewrite -[RHS](pmf1 (rv_dist X)).
-rewrite (sum_parti_finType _ X).
-Abort.
-*)
-
 Lemma enum_bool : enum bool_finType = [:: true; false].
 Proof. by rewrite /enum_mem Finite.EnumDef.enumDef. Qed.
-
-Local Open Scope proba_scope.
 
 Definition distb : {dist bool} := bdist card_bool q_0_1.
 
@@ -801,9 +785,6 @@ by exists ord_of_bool_vec; [apply: bool_vec_of_ordK|apply: ord_of_bool_vecK].
 Qed.
 
 (** [bool_row_pow n] is isomorphic to [bool_fun n] *)
-
-Local Open Scope ring_scope.
-Local Open Scope vec_ext_scope.
 
 Definition bool_fun_of_row (g : bool_row_pow n) : bool_fun n :=
   [ffun v => g ``_ (ord_of_bool_vec v)].
