@@ -47,7 +47,7 @@ Ltac find_pat pat tac :=
 end.
 (* END 3rdparty *)
 
-(** [underbig] allows one to apply a given tactic under some bigop:
+(** [under] allows one to apply a given tactic under some bigop:
     if [pat] is a local variable (let-in) that appears in the goal,
     only the occurrences of [pat] will be rewritten;
     otherwise the occurrences of the first bigop that matches [pat]
@@ -94,7 +94,7 @@ Ltac find_pat_in H pat tac :=
     tryif tac x then idtac else fail 2
   end.
 
-(** [underbig…in] allows one to apply a given tactic under some bigop:
+(** [under...in] allows one to apply a given tactic under some bigop:
     if [pat] is a local variable (let-in) that appears in H,
     only the occurrences of [pat] will be rewritten;
     otherwise the occurrences of the first bigop that matches [pat]
@@ -127,7 +127,7 @@ Ltac under_bigp b x tac :=
     end
   end.
 
-(** [underbigp] allows one to apply a given tactic for rewriting
+(** [underp] allows one to apply a given tactic for rewriting
     some bigop predicate:
     if [pat] is a local variable (let-in) that appears in the goal,
     only the occurrences of [pat] will be rewritten;
@@ -166,7 +166,7 @@ Ltac under_bigp_in H b x tac :=
     end
   end.
 
-(** [underbigp…in] allows one to apply a given tactic for rewriting
+(** [underp...in] allows one to apply a given tactic for rewriting
     some bigop predicate:
     if [pat] is a local variable (let-in) that appears in H,
     only the occurrences of [pat] will be rewritten;
@@ -233,7 +233,7 @@ done.
 move=> *; exact: Hneq0.
 Qed.
 
-(* A test lemma for [underbigp] *)
+(* A test lemma for [underp] *)
 Let testp1 (A : finType) (n : nat) (F : A -> nat) :
   \big[addn/O]_(0 <= k < n)
   \big[addn/O]_(J in {set A} | #|J :&: [set: A]| == k)
@@ -243,7 +243,7 @@ under big ? _ underp big ? rewrite setIT.
 done.
 Qed.
 
-(* A test lemma for [underbigp…in] *)
+(* A test lemma for [underp...in] *)
 Let testp2 (A : finType) (n : nat) (F : A -> nat) :
   \big[addn/O]_(J in {set A} | #|J :&: [set: A]| == 1)
   \big[addn/O]_(j in J) F j = \big[addn/O]_(j in A) F j -> True.
