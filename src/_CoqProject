@@ -1,4 +1,5 @@
 -R . RandomGames
 bigop_tactics.v
 reals_complements.v
+Rbigop_complements.v
 random_bool_games.v
