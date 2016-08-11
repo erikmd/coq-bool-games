@@ -13,6 +13,8 @@ Unset Printing Implicit Defensive.
 
 Delimit Scope R_scope with Re.
 
+(** ** Preliminary results to simplify goals of the form [x \in enum _] *)
+
 Section Prelim_fintype.
 
 Lemma mem_enumT (T : finType) (x : T) : (x \in enum T).
@@ -31,6 +33,8 @@ Lemma mem_enum_setE (T : finType) (s : {set T}) (x : T) :
 Proof. by rewrite !mem_filter (mem_index_enum x) andbT. Qed.
 
 End Prelim_fintype.
+
+(** ** Boolean functions, DNF and (sets of) Boolean vectors *)
 
 Section Def.
 
@@ -110,6 +114,8 @@ Local Open Scope R_scope.
 Local Open Scope proba_scope.
 Local Open Scope vec_ext_scope.
 
+(** ** A toy example *)
+
 Section Proba_example.
 
 Variable n : nat.
@@ -123,12 +129,14 @@ Let Omega := {set bool_vec n}.
 
 Let sigmA := {set Omega}.
 
-Variable P : dist [finType of Omega].
+Variable P : {dist Omega}.
 
 Lemma example : forall w0, 0 <= Pr P [set w | w0 ⊆0 w].
 Proof. move=> *; exact: le_0_Pr. Qed.
 
 End Proba_example.
+
+(** ** An algebraic proof of the formula of inclusion-exclusion *)
 
 Section probability_inclusion_exclusion.
 (** In this section we prove the formula of inclusion-exclusion.
@@ -172,6 +180,8 @@ Proof. by rewrite /Rminus Rplus_assoc. Qed.
 Lemma predSn (p : nat) : p.+1.-1 = p.
 Proof. by []. Qed.
 
+(** *** A theory of indicator functions from [A : finType] to [R] *)
+
 Definition Ind (s : {set A}) (x : A) : R := if x \in s then R1 else R0.
 
 Lemma Ind_set0 (x : A) : Ind set0 x = R0.
@@ -202,7 +212,11 @@ apply (big_ind2 (R1 := {set A}) (R2 := R)); last done.
 - by move=> sa a sb b Ha Hb; rewrite -Ha -Hb; apply: Ind_cap.
 Qed.
 
-(** In Infotheo, random variables [X : rvar A] are defined as a record
+(** *** Extra support results for the expected value *)
+
+(** Remark:
+
+    In Infotheo, random variables [X : rvar A] are defined as a record
     gathering a distribution [P : dist A] and a function [f : A -> R].
 
     For convenience, we locally define the function [rv] for building
@@ -301,6 +315,7 @@ apply: eq_big => [i|i /andP [H1 H2]] /=; first by rewrite inE negbK.
 by rewrite ifF //; apply: negbTE; rewrite inE in_setC in H2.
 Qed.
 
+(* TODO: to move *)
 Lemma bigcap_seq_const I (B : {set A}) (r : seq I) :
   (0 < size r)%N -> \bigcap_(i <- r) B = B.
 Proof.
@@ -341,7 +356,7 @@ elim: #|B| => [//|k IHk].
 by rewrite /= IHk /= Rmult_comm.
 Qed.
 
-(** Similar to [GRing.prodrN] *)
+(** [bigmul_m1pow] is the Reals counterpart of lemma [GRing.prodrN] *)
 Lemma bigmul_m1pow (I : finType) (p : pred I) (F : I -> R) :
   \rmul_(i in p) - F i = (-1) ^ #|p| * \rmul_(i in p) F i.
 Proof.
@@ -449,6 +464,11 @@ Qed.
 
 End probability_inclusion_exclusion.
 
+(** ** Push-forward distribution w.r.t [X : A -> B] where [A, B : finType] *)
+
+(** Note: [X : A -> B] is necessarily measurable, as both [A] and [B]
+    are finite (and thereby endowed with the discrete sigma-algebra). *)
+
 Section Pushforward_distribution.
 
 Lemma dist_img_proof {A B : finType} (X : A -> B) (PA : dist A) :
@@ -481,6 +501,8 @@ Defined.
 
 End Pushforward_distribution.
 
+(** ** Random Boolean games and characterization of winning strategies *)
+
 Section Proba_games.
 
 Variable n : nat.
@@ -509,8 +531,8 @@ Definition bg_StratA := (bool_vec k)%type.
 
 Definition bg_StratB := (bool_vec (n - k))%type.
 
+(** Outcomes are Booleans, and [true] means player A wins *)
 Definition bg_Outc := bool.
-(** [true] means player A wins *)
 
 Definition bg_strategy := (bg_StratA * bg_StratB)%type.
 
@@ -570,7 +592,7 @@ Qed.
 
 Definition Omega := bool_fun n.
 
-Variable P : dist [finType of Omega].
+Variable P : {dist Omega}.
 
 Let sigmA := {set Omega}.
 
@@ -626,8 +648,8 @@ apply/existsP/bigcupP.
 - by case=> a Ha Hb; exists a =>//; rewrite winA_sigmA.
 Qed.
 
-(** We now need to reindex the bigcup above, as [Pr_bigcup_incl_excl]
-    uses integer indices. *)
+(** To derive [Pr_ex_winA_sigmA], we need to reindex the bigcup above,
+    as [Pr_bigcup_incl_excl] uses integer indices. *)
 
 Definition ord_of_StratA : bg_StratA -> 'I_#|bool_vec k| := enum_rank.
 
@@ -727,7 +749,8 @@ Qed.
 
 Variable p : R.
 
-(*
+(* If need be:
+
 Hypothesis p_0_1_strict : 0 < p < 1.
 
 Let p_0_1 : 0 <= p <= 1.
@@ -739,13 +762,14 @@ Hypothesis p_0_1 : 0 <= p <= 1.
 Let q_0_1 : 0 <= 1 - p <= 1.
 Proof. by case: p_0_1 => H1 H2; split; lra. Qed.
 
-Lemma enum_bool : enum bool_finType = [:: true; false].
-Proof. by rewrite /enum_mem Finite.EnumDef.enumDef. Qed.
-
+(** Bernoulli distribution "B(p)" *)
 Definition distb : {dist bool} := bdist card_bool q_0_1.
 
 Lemma qqE : 1 - (1 - p) = p.
 Proof. lra. Qed.
+
+Lemma enum_bool : enum bool_finType = [:: true; false].
+Proof. by rewrite /enum_mem Finite.EnumDef.enumDef. Qed.
 
 Lemma val0_bool : Two_set.val0 card_bool = true.
 Proof.
@@ -765,7 +789,10 @@ Proof. by rewrite /= ffunE val0_bool. Qed.
 
 Definition bool_row_pow n := 'rV[bool]_(2^n).
 
-Definition dist_Bernoulli_aux : {dist bool_row_pow n} := TupleDist.d distb (2^n).
+(** Distribution of 2^n Bernoulli trials with parameter p: "B(2^n, p)" *)
+
+Definition dist_Bernoulli_aux : {dist bool_row_pow n} :=
+  TupleDist.d distb (2^n).
 
 (** [bool_vec n] is isomorphic to ['I_(2^n)] *)
 
@@ -829,6 +856,9 @@ Lemma bool_fun_of_row_bij : bijective bool_fun_of_row.
 Proof.
 by exists row_of_bool_fun; [apply: bool_fun_of_rowK|apply: row_of_bool_funK].
 Qed.
+
+(** Distribution of 2^n Bernoulli trials with parameter p,
+    in terms of Boolean functions *)
 
 Definition dist_Bernoulli : {dist bool_fun n} :=
   dist_img bool_fun_of_row dist_Bernoulli_aux.
