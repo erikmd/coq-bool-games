@@ -95,7 +95,7 @@ Definition subseteq0 (w0 w1 : {set bool_vec}) := w0 \subset w1.
 
 Infix "⊆0" := subseteq0 (at level 70).
 
-Definition implies0 (w0 w1 : bool_fun) : Prop := forall i, w0 i -> w1 i.
+Definition implies0 (w0 w1 : bool_fun) : bool := [forall i, w0 i ==> w1 i].
 
 Infix "⇒0" := implies0 (at level 70).
 
@@ -103,12 +103,12 @@ Definition subseteq1 (s0 s1 : {set {set bool_vec}}) := s0 \subset s1.
 
 Infix "⊆1" := subseteq1 (at level 70).
 
-Lemma subseteq0P : forall w1 w2, reflect (DNF_of w1 ⇒0 DNF_of w2) (w1 ⊆0 w2).
+Lemma implies0E w1 w2 :
+  (w1 ⇒0 w2) = (finset_of_bool_fun w1 ⊆0 finset_of_bool_fun w2).
 Proof.
-move=> w1 w2; rewrite !DNF_ofE.
-apply: (iffP idP).
-- by move/subsetP => H x; rewrite !ffunE; move: x.
-- by move=> H; apply/subsetP => x; move/(_ x) in H; rewrite !ffunE in H.
+apply/idP/idP.
+- by move=> H; apply/subsetP => x; move/forallP/(_ x)/implyP: H; rewrite !inE.
+- by move/subsetP=> H; apply/forallP => x; move/(_ x)/implyP: H; rewrite !inE.
 Qed.
 
 End Def.
@@ -644,7 +644,7 @@ Definition w_ (a : bg_StratA) : Omega :=
     [set w : bool ^ n | [forall i : 'I_k, w (widen_ord le_k_n i) == a i]].
 
 Definition W_ (a : bg_StratA) : sigmA :=
-  [set w : Omega | finset_of_bool_fun (w_ a) ⊆0 finset_of_bool_fun w].
+  [set w : Omega | (w_ a) ⇒0 w].
 
 Theorem winA_sigmA :
   forall (f : Omega) (a : bg_StratA),
@@ -652,19 +652,20 @@ Theorem winA_sigmA :
 Proof.
 move=> f a; rewrite /bg_winA /W_.
 apply/forallP/idP =>/= H.
-- rewrite inE /w_; apply/subseteq0P.
-  rewrite !DNF_ofE !finset_of_bool_funK=> x; rewrite ffunE inE.
-  move/forallP => H'.
-  rewrite -(bool_game_of_bool_funK f) ffunE.
+- rewrite -(bool_game_of_bool_funK f) inE implies0E.
+  rewrite /bool_fun_of_bool_game.
+  apply/subsetP => x.
+  rewrite !inE 2!ffunE !inE => /forallP H'.
   have->: bg_strategy_of_bool_vec x = (a, (bg_strategy_of_bool_vec x).2).
     rewrite [LHS]surjective_pairing; congr pair.
     apply/ffunP => ik; rewrite !ffunE.
     by apply/eqP; exact: H'.
   exact: H.
-- rewrite inE /w_ in H; move/subseteq0P in H.
-  rewrite !DNF_ofE !finset_of_bool_funK in H.
+- rewrite inE /w_ !implies0E in H.
+  move/subsetP in H.
   move=> x; move/(_ (bool_vec_of_bg_strategy (a, x))) in H.
-  rewrite ffunE inE in H; rewrite ffunE; apply: H.
+  rewrite !inE in H; rewrite ffunE; apply: H.
+  rewrite ffunE inE.
   apply/forallP => y; rewrite ffunE.
   case: splitP => j /=; first by move/ord_inj<-.
   case: y => [y Hy] /= => K; exfalso; rewrite K in Hy.
