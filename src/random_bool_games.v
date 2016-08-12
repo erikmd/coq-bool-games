@@ -44,19 +44,21 @@ Definition bool_vec := (bool ^ n)%type.
 
 Definition bool_fun := {ffun bool_vec -> bool}.
 
-Definition ffun_of (s : {set bool_vec}) : bool_fun :=
-  [ffun v => v \in s].
-
 Definition DNF_of (s : {set bool_vec}) : bool_fun :=
   [ffun v : bool_vec => \big[orb/false]_(vs in s)
                         \big[andb/true]_(i < n) (if vs i then v i else ~~ v i)].
 
+(** [{set bool_vec}] is isomorphic to [bool_fun] *)
+
+Definition bool_fun_of_finset (s : {set bool_vec}) : bool_fun :=
+  [ffun v => v \in s].
+
 Lemma if_negb_eq a b : (if a then b else ~~ b) = (a == b).
 Proof. by case: a; case: b. Qed.
 
-Lemma DNF_ofE s : DNF_of s = ffun_of s.
+Lemma DNF_ofE s : DNF_of s = bool_fun_of_finset s.
 Proof.
-rewrite /DNF_of /ffun_of; apply/ffunP=> /= v; rewrite !ffunE; apply/idP/idP=> H.
+apply/ffunP=> /= v; rewrite !ffunE; apply/idP/idP=> H.
 - rewrite big_orE in H.
   have {H} /existsP /= [vs /andP [Hi1 Hi2]] := H.
   rewrite big_andE in Hi2.
@@ -68,17 +70,23 @@ rewrite /DNF_of /ffun_of; apply/ffunP=> /= v; rewrite !ffunE; apply/idP/idP=> H.
   by rewrite big_andE; apply/forallP; move=> /= i; rewrite if_negb_eq.
 Qed.
 
-Definition finset_of (f : bool_fun) : {set bool_vec} :=
+Definition finset_of_bool_fun (f : bool_fun) : {set bool_vec} :=
   [set w : bool ^ n | f w].
 
-Lemma finset_ofK : cancel finset_of ffun_of.
+Lemma bool_fun_of_finsetK : cancel bool_fun_of_finset finset_of_bool_fun.
+Proof. by move=> s; apply/setP => v; rewrite inE ffunE. Qed.
+
+Lemma finset_of_bool_funK : cancel finset_of_bool_fun bool_fun_of_finset.
+Proof. by move=> f; apply/ffunP => v; rewrite ffunE inE. Qed.
+
+Lemma bool_fun_of_finset_bij : bijective bool_fun_of_finset.
 Proof.
-by move=> f; rewrite /finset_of /ffun_of; apply/ffunP => v; rewrite ffunE inE.
+by exists finset_of_bool_fun; [apply: bool_fun_of_finsetK|apply: finset_of_bool_funK].
 Qed.
 
-Lemma ffun_ofK : cancel ffun_of finset_of.
+Lemma finset_of_bool_fun_bij : bijective finset_of_bool_fun.
 Proof.
-by move=> s; rewrite /finset_of /ffun_of; apply/setP => v; rewrite inE ffunE.
+by exists bool_fun_of_finset; [apply: finset_of_bool_funK|apply: bool_fun_of_finsetK].
 Qed.
 
 (** Definition 1.
@@ -95,9 +103,9 @@ Definition subseteq1 (s0 s1 : {set {set bool_vec}}) := s0 \subset s1.
 
 Infix "⊆1" := subseteq1 (at level 70).
 
-Lemma subseteq0P : forall w1 w2, reflect (ffun_of w1 ⇒0 ffun_of w2) (w1 ⊆0 w2).
+Lemma subseteq0P : forall w1 w2, reflect (DNF_of w1 ⇒0 DNF_of w2) (w1 ⊆0 w2).
 Proof.
-move=> w1 w2.
+move=> w1 w2; rewrite !DNF_ofE.
 apply: (iffP idP).
 - by move/subsetP => H x; rewrite !ffunE; move: x.
 - by move=> H; apply/subsetP => x; move/(_ x) in H; rewrite !ffunE in H.
@@ -124,8 +132,8 @@ Let Omega_fun := bool_fun n.
 
 Let Omega := {set bool_vec n}.
 
-  Check @ffun_of n : Omega -> Omega_fun.
-  Check @finset_of n : Omega_fun -> Omega.
+  Check @bool_fun_of_finset n : Omega -> Omega_fun.
+  Check @finset_of_bool_fun n : Omega_fun -> Omega.
 
 Let sigmA := {set Omega}.
 
@@ -286,8 +294,8 @@ rewrite bigA_distr_bigA big_mkord (partition_big
   rewrite (reindex (fun s : {set I} => [ffun x => x \in s])); last first.
   { apply: onW_bij.
     exists (fun f : {ffun I -> bool} => [set x | f x]).
-    by move=> s; rewrite /finset_of /ffun_of; apply/setP => v; rewrite inE ffunE.
-    by move=> f; rewrite /finset_of /ffun_of; apply/ffunP => v; rewrite ffunE inE. }
+    by move=> s; apply/setP => v; rewrite inE ffunE.
+    by move=> f; apply/ffunP => v; rewrite ffunE inE. }
   eapply eq_big.
   { move=> s; apply/eqP/eqP.
       move<-; rewrite -[#|s|](@inordK #|I|) ?ltnS ?max_card //.
@@ -538,20 +546,21 @@ Definition bg_strategy := (bg_StratA * bg_StratB)%type.
 
 (** [bg_strategy] is isomorphic to [bool_vec n] *)
 
-Definition bool_vec_of (s : bg_strategy) : bool_vec n :=
+Definition bool_vec_of_bg_strategy (s : bg_strategy) : bool_vec n :=
   [ffun i : 'I_n => match split (cast_ord eqn_knk i) with
                     | inl ik => s.1 ik
                     | inr ink => s.2 ink
                     end].
 
 (* TODO: name the function [widen_ord le_k_n]... *)
-Definition bg_strategy_of (v : bool_vec n) : bg_strategy :=
+Definition bg_strategy_of_bool_vec (v : bool_vec n) : bg_strategy :=
   ([ffun ik : 'I_k => v (widen_ord le_k_n ik)],
    [ffun ink : 'I_(n - k) => v (cast_ord knk_eqn (rshift k ink))]).
 
-Lemma bool_vec_ofK : cancel bool_vec_of bg_strategy_of.
+Lemma bool_vec_of_bg_strategyK :
+  cancel bool_vec_of_bg_strategy bg_strategy_of_bool_vec.
 Proof.
-move=> s; rewrite /bool_vec_of /bg_strategy_of (surjective_pairing s).
+move=> s; rewrite (surjective_pairing s).
 congr pair; apply/ffunP => v; rewrite !ffunE.
 - case: splitP => /= j; first by move/ord_inj->.
   case: v => [v Hv] /= => K; exfalso; rewrite K in Hv.
@@ -562,32 +571,55 @@ congr pair; apply/ffunP => v; rewrite !ffunE.
   + by move/eqP; rewrite eqn_add2l; move/eqP/ord_inj->.
 Qed.
 
-Lemma bg_strategy_ofK : cancel bg_strategy_of bool_vec_of.
+Lemma bg_strategy_of_bool_vecK :
+  cancel bg_strategy_of_bool_vec bool_vec_of_bg_strategy.
 Proof.
-move=> v; rewrite /bg_strategy_of /bool_vec_of; apply/ffunP=> x; rewrite !ffunE.
+move=> v; apply/ffunP=> x; rewrite !ffunE.
 by case: splitP=>/= j H; rewrite ffunE; apply: congr1; apply/ord_inj; rewrite H.
 Qed.
 
-Definition bg_game := {ffun bg_strategy -> bg_Outc}.
-
-(** [bg_game] is isomorphic to [bool_fun n] *)
-
-Definition bool_fun_of (g : bg_game) : bool_fun n :=
-  [ffun i => g (bg_strategy_of i)].
-
-Definition bg_game_of (f : bool_fun n) : bg_game :=
-  [ffun s => f (bool_vec_of s)].
-
-Lemma bool_fun_ofK : cancel bool_fun_of bg_game_of.
+Lemma bool_vec_of_bg_strategy_bij : bijective bool_vec_of_bg_strategy.
 Proof.
-move=> g; rewrite /bool_fun_of /bg_game_of; apply/ffunP => x; rewrite !ffunE.
-by rewrite bool_vec_ofK.
+by exists bg_strategy_of_bool_vec; [apply: bool_vec_of_bg_strategyK|apply: bg_strategy_of_bool_vecK].
 Qed.
 
-Lemma bg_game_ofK : cancel bg_game_of bool_fun_of.
+Lemma bg_strategy_of_bool_vec_bij : bijective bg_strategy_of_bool_vec.
 Proof.
-move=> f; rewrite /bool_fun_of /bg_game_of; apply/ffunP => x; rewrite !ffunE.
-by rewrite bg_strategy_ofK.
+by exists bool_vec_of_bg_strategy; [apply: bg_strategy_of_bool_vecK|apply: bool_vec_of_bg_strategyK].
+Qed.
+
+Definition bool_game := {ffun bg_strategy -> bg_Outc}.
+
+(** [bool_game] is isomorphic to [bool_fun n] *)
+
+Definition bool_fun_of_bool_game (g : bool_game) : bool_fun n :=
+  [ffun i => g (bg_strategy_of_bool_vec i)].
+
+Definition bool_game_of_bool_fun (f : bool_fun n) : bool_game :=
+  [ffun s => f (bool_vec_of_bg_strategy s)].
+
+Lemma bool_fun_of_bool_gameK :
+  cancel bool_fun_of_bool_game bool_game_of_bool_fun.
+Proof.
+move=> g; apply/ffunP => x; rewrite !ffunE.
+by rewrite bool_vec_of_bg_strategyK.
+Qed.
+
+Lemma bool_game_of_bool_funK :
+  cancel bool_game_of_bool_fun bool_fun_of_bool_game.
+Proof.
+move=> f; apply/ffunP => x; rewrite !ffunE.
+by rewrite bg_strategy_of_bool_vecK.
+Qed.
+
+Lemma bool_fun_of_bool_game_bij : bijective bool_fun_of_bool_game.
+Proof.
+by exists bool_game_of_bool_fun; [apply: bool_fun_of_bool_gameK|apply: bool_game_of_bool_funK].
+Qed.
+
+Lemma bool_game_of_bool_fun_bij : bijective bool_game_of_bool_fun.
+Proof.
+by exists bool_fun_of_bool_game; [apply: bool_game_of_bool_funK|apply: bool_fun_of_bool_gameK].
 Qed.
 
 Definition Omega := bool_fun n.
@@ -601,37 +633,39 @@ Variable random_f : Omega.
 Definition g := bg_game_of random_f.
 *)
 
-Definition bg_winA (g : bg_game) (a : bg_StratA) : bool :=
+Definition bg_winA (g : bool_game) (a : bg_StratA) : bool :=
   [forall b : bg_StratB, g (a, b) (* == true *)].
 
-Definition bg_winA_wide (g : bg_game) (s : bg_strategy) : bool :=
+Definition bg_winA_wide (g : bool_game) (s : bg_strategy) : bool :=
   bg_winA g s.1.
 
 Definition w_ (a : bg_StratA) : Omega :=
-  ffun_of [set w : bool ^ n | [forall i : 'I_k, w (widen_ord le_k_n i) == a i]].
+  bool_fun_of_finset
+    [set w : bool ^ n | [forall i : 'I_k, w (widen_ord le_k_n i) == a i]].
 
 Definition W_ (a : bg_StratA) : sigmA :=
-  [set w : Omega | finset_of (w_ a) ⊆0 finset_of w].
+  [set w : Omega | finset_of_bool_fun (w_ a) ⊆0 finset_of_bool_fun w].
 
 Theorem winA_sigmA :
   forall (f : Omega) (a : bg_StratA),
-  bg_winA (bg_game_of f) a = (f \in W_ a).
+  bg_winA (bool_game_of_bool_fun f) a = (f \in W_ a).
 Proof.
 move=> f a; rewrite /bg_winA /W_.
 apply/forallP/idP =>/= H.
-- rewrite inE /w_; apply/subseteq0P; rewrite !finset_ofK=> x; rewrite ffunE inE.
+- rewrite inE /w_; apply/subseteq0P.
+  rewrite !DNF_ofE !finset_of_bool_funK=> x; rewrite ffunE inE.
   move/forallP => H'.
-  rewrite -(bg_game_ofK f) /bool_fun_of ffunE.
-  have->: bg_strategy_of x = (a, (bg_strategy_of x).2).
+  rewrite -(bool_game_of_bool_funK f) ffunE.
+  have->: bg_strategy_of_bool_vec x = (a, (bg_strategy_of_bool_vec x).2).
     rewrite [LHS]surjective_pairing; congr pair.
-    rewrite /bg_strategy_of /=.
     apply/ffunP => ik; rewrite !ffunE.
     by apply/eqP; exact: H'.
   exact: H.
-- rewrite inE /w_ in H; move/subseteq0P in H; rewrite !finset_ofK in H.
-  move=> x; move/(_ (bool_vec_of (a, x))) in H.
-  rewrite ffunE inE in H; rewrite /bg_game_of ffunE; apply: H.
-  apply/forallP => y; rewrite /bool_vec_of ffunE.
+- rewrite inE /w_ in H; move/subseteq0P in H.
+  rewrite !DNF_ofE !finset_of_bool_funK in H.
+  move=> x; move/(_ (bool_vec_of_bg_strategy (a, x))) in H.
+  rewrite ffunE inE in H; rewrite ffunE; apply: H.
+  apply/forallP => y; rewrite ffunE.
   case: splitP => j /=; first by move/ord_inj<-.
   case: y => [y Hy] /= => K; exfalso; rewrite K in Hy.
   by rewrite ltnNge leq_addr in Hy.
@@ -639,7 +673,7 @@ Qed.
 
 Corollary ex_winA_sigmA :
   forall (f : Omega),
-  [exists a : bg_StratA, bg_winA (bg_game_of f) a] =
+  [exists a : bg_StratA, bg_winA (bool_game_of_bool_fun f) a] =
   (f \in \bigcup_(a in bg_StratA) W_ a).
 Proof.
 move=> f.
@@ -650,6 +684,8 @@ Qed.
 
 (** To derive [Pr_ex_winA_sigmA], we need to reindex the bigcup above,
     as [Pr_bigcup_incl_excl] uses integer indices. *)
+
+(** [bg_StratA] is isomorphic to ['I_#|bool_vec k|] *)
 
 Definition ord_of_StratA : bg_StratA -> 'I_#|bool_vec k| := enum_rank.
 
@@ -667,7 +703,9 @@ Proof. by exists StratA_of_ord; [apply: ord_of_StratAK|apply: StratA_of_ordK]. Q
 Lemma StratA_of_ord_bij : bijective StratA_of_ord.
 Proof. by exists ord_of_StratA; [apply: StratA_of_ordK|apply: ord_of_StratAK]. Qed.
 
-(** Similar prerequisites, but for the powerset of ['I_#|bool_vec k|] *)
+(** Then we lift these results to the powerset. *)
+
+(** [{set bg_StratA}] is isomorphic to [{set ('I_#|bool_vec k|)}] *)
 
 Definition set_ord_of_StratA (s : {set bg_StratA}) : {set ('I_#|bool_vec k|)} :=
   [set x | x \in [seq enum_rank i | i <- enum s]].
@@ -712,11 +750,12 @@ by exists set_ord_of_StratA; [apply: set_StratA_of_ordK|apply: set_ord_of_StratA
 Qed.
 
 Theorem Pr_ex_winA_sigmA :
-  Pr P [set f | [exists a : bg_StratA, bg_winA (bg_game_of f) a]] =
+  Pr P [set f | [exists a : bg_StratA, bg_winA (bool_game_of_bool_fun f) a]] =
   \rsum_(1 <= i < (2^k).+1) (-1)^(i-1) *
   \rsum_(J in {set bg_StratA} | #|J| == i) Pr P (\bigcap_(a in J) W_ a).
 Proof.
-have->: [set f | [exists a, bg_winA (bg_game_of f) a]] = \bigcup_(a in bg_StratA) W_ a.
+have->: [set f | [exists a, bg_winA (bool_game_of_bool_fun f) a]] =
+    \bigcup_(a in bg_StratA) W_ a.
   by apply/setP => f; rewrite inE ex_winA_sigmA.
 rewrite (reindex StratA_of_ord) /=; last first.
   by apply: onW_bij; apply: StratA_of_ord_bij.
@@ -847,14 +886,14 @@ move=> f; rewrite /bool_fun_of_row /row_of_bool_fun.
 by apply/ffunP => v; rewrite ffunE mxE ord_of_bool_vecK.
 Qed.
 
-Lemma row_of_bool_fun_bij : bijective row_of_bool_fun.
-Proof.
-by exists bool_fun_of_row; [apply: row_of_bool_funK|apply: bool_fun_of_rowK].
-Qed.
-
 Lemma bool_fun_of_row_bij : bijective bool_fun_of_row.
 Proof.
 by exists row_of_bool_fun; [apply: bool_fun_of_rowK|apply: row_of_bool_funK].
+Qed.
+
+Lemma row_of_bool_fun_bij : bijective row_of_bool_fun.
+Proof.
+by exists bool_fun_of_row; [apply: row_of_bool_funK|apply: bool_fun_of_rowK].
 Qed.
 
 (** Distribution of 2^n Bernoulli trials with parameter p,
@@ -863,9 +902,9 @@ Qed.
 Definition dist_Bernoulli : {dist bool_fun n} :=
   dist_img bool_fun_of_row dist_Bernoulli_aux.
 
-Definition num_true (f : bool_fun n) := #|finset_of f|.
+Definition num_true (f : bool_fun n) := #|finset_of_bool_fun f|.
 
-Definition num_false (f : bool_fun n) := #|~: finset_of f|.
+Definition num_false (f : bool_fun n) := #|~: finset_of_bool_fun f|.
 
 Lemma num_falseE f : num_false f = (2^n - num_true f)%N.
 Proof. by rewrite /num_false /num_true cardsCs card_bool_vec setCK. Qed.
