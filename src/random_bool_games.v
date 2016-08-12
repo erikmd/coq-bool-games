@@ -640,8 +640,7 @@ Definition bg_winA_wide (g : bool_game) (s : bg_strategy) : bool :=
   bg_winA g s.1.
 
 Definition w_ (a : bg_StratA) : Omega :=
-  bool_fun_of_finset
-    [set w : bool ^ n | [forall i : 'I_k, w (widen_ord le_k_n i) == a i]].
+  [ffun w : bool ^ n => [forall i : 'I_k, w (widen_ord le_k_n i) == a i]].
 
 Definition W_ (a : bg_StratA) : sigmA :=
   [set w : Omega | (w_ a) ⇒0 w].
@@ -655,7 +654,7 @@ apply/forallP/idP =>/= H.
 - rewrite -(bool_game_of_bool_funK f) inE implies0E.
   rewrite /bool_fun_of_bool_game.
   apply/subsetP => x.
-  rewrite !inE 2!ffunE !inE => /forallP H'.
+  rewrite !inE 2!ffunE => /forallP H'.
   have->: bg_strategy_of_bool_vec x = (a, (bg_strategy_of_bool_vec x).2).
     rewrite [LHS]surjective_pairing; congr pair.
     apply/ffunP => ik; rewrite !ffunE.
@@ -664,8 +663,7 @@ apply/forallP/idP =>/= H.
 - rewrite inE /w_ !implies0E in H.
   move/subsetP in H.
   move=> x; move/(_ (bool_vec_of_bg_strategy (a, x))) in H.
-  rewrite !inE in H; rewrite ffunE; apply: H.
-  rewrite ffunE inE.
+  rewrite !inE in H; rewrite ffunE; apply: H; rewrite ffunE.
   apply/forallP => y; rewrite ffunE.
   case: splitP => j /=; first by move/ord_inj<-.
   case: y => [y Hy] /= => K; exfalso; rewrite K in Hy.
