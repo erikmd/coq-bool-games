@@ -552,9 +552,10 @@ Definition bool_vec_of_bg_strategy (s : bg_strategy) : bool_vec n :=
                     | inr ink => s.2 ink
                     end].
 
-(* TODO: name the function [widen_ord le_k_n]... *)
+Definition widen_k_n : 'I_k -> 'I_n := widen_ord le_k_n.
+
 Definition bg_strategy_of_bool_vec (v : bool_vec n) : bg_strategy :=
-  ([ffun ik : 'I_k => v (widen_ord le_k_n ik)],
+  ([ffun ik : 'I_k => v (widen_k_n ik)],
    [ffun ink : 'I_(n - k) => v (cast_ord knk_eqn (rshift k ink))]).
 
 Lemma bool_vec_of_bg_strategyK :
@@ -640,7 +641,7 @@ Definition bg_winA_wide (g : bool_game) (s : bg_strategy) : bool :=
   bg_winA g s.1.
 
 Definition w_ (a : bg_StratA) : Omega :=
-  [ffun w : bool ^ n => [forall i : 'I_k, w (widen_ord le_k_n i) == a i]].
+  [ffun w : bool ^ n => [forall i : 'I_k, w (widen_k_n i) == a i]].
 
 Definition W_ (a : bg_StratA) : sigmA :=
   [set w : Omega | (w_ a) ⇒0 w].
