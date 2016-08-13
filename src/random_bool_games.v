@@ -128,18 +128,18 @@ Section Proba_example.
 
 Variable n : nat.
 
-Let Omega_fun := bool_fun n.
+Let Omega := bool_fun n.
 
-Let Omega := {set bool_vec n}.
+Let Omega_set := {set bool_vec n}.
 
-  Check @bool_fun_of_finset n : Omega -> Omega_fun.
-  Check @finset_of_bool_fun n : Omega_fun -> Omega.
+  Check @bool_fun_of_finset n : Omega_set -> Omega.
+  Check @finset_of_bool_fun n : Omega -> Omega_set.
 
 Let sigmA := {set Omega}.
 
 Variable P : {dist Omega}.
 
-Lemma example : forall w0, 0 <= Pr P [set w | w0 ⊆0 w].
+Lemma example : forall w0, 0 <= Pr P [set w | w0 ⇒0 w].
 Proof. move=> *; exact: le_0_Pr. Qed.
 
 End Proba_example.
