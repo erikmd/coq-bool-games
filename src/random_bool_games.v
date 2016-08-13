@@ -641,7 +641,7 @@ Definition bg_winA_wide (g : bool_game) (s : bg_strategy) : bool :=
   bg_winA g s.1.
 
 Definition w_ (a : bg_StratA) : Omega :=
-  [ffun w : bool ^ n => [forall i : 'I_k, w (widen_k_n i) == a i]].
+  [ffun v : bool ^ n => [forall i : 'I_k, v (widen_k_n i) == a i]].
 
 Definition W_ (a : bg_StratA) : sigmA :=
   [set w : Omega | (w_ a) ⇒0 w].
