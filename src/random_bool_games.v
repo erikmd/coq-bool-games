@@ -671,7 +671,7 @@ apply/forallP/idP =>/= H.
   by rewrite ltnNge leq_addr in Hy.
 Qed.
 
-Corollary ex_winA_sigmA :
+Corollary ex_winA :
   forall (f : Omega),
   [exists a : bg_StratA, bg_winA (bool_game_of_bool_fun f) a] =
   (f \in \bigcup_(a in bg_StratA) W_ a).
@@ -749,14 +749,14 @@ Proof.
 by exists set_ord_of_StratA; [apply: set_StratA_of_ordK|apply: set_ord_of_StratAK].
 Qed.
 
-Theorem Pr_ex_winA_sigmA :
+Theorem Pr_ex_winA :
   Pr P [set f | [exists a : bg_StratA, bg_winA (bool_game_of_bool_fun f) a]] =
   \rsum_(1 <= i < (2^k).+1) (-1)^(i-1) *
   \rsum_(J in {set bg_StratA} | #|J| == i) Pr P (\bigcap_(a in J) W_ a).
 Proof.
 have->: [set f | [exists a, bg_winA (bool_game_of_bool_fun f) a]] =
     \bigcup_(a in bg_StratA) W_ a.
-  by apply/setP => f; rewrite inE ex_winA_sigmA.
+  by apply/setP => f; rewrite inE ex_winA.
 rewrite (reindex StratA_of_ord) /=; last first.
   by apply: onW_bij; apply: StratA_of_ord_bij.
 underp (\bigcup_(j | _) _) ? rewrite enum_valP.
