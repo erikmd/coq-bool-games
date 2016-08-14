@@ -527,7 +527,9 @@ Variable n : nat.
 
 Variable k : nat.
 
-Hypothesis le_k_n : (k <= n)%N.
+Class le_k_n_class k n := le_k_n : (k <= n)%N.
+
+Context `{!le_k_n_class k n}.
 
 Let knk_eqn : (k + (n - k) = n)%N.
 Proof. by apply: subnKC. Qed.
@@ -781,10 +783,16 @@ rewrite -map_comp; rewrite (eq_map (f2 := id)); last exact: ord_of_StratAK.
 by rewrite map_id mem_enum_setE.
 Qed.
 
+End Proba_games.
+
+Section Proba_winning.
+
 (** ** Probability of Winning Strategies *)
 
 (** We now consider Boolean functions whose truth-set is built from
     2^n independent Bernoulli trials with probability [p] of success. *)
+
+Variable n : nat.
 
 Variable p : R.
 
@@ -796,7 +804,9 @@ Let p_0_1 : 0 <= p <= 1.
 Proof. by case: p_0_1_strict => H1 H2; split; apply: Rlt_le. Qed.
 *)
 
-Hypothesis p_0_1 : 0 <= p <= 1.
+Class p_0_1_class p := p_0_1 : 0 <= p <= 1.
+
+Context `{!p_0_1_class p}.
 
 Let q_0_1 : 0 <= 1 - p <= 1.
 Proof. by case: p_0_1 => H1 H2; split; lra. Qed.
@@ -937,4 +947,66 @@ apply: eq_card => i /=.
 by rewrite !inE. (* . *)
 Qed.
 
-End Proba_games.
+Let P := dist_Bernoulli.
+
+(** First, assume that the strategy a of A is fixed.
+    What is the probability that it is winning? *)
+
+Lemma Pr_card (E : {set bool_vec n}) :
+  Pr P [set bool_fun_of_finset E] = p ^ #|E| * (1 - p) ^ (2^n - #|E|).
+Proof.
+rewrite /Pr /P big_set1 dist_BernoulliE num_falseE /num_true.
+by rewrite bool_fun_of_finsetK.
+Qed.
+
+Section strategy_a_fixed.
+
+Variable k : nat.
+
+Variable a : bg_StratA k.
+
+Context `{!le_k_n_class k n}.
+
+Let knk_eqn : (k + (n - k) = n)%N.
+Proof. by apply: subnKC. Qed.
+
+Let eqn_knk : (n = k + (n - k))%N.
+Proof. by rewrite knk_eqn. Qed.
+
+Lemma eq_set (T : finType) (P1 P2 : pred T) :
+  P1 =1 P2 -> [set x | P1 x] = [set x | P2 x].
+Proof. by move=> H; apply/setP => x; rewrite !inE H. Qed.
+
+Lemma setUDKl (A : finType) (E1 E2 : {set A}) : E1 :\: E2 :|: E2 = E1 :|: E2.
+Proof. by rewrite setDE setUIl (setUC (setC _)) setUCr setIT. Qed.
+
+Lemma setUDKr (A : finType) (E1 E2 : {set A}) : E1 :|: E2 :\: E1 = E1 :|: E2.
+Proof. by rewrite setUC setUDKl setUC. Qed.
+
+Lemma Pr_winA :
+  Pr P [set f | bg_winA (bool_game_of_bool_fun f) a] =
+  p ^ #|finset_of_bool_fun (w_ a)|.
+Proof.
+set sf := [set f | _ _ a].
+have->: sf = (W_ a).
+{ by apply/setP => v; rewrite /sf !inE winA_sigmA /W_ inE. }
+rewrite /Pr /W_.
+rewrite (eq_set (implies0E (w_ a))).
+rewrite (reindex_onto (@bool_fun_of_finset n) (@finset_of_bool_fun n));
+  last by move=> i _; rewrite finset_of_bool_funK.
+underp big ? rewrite bool_fun_of_finsetK eqxx andbT inE bool_fun_of_finsetK.
+under big ? _ rewrite dist_BernoulliE num_falseE /num_true !bool_fun_of_finsetK.
+set swa := finset_of_bool_fun (w_ a).
+rewrite (reindex_onto (fun s => s :|: swa) (fun s => s :\: swa)); last first.
+  by move=> i Hi; rewrite setUDKl; apply/setUidPl.
+have Heq : forall j, ((swa ⊆0 j :|: swa) && ((j :|: swa) :\: swa == j)) =
+  (j ⊆0 ~: swa).
+  move=> /= j. rewrite setDUKr setDE /subseteq0 subsetUr /=.
+  by apply/eqP/idP; move/setIidPl.
+underp big ? rewrite Heq.
+admit.
+Admitted.
+
+End strategy_a_fixed.
+
+End Proba_winning.
