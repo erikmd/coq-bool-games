@@ -1004,6 +1004,31 @@ have Heq : forall j, ((swa ⊆0 j :|: swa) && ((j :|: swa) :\: swa == j)) =
   move=> /= j. rewrite setDUKr setDE /subseteq0 subsetUr /=.
   by apply/eqP/idP; move/setIidPl.
 underp big ? rewrite Heq.
+rewrite (partition_big
+           (fun i : {set bool_vec n} => @inord (2^n) #|i|)
+           (fun j => (j <= 2^n - #|swa|)%N)) /=; last first.
+  move=> i /subset_leq_card Hle; rewrite inordK; last first.
+  { by rewrite ltnS -card_bool_vec max_card. }
+  by rewrite [#|~: swa|]cardsCs setCK card_bool_vec in Hle.
+(* Mon, 15 Aug 2016 18:09:01 +0200 *)
+(under big j Hj under big i Hi rewrite (_ : #|i :|: swa| = j + #|swa|)%N);
+  last first.
+{ rewrite cardsU.
+  have {Hi} /andP [Hic /eqP Hij] := Hi.
+  move/(congr1 val) in Hij.
+  rewrite /= inordK in Hij.
+  2: by rewrite ltnS -card_bool_vec max_card.
+  rewrite /subseteq0 -disjoints_subset -setI_eq0 in Hic.
+  by rewrite Hij (eqP Hic) cards0 subn0. }
+under big j Hj rewrite big_const /= iter_Rplus.
+(under big j Hj rewrite (_ : INR _ = INR 'C(#|~: swa|, j))); last first.
+{ congr INR; rewrite -cards_draws -cardsE /subseteq0.
+  apply: eq_card => i; rewrite !inE unfold_in; congr andb.
+  apply/eqP/eqP; last move->.
+  - move/(congr1 val); rewrite /= inordK //.
+    by rewrite ltnS -card_bool_vec max_card.
+  - by rewrite inord_val. }
+(* Mon, 15 Aug 2016 18:55:55 +0200 => 46 mn; 17 LoC *)
 admit.
 Admitted.
 
