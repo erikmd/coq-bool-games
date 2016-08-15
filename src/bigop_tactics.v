@@ -32,20 +32,18 @@ Ltac under_big b x Hx tac :=
     end
   end.
 
-(* BEGIN 3rdparty *)
 (** The following tactic can be used to add support for patterns to
 tactic notation:
 It will search for the first subterm of the goal matching [pat], and
 then call [tac] with that subterm.
 
-Posted by Ralf Jung on 2016-02-25 to the ssreflect mailing list.
+Inpired by Ralf Jung's post on 2016-02-25 to the ssreflect mailing list.
 *)
 Ltac find_pat pat tac :=
   match goal with |- context [?x] =>
                   unify pat x with typeclass_instances;
-                  tryif tac x then idtac else fail 2
-end.
-(* END 3rdparty *)
+                  tryif tac x then idtac else fail
+  end.
 
 (** [under] allows one to apply a given tactic under some bigop:
     if [pat] is a local variable (let-in) that appears in the goal,
@@ -91,7 +89,7 @@ Ltac under_big_in H b x Hx tac :=
 Ltac find_pat_in H pat tac :=
   match type of H with context [?x] =>
     unify pat x with typeclass_instances;
-    tryif tac x then idtac else fail 2
+    tryif tac x then idtac else fail
   end.
 
 (** [under...in] allows one to apply a given tactic under some bigop:
