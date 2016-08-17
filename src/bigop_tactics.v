@@ -108,9 +108,9 @@ Tactic Notation "under" open_constr(pat) "in" hyp(H) simple_intropattern(x) simp
 
 (** ** When the bigop appears in the goal *)
 
-(** [under_bigp] allows one to apply a given tactic for rewriting the
+(** [underp_big] allows one to apply a given tactic for rewriting the
     predicate of the bigop corresponding to the specified arguments. *)
-Ltac under_bigp b i tac :=
+Ltac underp_big b i tac :=
   let b' := eval hnf in b in
   match b' with
   | @BigOp.bigop ?R ?I ?idx ?r ?f =>
@@ -136,15 +136,15 @@ Ltac under_bigp b i tac :=
     will be rewritten. *)
 Tactic Notation "underp" open_constr(pat) simple_intropattern(x) tactic(tac) :=
   tryif match goal with [|- context [pat]] => is_var pat end
-  then under_bigp pat x tac
-  else find_pat pat ltac:(fun b => under_bigp b x tac).
+  then underp_big pat x tac
+  else find_pat pat ltac:(fun b => underp_big b x tac).
 
 (** ** When the bigop appears in some hypothesis *)
 
-(** [under_bigp_in] allows one to apply a given tactic for rewriting the
+(** [underp_big_in] allows one to apply a given tactic for rewriting the
     predicate of the bigop corresponding to the specified arguments,
     in some hypothesis *)
-Ltac under_bigp_in H b i tac :=
+Ltac underp_big_in H b i tac :=
   let b' := eval hnf in b in
   match b' with
   | @BigOp.bigop ?R ?I ?idx ?r ?f =>
@@ -176,8 +176,8 @@ Ltac under_bigp_in H b i tac :=
     will be rewritten. *)
 Tactic Notation "underp" open_constr(pat) "in" hyp(H) simple_intropattern(x) tactic(tac) :=
   tryif match type of H with context [pat] => is_var pat end
-  then under_bigp_in H pat x tac
-  else find_pat_in H pat ltac:(fun b => under_bigp_in H b x tac).
+  then underp_big_in H pat x tac
+  else find_pat_in H pat ltac:(fun b => underp_big_in H b x tac).
 
 (** * Tests and examples *)
 
