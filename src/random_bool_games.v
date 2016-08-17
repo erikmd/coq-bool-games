@@ -1016,9 +1016,7 @@ rewrite (partition_big
   move=> i /subset_leq_card Hle; rewrite inordK; last first.
   { by rewrite ltnS -card_bool_vec max_card. }
   by rewrite [#|~: swa|]cardsCs setCK card_bool_vec in Hle.
-(* Mon, 15 Aug 2016 18:09:01 +0200 *)
-(under big j Hj under big i Hi rewrite (_ : #|i :|: swa| = j + #|swa|)%N);
-  last first.
+swap under big j Hj under big i Hi rewrite (_ : #|i :|: swa| = j + #|swa|)%N.
 { rewrite cardsU.
   have {Hi} /andP [Hic /eqP Hij] := Hi.
   move/(congr1 val) in Hij.
@@ -1027,35 +1025,30 @@ rewrite (partition_big
   rewrite /subseteq0 -disjoints_subset -setI_eq0 in Hic.
   by rewrite Hij (eqP Hic) cards0 subn0. }
 under big j Hj rewrite big_const /= iter_Rplus.
-(under big j Hj rewrite (_ : INR _ = INR 'C(#|~: swa|, j))); last first.
+swap under big j Hj rewrite (_ : INR _ = INR 'C(#|~: swa|, j)).
 { congr INR; rewrite -cards_draws -cardsE /subseteq0.
   apply: eq_card => i; rewrite !inE unfold_in; congr andb.
   apply/eqP/eqP; last move->.
   - move/(congr1 val); rewrite /= inordK //.
     by rewrite ltnS -card_bool_vec max_card.
   - by rewrite inord_val. }
-(* Mon, 15 Aug 2016 18:55:55 +0200 => 46m, 17l *)
-(* Wed, 17 Aug 2016 15:15:43 +0200 *)
-(* Wed, 17 Aug 2016 15:47:53 +0200 *)
-under big j _ rewrite [(j + #|swa|)%N]addnC subnDA
+swap under big j _ rewrite [(j + #|swa|)%N]addnC subnDA
   (_ : ?[a] * (p ^ (#|swa| + j) * ?[b]) = p^#|swa| * (?a * (?b * p^j))).
-2: by rewrite addnE pow_add; ring.
+{ by rewrite addnE pow_add; ring. }
 rewrite -big_distrr /=.
 under big j _ rewrite [#|~: swa|]cardsCs setCK card_bool_vec /=.
 rewrite (reindex_onto (fun j : 'I_(2^n - #|swa|).+1 => @inord (2^n) j)
                       (fun i : 'I_(2^n).+1 => @inord (2^n - #|swa|) i)) /=;
   last by move=> i Hi; rewrite inordK ?ltnS // inord_val.
-under big j _ rewrite inordK.
-2: by case: j => j Hj /=; rewrite ltnS in Hj; rewrite ltnS;
-  apply: leq_trans Hj (leq_subr _ _). (* once *)
+have SC : forall j : 'I_(2 ^ n - #|swa|).+1, (j < (2 ^ n).+1)%N.
+{ by case => j Hj /=; rewrite ltnS in Hj; rewrite ltnS;
+  apply: leq_trans Hj (leq_subr _ _). }
+swap under big j _ rewrite inordK //.
 underp big j set lhs := LHS; suff->: lhs = true.
 { by rewrite -RPascal qpE pow1 Rmult_1_r. }
-rewrite {}/lhs; rewrite inordK.
-2: by case: j => j Hj /=; rewrite ltnS in Hj; rewrite ltnS;
-  apply: leq_trans Hj (leq_subr _ _). (* twice *)
+rewrite {}/lhs; rewrite inordK //; last first.
 rewrite inord_val eqxx andbT.
 by case: j.
-(* Wed, 17 Aug 2016 16:23:33 +0200 => 36m, 18l *)
 Qed.
 
 End strategy_a_fixed.
