@@ -34,6 +34,31 @@ Proof. by rewrite !mem_filter (mem_index_enum x) andbT. Qed.
 
 End Prelim_fintype.
 
+Lemma if_negb_eq a b : (if a then b else ~~ b) = (a == b).
+Proof. by case: a; case: b. Qed.
+
+Section Prelim_finset.
+
+Variable T : finType.
+
+Lemma setDUKr (A B : {set T}) : (A :|: B) :\: B = A :\: B.
+Proof. by rewrite setDUl setDv setU0. Qed.
+
+Lemma setDUKl (A B : {set T}) : (A :|: B) :\: A = B :\: A.
+Proof. by rewrite setDUl setDv set0U. Qed.
+
+Lemma eq_set (P1 P2 : pred T) :
+  P1 =1 P2 -> [set x | P1 x] = [set x | P2 x].
+Proof. by move=> H; apply/setP => x; rewrite !inE H. Qed.
+
+Lemma setUDKl (A B : {set T}) : A :\: B :|: B = A :|: B.
+Proof. by rewrite setDE setUIl (setUC (setC _)) setUCr setIT. Qed.
+
+Lemma setUDKr (A B : {set T}) : A :|: B :\: A = A :|: B.
+Proof. by rewrite setUC setUDKl setUC. Qed.
+
+End Prelim_finset.
+
 (** ** Boolean functions, DNF and (sets of) Boolean vectors *)
 
 Section Def.
@@ -52,9 +77,6 @@ Definition DNF_of (s : {set bool_vec}) : bool_fun :=
 
 Definition bool_fun_of_finset (s : {set bool_vec}) : bool_fun :=
   [ffun v => v \in s].
-
-Lemma if_negb_eq a b : (if a then b else ~~ b) = (a == b).
-Proof. by case: a; case: b. Qed.
 
 Lemma DNF_ofE s : DNF_of s = bool_fun_of_finset s.
 Proof.
@@ -152,12 +174,6 @@ Section probability_inclusion_exclusion.
 Variable A : finType.
 Variable P : dist A.
 
-Lemma setDUKr (E1 E2 : {set A}) : (E1 :|: E2) :\: E2 = E1 :\: E2.
-Proof. by rewrite setDUl setDv setU0. Qed.
-
-Lemma setDUKl (E1 E2 : {set A}) : (E1 :|: E2) :\: E1 = E2 :\: E1.
-Proof. by rewrite setDUl setDv set0U. Qed.
-
 Lemma bigmul_eq0 (C : finType) (p : pred C) (F : C -> R) :
   (exists2 i : C, p i & F i = R0) <-> \big[Rmult/R1]_(i : C | p i) F i = R0.
 Proof.
@@ -184,9 +200,6 @@ Qed.
 
 Lemma Rplus_minus_assoc (r1 r2 r3 : R) : r1 + r2 - r3 = r1 + (r2 - r3).
 Proof. by rewrite /Rminus Rplus_assoc. Qed.
-
-Lemma predSn (p : nat) : p.+1.-1 = p.
-Proof. by []. Qed.
 
 (** *** A theory of indicator functions from [A : finType] to [R] *)
 
@@ -975,16 +988,6 @@ Proof. by apply: subnKC. Qed.
 
 Let eqn_knk : (n = k + (n - k))%N.
 Proof. by rewrite knk_eqn. Qed.
-
-Lemma eq_set (T : finType) (P1 P2 : pred T) :
-  P1 =1 P2 -> [set x | P1 x] = [set x | P2 x].
-Proof. by move=> H; apply/setP => x; rewrite !inE H. Qed.
-
-Lemma setUDKl (A : finType) (E1 E2 : {set A}) : E1 :\: E2 :|: E2 = E1 :|: E2.
-Proof. by rewrite setDE setUIl (setUC (setC _)) setUCr setIT. Qed.
-
-Lemma setUDKr (A : finType) (E1 E2 : {set A}) : E1 :|: E2 :\: E1 = E1 :|: E2.
-Proof. by rewrite setUC setUDKl setUC. Qed.
 
 Lemma Pr_winA :
   Pr P [set f | bg_winA (bool_game_of_bool_fun f) a] =
