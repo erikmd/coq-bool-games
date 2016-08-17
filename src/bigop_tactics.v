@@ -59,6 +59,10 @@ Tactic Notation "under" open_constr(pat) simple_intropattern(x) simple_intropatt
 (** A shortcut when we want to rewrite the first occurrence of [bigop _ _ _] *)
 Notation big := (bigop _ _ _) (only parsing).
 
+(** [swap under big ? _ tac] : shortcut for [(under big ? _ tac); last first] *)
+Tactic Notation "swap" tactic(tac) :=
+  tac; last first.
+
 (** ** When the bigop appears in some hypothesis *)
 
 (** [under_big_in] allows one to apply a given tactic under the bigop
@@ -208,8 +212,8 @@ Let test2 (n : nat) (R : fieldType) (f : nat -> R) :
   (\big[+%R/0%R]_(k < n) (f k / f k) = n%:R)%R.
 Proof.
 move=> Hneq0.
-under big ? _ rewrite GRing.divff. (* the bigop variable becomes "i" *)
-2: done.
+swap under big ? _ rewrite GRing.divff. (* the bigop variable becomes "i" *)
+done.
 
 rewrite big_const cardT /= size_enum_ord /GRing.natmul.
 case: {Hneq0} n =>// n.
@@ -232,7 +236,7 @@ move: H.
 under b1 ? _ rewrite GRing.divff.
 done.
 
-move=> *; exact: Hneq0.
+done.
 Qed.
 
 (* A test lemma for [underp] *)
