@@ -14,18 +14,19 @@ Unset Printing Implicit Defensive.
 
 (** [under_big] allows one to apply a given tactic under the bigop
     that correspond to the specified arguments. *)
-Ltac under_big b x Hx tac :=
+Ltac under_big b i Hi tac :=
   let b' := eval hnf in b in
   match b' with
   | @BigOp.bigop ?R ?I ?idx ?r ?f =>
     match f with
-    | fun i => @BigBody ?R ?I i ?op (@?P i) (@?F1 i) =>
+    | fun x => @BigBody ?R ?I x ?op (@?P x) (@?F1 x) =>
       (* erewrite (@eq_bigr R idx op I r P F1 _); (*not robust enough*) *)
       pattern b;
       match goal with
       | [|- ?G b] =>
-        refine (@eq_rect_r _ _ G _ b (@eq_bigr R idx op I r P F1 _ _));
-        [|move=> x Hx; tac;
+        refine (@eq_rect_r _ _ G _ b
+          (@eq_bigr R idx op I r P F1 _ _ : _ = @BigOp.bigop _ _ _ _ (fun i => _)));
+        [|move=> i Hi; tac;
           try reflexivity (* instead of "; first reflexivity" *) ];
         cbv beta
       end
@@ -62,12 +63,12 @@ Notation big := (bigop _ _ _) (only parsing).
 
 (** [under_big_in] allows one to apply a given tactic under the bigop
     that correspond to the specified arguments, in some hypothesis *)
-Ltac under_big_in H b x Hx tac :=
+Ltac under_big_in H b i Hi tac :=
   let b' := eval hnf in b in
   match b' with
   | @BigOp.bigop ?R ?I ?idx ?r ?f =>
     match f with
-    | fun i => @BigBody ?R ?I i ?op (@?P i) (@?F1 i) =>
+    | fun x => @BigBody ?R ?I x ?op (@?P x) (@?F1 x) =>
       (* erewrite (@eq_bigr R idx op I r P F1 _); (*not robust enough*) *)
       pattern b in H;
       match type of H with
@@ -78,8 +79,9 @@ Ltac under_big_in H b x Hx tac :=
         shelve_unifiable;
         suff new : e;
         [ try clear H ; try rename new into H
-        | refine (@eq_rect _ _ G H _ (@eq_bigr R idx op I r P F1 _ _));
-          move=> x Hx; tac;
+        | refine (@eq_rect _ _ G H _
+            (@eq_bigr R idx op I r P F1 _ _ : _ = @BigOp.bigop _ _ _ _ (fun i => _)));
+          move=> i Hi; tac;
           try reflexivity (* instead of "; first reflexivity" *)
         ]; try unfold e in * |- *; try clear e ; cbv beta
       end
@@ -108,17 +110,18 @@ Tactic Notation "under" open_constr(pat) "in" hyp(H) simple_intropattern(x) simp
 
 (** [under_bigp] allows one to apply a given tactic for rewriting the
     predicate of the bigop corresponding to the specified arguments. *)
-Ltac under_bigp b x tac :=
+Ltac under_bigp b i tac :=
   let b' := eval hnf in b in
   match b' with
   | @BigOp.bigop ?R ?I ?idx ?r ?f =>
     match f with
-    | fun i => @BigBody ?R ?I i ?op (@?P1 i) (@?F i) =>
+    | fun x => @BigBody ?R ?I x ?op (@?P1 x) (@?F x) =>
       pattern b;
       match goal with
       | [|- ?G b] =>
-        refine (@eq_rect_r _ _ G _ b (@eq_bigl R idx op I r P1 _ F _));
-        [|move=> x; tac;
+        refine (@eq_rect_r _ _ G _ b
+          (@eq_bigl R idx op I r P1 _ F _ : _ = @BigOp.bigop _ _ _ _ (fun i => _)));
+        [|move=> i; tac;
           try reflexivity (* instead of "; first reflexivity" *) ];
         cbv beta
       end
@@ -141,12 +144,12 @@ Tactic Notation "underp" open_constr(pat) simple_intropattern(x) tactic(tac) :=
 (** [under_bigp_in] allows one to apply a given tactic for rewriting the
     predicate of the bigop corresponding to the specified arguments,
     in some hypothesis *)
-Ltac under_bigp_in H b x tac :=
+Ltac under_bigp_in H b i tac :=
   let b' := eval hnf in b in
   match b' with
   | @BigOp.bigop ?R ?I ?idx ?r ?f =>
     match f with
-    | fun i => @BigBody ?R ?I i ?op (@?P1 i) (@?F i) =>
+    | fun x => @BigBody ?R ?I x ?op (@?P1 x) (@?F x) =>
       pattern b in H;
       match type of H with
       | ?G b =>
@@ -156,8 +159,9 @@ Ltac under_bigp_in H b x tac :=
         shelve_unifiable;
         suff new : e;
         [ try clear H ; try rename new into H
-        | refine (@eq_rect _ _ G H _ (@eq_bigl R idx op I r P1 _ F _));
-          move=> x; tac;
+        | refine (@eq_rect _ _ G H _
+            (@eq_bigl R idx op I r P1 _ F _ : _ = @BigOp.bigop _ _ _ _ (fun i => _)));
+          move=> i; tac;
           try reflexivity (* instead of "; first reflexivity" *)
         ]; try unfold e in * |- *; try clear e ; cbv beta
       end
@@ -187,12 +191,12 @@ Let test1 (n : nat) (R : ringType) (f1 f2 g : nat -> R) :
   \big[+%R/0%R]_(i < n) (f1 i * g i) + \big[+%R/0%R]_(i < n) (f2 i * g i))%R.
 Proof.
 set b1 := {2}(bigop _ _ _).
-Fail under b1 ? _ rewrite GRing.mulrDr.
+Fail under b1 x _ rewrite GRing.mulrDr.
 
-under b1 ? _ rewrite GRing.mulrDl. (* only b1 is rewritten *)
+under b1 x _ rewrite GRing.mulrDl. (* only b1 is rewritten *)
 
 Undo 1. rewrite /b1.
-under b1 ? _ rewrite GRing.mulrDl. (* 3 occurrences are rewritten *)
+under b1 x _ rewrite GRing.mulrDl. (* 3 occurrences are rewritten *)
 
 rewrite big_split /=.
 by rewrite GRing.addrA.
@@ -201,10 +205,10 @@ Qed.
 (* A test with a side-condition. *)
 Let test2 (n : nat) (R : fieldType) (f : nat -> R) :
   (forall k : 'I_n, f k != 0%R) ->
-  (\big[+%R/0%R]_(i < n) (f i / f i) = n%:R)%R.
+  (\big[+%R/0%R]_(k < n) (f k / f k) = n%:R)%R.
 Proof.
 move=> Hneq0.
-under big ? _ rewrite GRing.divff.
+under big ? _ rewrite GRing.divff. (* the bigop variable becomes "i" *)
 2: done.
 
 rewrite big_const cardT /= size_enum_ord /GRing.natmul.
@@ -215,8 +219,8 @@ Qed.
 (* Another test lemma when the bigop appears in some hypothesis *)
 Let test3 (n : nat) (R : fieldType) (f : nat -> R) :
   (forall k : 'I_n, f k != 0%R) ->
-  (\big[+%R/0%R]_(i < n) (f i / f i) +
-  \big[+%R/0%R]_(i < n) (f i / f i) = n%:R + n%:R)%R -> True.
+  (\big[+%R/0%R]_(k < n) (f k / f k) +
+  \big[+%R/0%R]_(k < n) (f k / f k) = n%:R + n%:R)%R -> True.
 Proof.
 move=> Hneq0 H.
 set b1 := {2}big in H.
@@ -237,7 +241,7 @@ Let testp1 (A : finType) (n : nat) (F : A -> nat) :
   \big[addn/O]_(J in {set A} | #|J :&: [set: A]| == k)
   \big[addn/O]_(j in J) F j >= 0.
 Proof.
-under big ? _ underp big ? rewrite setIT.
+under big k _ underp big J rewrite setIT. (* the bigop variables are kept *)
 done.
 Qed.
 
@@ -247,7 +251,7 @@ Let testp2 (A : finType) (n : nat) (F : A -> nat) :
   \big[addn/O]_(j in J) F j = \big[addn/O]_(j in A) F j -> True.
 Proof.
 move=> H.
-underp big in H ? rewrite setIT.
+underp big in H J rewrite setIT. (* the bigop variable "J" is kept *)
 done.
 Qed.
 
