@@ -765,11 +765,11 @@ by exists set_ord_of_StratA; [apply: set_StratA_of_ordK|apply: set_ord_of_StratA
 Qed.
 
 Theorem Pr_ex_winA :
-  Pr P [set f | [exists a : bg_StratA, bg_winA (bool_game_of_bool_fun f) a]] =
+  Pr P [set F | [exists a : bg_StratA, bg_winA (bool_game_of_bool_fun F) a]] =
   \rsum_(1 <= i < (2^k).+1) (-1)^(i-1) *
   \rsum_(J in {set bg_StratA} | #|J| == i) Pr P (\bigcap_(a in J) W_ a).
 Proof.
-have->: [set f | [exists a, bg_winA (bool_game_of_bool_fun f) a]] =
+have->: [set F | [exists a, bg_winA (bool_game_of_bool_fun F) a]] =
     \bigcup_(a in bg_StratA) W_ a.
   by apply/setP => f; rewrite inE ex_winA.
 rewrite (reindex StratA_of_ord) /=; last first.
@@ -968,8 +968,8 @@ Let P := dist_Bernoulli.
 (** First, assume that the strategy a of A is fixed.
     What is the probability that it is winning? *)
 
-Lemma Pr_card (E : {set bool_vec n}) :
-  Pr P [set bool_fun_of_finset E] = p ^ #|E| * (1 - p) ^ (2^n - #|E|).
+Lemma Pr_set1 (S : {set bool_vec n}) :
+  Pr P [set bool_fun_of_finset S] = p ^ #|S| * (1 - p) ^ (2^n - #|S|).
 Proof.
 rewrite /Pr /P big_set1 dist_BernoulliE num_falseE /num_true.
 by rewrite bool_fun_of_finsetK.
@@ -989,34 +989,28 @@ Proof. by apply: subnKC. Qed.
 Let eqn_knk : (n = k + (n - k))%N.
 Proof. by rewrite knk_eqn. Qed.
 
-Lemma Pr_winA :
-  Pr P [set f | bg_winA (bool_game_of_bool_fun f) a] =
-  p ^ #|finset_of_bool_fun (w_ a)|.
+Lemma Pr_implies0 (S : {set bool_vec n}) :
+  Pr P [set F | bool_fun_of_finset S ⇒0 F] =
+  p ^ #|S|.
 Proof.
-set sf := [set f | _ _ a].
-have->: sf = (W_ a).
-{ by apply/setP => v; rewrite /sf !inE winA_sigmA /W_ inE. }
 rewrite /Pr /W_.
-rewrite (eq_set (implies0E (w_ a))).
 rewrite (reindex_onto (@bool_fun_of_finset n) (@finset_of_bool_fun n));
   last by move=> i _; rewrite finset_of_bool_funK.
-underp big j rewrite bool_fun_of_finsetK eqxx andbT inE bool_fun_of_finsetK.
+underp big j rewrite inE bool_fun_of_finsetK eqxx andbT implies0E !bool_fun_of_finsetK.
 under big j _ rewrite dist_BernoulliE num_falseE /num_true !bool_fun_of_finsetK.
-set swa := finset_of_bool_fun (w_ a).
-rewrite (reindex_onto (fun s => s :|: swa) (fun s => s :\: swa)); last first.
-  by move=> i Hi; rewrite setUDKl; apply/setUidPl.
-have Heq : forall j, ((swa ⊆0 j :|: swa) && ((j :|: swa) :\: swa == j)) =
-  (j ⊆0 ~: swa).
-  move=> /= j. rewrite setDUKr setDE /subseteq0 subsetUr /=.
-  by apply/eqP/idP; move/setIidPl.
+rewrite (reindex_onto (fun s => s :|: S) (fun s => s :\: S)); last first.
+{ by move=> i Hi; rewrite setUDKl; apply/setUidPl. }
+have Heq : forall j, ((S ⊆0 j :|: S) && ((j :|: S) :\: S == j)) = (j ⊆0 ~: S).
+{ move=> /= j. rewrite setDUKr setDE /subseteq0 subsetUr /=.
+  by apply/eqP/idP; move/setIidPl. }
 underp big j rewrite Heq.
 rewrite (partition_big
            (fun i : {set bool_vec n} => @inord (2^n) #|i|)
-           (fun j => (j <= 2^n - #|swa|)%N)) /=; last first.
-  move=> i /subset_leq_card Hle; rewrite inordK; last first.
+           (fun j => (j <= 2^n - #|S|)%N)) /=; last first.
+{ move=> i /subset_leq_card Hle; rewrite inordK; last first.
   { by rewrite ltnS -card_bool_vec max_card. }
-  by rewrite [#|~: swa|]cardsCs setCK card_bool_vec in Hle.
-swap under big j Hj under big i Hi rewrite (_ : #|i :|: swa| = j + #|swa|)%N.
+  by rewrite [#|~: S|]cardsCs setCK card_bool_vec in Hle. }
+swap under big j Hj under big i Hi rewrite (_ : #|i :|: S| = j + #|S|)%N.
 { rewrite cardsU.
   have {Hi} /andP [Hic /eqP Hij] := Hi.
   move/(congr1 val) in Hij.
@@ -1025,22 +1019,22 @@ swap under big j Hj under big i Hi rewrite (_ : #|i :|: swa| = j + #|swa|)%N.
   rewrite /subseteq0 -disjoints_subset -setI_eq0 in Hic.
   by rewrite Hij (eqP Hic) cards0 subn0. }
 under big j Hj rewrite big_const /= iter_Rplus.
-swap under big j Hj rewrite (_ : INR _ = INR 'C(#|~: swa|, j)).
+swap under big j Hj rewrite (_ : INR _ = INR 'C(#|~: S|, j)).
 { congr INR; rewrite -cards_draws -cardsE /subseteq0.
   apply: eq_card => i; rewrite !inE unfold_in; congr andb.
   apply/eqP/eqP; last move->.
   - move/(congr1 val); rewrite /= inordK //.
     by rewrite ltnS -card_bool_vec max_card.
   - by rewrite inord_val. }
-swap under big j _ rewrite [(j + #|swa|)%N]addnC subnDA
-  (_ : ?[a] * (p ^ (#|swa| + j) * ?[b]) = p^#|swa| * (?a * (?b * p^j))).
+swap under big j _ rewrite [(j + #|S|)%N]addnC subnDA
+  (_ : ?[a] * (p ^ (#|S| + j) * ?[b]) = p^#|S| * (?a * (?b * p^j))).
 { by rewrite addnE pow_add; ring. }
 rewrite -big_distrr /=.
-under big j _ rewrite [#|~: swa|]cardsCs setCK card_bool_vec /=.
-rewrite (reindex_onto (fun j : 'I_(2^n - #|swa|).+1 => @inord (2^n) j)
-                      (fun i : 'I_(2^n).+1 => @inord (2^n - #|swa|) i)) /=;
+under big j _ rewrite [#|~: S|]cardsCs setCK card_bool_vec /=.
+rewrite (reindex_onto (fun j : 'I_(2^n - #|S|).+1 => @inord (2^n) j)
+                      (fun i : 'I_(2^n).+1 => @inord (2^n - #|S|) i)) /=;
   last by move=> i Hi; rewrite inordK ?ltnS // inord_val.
-have SC : forall j : 'I_(2 ^ n - #|swa|).+1, (j < (2 ^ n).+1)%N.
+have SC : forall j : 'I_(2 ^ n - #|S|).+1, (j < (2 ^ n).+1)%N.
 { by case => j Hj /=; rewrite ltnS in Hj; rewrite ltnS;
   apply: leq_trans Hj (leq_subr _ _). }
 swap under big j _ rewrite inordK //.
@@ -1049,6 +1043,40 @@ underp big j set lhs := LHS; suff->: lhs = true.
 rewrite {}/lhs; rewrite inordK //; last first.
 rewrite inord_val eqxx andbT.
 by case: j.
+Qed.
+
+Theorem Pr_winA :
+  Pr P [set F | bg_winA (bool_game_of_bool_fun F) a] =
+  p ^ (2 ^ (n - k)).
+Proof.
+set setF := [set F | _ _ a].
+have {setF} ->: setF = (W_ a).
+{ by apply/setP => v; rewrite /setF !inE winA_sigmA /W_ inE. }
+rewrite /W_ -[w_ a]finset_of_bool_funK Pr_implies0.
+congr pow.
+rewrite /w_ /finset_of_bool_fun (eq_set (ffunE _)).
+pose f := fun b : bg_StratB n k => bool_vec_of_bg_strategy (a, b).
+pose g := fun v : bool_vec n => (bg_strategy_of_bool_vec v).2.
+set lhs := LHS; suff ->: lhs = #|[seq (@f le_k_n_class0) x | x in predT]|.
+{ rewrite card_image /f; first by rewrite card_ffun card_bool card_ord.
+  move=> x y /(congr1 (@bg_strategy_of_bool_vec _ _ _)).
+  rewrite !bool_vec_of_bg_strategyK.
+  by case. }
+rewrite /lhs /f.
+apply: eq_card => x; rewrite !inE.
+apply/forallP/imageP => /=.
+- move=> H; exists (bg_strategy_of_bool_vec x).2 =>//.
+  rewrite -[LHS]bg_strategy_of_bool_vecK.
+  f_equal.
+  rewrite [LHS]surjective_pairing.
+  f_equal.
+  apply/ffunP => /= v; rewrite !ffunE.
+  exact/eqP/H.
+- case => [x0 _ Hx0]; rewrite Hx0 => i; rewrite /bool_vec_of_bg_strategy ffunE.
+  case: splitP; first by move=> j /= /ord_inj ->.
+  move=> j /= Hj; exfalso.
+  case: i Hj => i Hi /= Hj.
+  by rewrite Hj ltnNge leq_addr in Hi.
 Qed.
 
 End strategy_a_fixed.
