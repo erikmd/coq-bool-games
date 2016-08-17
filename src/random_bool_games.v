@@ -397,13 +397,13 @@ have Halg : \big[Rmult/R1]_(i < n.+1) (Ind Efull x - Ind (E i) x) = 0.
     apply/bigmul_eq0; exists i =>//.
     by rewrite /Efull (Ind_inP _ _ Ex) (Ind_inP _ _ Hi0) /Rminus Rplus_opp_r. }
 rewrite (@bigA_distr R R0 R1) in Halg.
-under big in Halg ? _ under big ? _ rewrite bigID2.
+under big in Halg k _ under big J _ rewrite bigID2.
 rewrite big_ltn //= in Halg.
 rewrite -> addR_eq0 in Halg.
 rewrite cardT size_enum_ord (big_pred1 set0) in Halg; last first.
   by move=> i; rewrite pred1E [RHS]eq_sym; apply: cards_eq0.
 rewrite [in X in _ * X = _]big_pred0 in Halg; last by move=> i; rewrite inE.
-underp big in Halg ? rewrite !inE /negb /=.
+underp big in Halg j rewrite !inE /negb /=.
 rewrite Rmult_1_r -Ind_bigcap bigcap_ord_const in Halg.
 rewrite {}Halg.
 rewrite (big_morph Ropp (id1 := R0) (op1 := Rplus)); first last.
@@ -761,7 +761,7 @@ have->: [set f | [exists a, bg_winA (bool_game_of_bool_fun f) a]] =
   by apply/setP => f; rewrite inE ex_winA.
 rewrite (reindex StratA_of_ord) /=; last first.
   by apply: onW_bij; apply: StratA_of_ord_bij.
-underp (\bigcup_(j | _) _) ? rewrite enum_valP.
+underp (\bigcup_(j | _) _) j rewrite enum_valP.
 rewrite Pr_bigcup_incl_excl {1}card_ffun /= card_bool card_ord.
 apply: eq_bigr => i _.
 congr Rmult.
@@ -815,6 +815,9 @@ Proof. by case: p_0_1 => H1 H2; split; lra. Qed.
 Definition distb : {dist bool} := bdist card_bool q_0_1.
 
 Lemma qqE : 1 - (1 - p) = p.
+Proof. lra. Qed.
+
+Lemma qpE : 1 - p + p = 1.
 Proof. lra. Qed.
 
 Lemma enum_bool : enum bool_finType = [:: true; false].
@@ -925,15 +928,15 @@ Proof.
 rewrite /dist_Bernoulli /dist_img /=.
 rewrite /dist_Bernoulli_aux /TupleDist.d /Pr /=.
 rewrite /TupleDist.f num_falseE.
-underp big ? rewrite in_set.
+underp big a rewrite in_set.
 rewrite (reindex row_of_bool_fun) /=; last first.
   apply: onW_bij; exact: row_of_bool_fun_bij.
-underp big ? rewrite row_of_bool_funK.
+underp big j rewrite row_of_bool_funK.
 rewrite big_pred1_eq.
-under big ? _ rewrite ffunE /row_of_bool_fun mxE.
+under big i _ rewrite ffunE /row_of_bool_fun mxE.
 rewrite (reindex ord_of_bool_vec) /=; last first.
   apply: onW_bij; exact: ord_of_bool_vec_bij.
-under big ? _ rewrite ord_of_bool_vecK val0_bool.
+under big j _ rewrite ord_of_bool_vecK val0_bool.
 rewrite (bigID f predT) /=.
 under big i Hi rewrite Hi eqxx qqE.
 rewrite bigmul_card_constE.
@@ -994,8 +997,8 @@ rewrite /Pr /W_.
 rewrite (eq_set (implies0E (w_ a))).
 rewrite (reindex_onto (@bool_fun_of_finset n) (@finset_of_bool_fun n));
   last by move=> i _; rewrite finset_of_bool_funK.
-underp big ? rewrite bool_fun_of_finsetK eqxx andbT inE bool_fun_of_finsetK.
-under big ? _ rewrite dist_BernoulliE num_falseE /num_true !bool_fun_of_finsetK.
+underp big j rewrite bool_fun_of_finsetK eqxx andbT inE bool_fun_of_finsetK.
+under big j _ rewrite dist_BernoulliE num_falseE /num_true !bool_fun_of_finsetK.
 set swa := finset_of_bool_fun (w_ a).
 rewrite (reindex_onto (fun s => s :|: swa) (fun s => s :\: swa)); last first.
   by move=> i Hi; rewrite setUDKl; apply/setUidPl.
@@ -1003,7 +1006,7 @@ have Heq : forall j, ((swa ⊆0 j :|: swa) && ((j :|: swa) :\: swa == j)) =
   (j ⊆0 ~: swa).
   move=> /= j. rewrite setDUKr setDE /subseteq0 subsetUr /=.
   by apply/eqP/idP; move/setIidPl.
-underp big ? rewrite Heq.
+underp big j rewrite Heq.
 rewrite (partition_big
            (fun i : {set bool_vec n} => @inord (2^n) #|i|)
            (fun j => (j <= 2^n - #|swa|)%N)) /=; last first.
@@ -1028,9 +1031,29 @@ under big j Hj rewrite big_const /= iter_Rplus.
   - move/(congr1 val); rewrite /= inordK //.
     by rewrite ltnS -card_bool_vec max_card.
   - by rewrite inord_val. }
-(* Mon, 15 Aug 2016 18:55:55 +0200 => 46 mn; 17 LoC *)
-admit.
-Admitted.
+(* Mon, 15 Aug 2016 18:55:55 +0200 => 46m, 17l *)
+(* Wed, 17 Aug 2016 15:15:43 +0200 *)
+(* Wed, 17 Aug 2016 15:47:53 +0200 *)
+under big j _ rewrite [(j + #|swa|)%N]addnC subnDA
+  (_ : ?[a] * (p ^ (#|swa| + j) * ?[b]) = p^#|swa| * (?a * (?b * p^j))).
+2: by rewrite addnE pow_add; ring.
+rewrite -big_distrr /=.
+under big j _ rewrite [#|~: swa|]cardsCs setCK card_bool_vec /=.
+rewrite (reindex_onto (fun j : 'I_(2^n - #|swa|).+1 => @inord (2^n) j)
+                      (fun i : 'I_(2^n).+1 => @inord (2^n - #|swa|) i)) /=;
+  last by move=> i Hi; rewrite inordK ?ltnS // inord_val.
+under big j _ rewrite inordK.
+2: by case: j => j Hj /=; rewrite ltnS in Hj; rewrite ltnS;
+  apply: leq_trans Hj (leq_subr _ _). (* once *)
+underp big j set lhs := LHS; suff->: lhs = true.
+{ by rewrite -RPascal qpE pow1 Rmult_1_r. }
+rewrite {}/lhs; rewrite inordK.
+2: by case: j => j Hj /=; rewrite ltnS in Hj; rewrite ltnS;
+  apply: leq_trans Hj (leq_subr _ _). (* twice *)
+rewrite inord_val eqxx andbT.
+by case: j.
+(* Wed, 17 Aug 2016 16:23:33 +0200 => 36m, 18l *)
+Qed.
 
 End strategy_a_fixed.
 
