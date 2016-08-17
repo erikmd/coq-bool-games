@@ -51,10 +51,10 @@ Ltac find_pat pat tac :=
     only the occurrences of [pat] will be rewritten;
     otherwise the occurrences of the first bigop that matches [pat]
     will be rewritten. *)
-Tactic Notation "under" open_constr(pat) simple_intropattern(x) simple_intropattern(Hx) tactic(tac) :=
+Tactic Notation "under" open_constr(pat) simple_intropattern(i) simple_intropattern(Hi) tactic(tac) :=
   tryif match goal with [|- context [pat]] => is_var pat end
-  then under_big pat x Hx tac
-  else find_pat pat ltac:(fun b => under_big b x Hx tac).
+  then under_big pat i Hi tac
+  else find_pat pat ltac:(fun b => under_big b i Hi tac).
 
 (** A shortcut when we want to rewrite the first occurrence of [bigop _ _ _] *)
 Notation big := (bigop _ _ _) (only parsing).
@@ -103,10 +103,10 @@ Ltac find_pat_in H pat tac :=
     only the occurrences of [pat] will be rewritten;
     otherwise the occurrences of the first bigop that matches [pat]
     will be rewritten. *)
-Tactic Notation "under" open_constr(pat) "in" hyp(H) simple_intropattern(x) simple_intropattern(Hx) tactic(tac) :=
+Tactic Notation "under" open_constr(pat) "in" hyp(H) simple_intropattern(i) simple_intropattern(Hi) tactic(tac) :=
   tryif match type of H with context [pat] => is_var pat end
-  then under_big_in H pat x Hx tac
-  else find_pat_in H pat ltac:(fun b => under_big_in H b x Hx tac).
+  then under_big_in H pat i Hi tac
+  else find_pat_in H pat ltac:(fun b => under_big_in H b i Hi tac).
 
 (** * Similar material, for the bigop predicates *)
 
@@ -138,10 +138,10 @@ Ltac underp_big b i tac :=
     only the occurrences of [pat] will be rewritten;
     otherwise the occurrences of the first bigop that matches [pat]
     will be rewritten. *)
-Tactic Notation "underp" open_constr(pat) simple_intropattern(x) tactic(tac) :=
+Tactic Notation "underp" open_constr(pat) simple_intropattern(i) tactic(tac) :=
   tryif match goal with [|- context [pat]] => is_var pat end
-  then underp_big pat x tac
-  else find_pat pat ltac:(fun b => underp_big b x tac).
+  then underp_big pat i tac
+  else find_pat pat ltac:(fun b => underp_big b i tac).
 
 (** ** When the bigop appears in some hypothesis *)
 
@@ -178,10 +178,10 @@ Ltac underp_big_in H b i tac :=
     only the occurrences of [pat] will be rewritten;
     otherwise the occurrences of the first bigop that matches [pat]
     will be rewritten. *)
-Tactic Notation "underp" open_constr(pat) "in" hyp(H) simple_intropattern(x) tactic(tac) :=
+Tactic Notation "underp" open_constr(pat) "in" hyp(H) simple_intropattern(i) tactic(tac) :=
   tryif match type of H with context [pat] => is_var pat end
-  then underp_big_in H pat x tac
-  else find_pat_in H pat ltac:(fun b => underp_big_in H b x tac).
+  then underp_big_in H pat i tac
+  else find_pat_in H pat ltac:(fun b => underp_big_in H b i tac).
 
 (** * Tests and examples *)
 
