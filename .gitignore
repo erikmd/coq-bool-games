@@ -6,6 +6,8 @@ src/Makefile
 *.glob
 *.v.d
 .*.aux
+lia.cache
+Makefile.bak
 
 ### Emacs ###
 # -*- mode: gitignore; -*-
