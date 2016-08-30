@@ -1045,15 +1045,8 @@ rewrite inord_val eqxx andbT.
 by case: j.
 Qed.
 
-Theorem Pr_winA :
-  Pr P [set F | bg_winA (bool_game_of_bool_fun F) a] =
-  p ^ (2 ^ (n - k)).
+Lemma card_w_a : #|finset_of_bool_fun (w_ a)| = (2 ^ (n - k))%N.
 Proof.
-set setF := [set F | _ _ a].
-have {setF} ->: setF = (W_ a).
-{ by apply/setP => v; rewrite /setF !inE winA_sigmA /W_ inE. }
-rewrite /W_ -[w_ a]finset_of_bool_funK Pr_implies0.
-congr pow.
 rewrite /w_ /finset_of_bool_fun (eq_set (ffunE _)).
 pose f := fun b : bg_StratB n k => bool_vec_of_bg_strategy (a, b).
 pose g := fun v : bool_vec n => (bg_strategy_of_bool_vec v).2.
@@ -1077,6 +1070,16 @@ apply/forallP/imageP => /=.
   move=> j /= Hj; exfalso.
   case: i Hj => i Hi /= Hj.
   by rewrite Hj ltnNge leq_addr in Hi.
+Qed.
+
+Theorem Pr_winA :
+  Pr P [set F | bg_winA (bool_game_of_bool_fun F) a] =
+  p ^ (2 ^ (n - k)).
+Proof.
+set setF := [set F | _ _ a].
+have {setF} ->: setF = (W_ a).
+{ by apply/setP => v; rewrite /setF !inE winA_sigmA /W_ inE. }
+by rewrite /W_ -[w_ a]finset_of_bool_funK Pr_implies0 card_w_a.
 Qed.
 
 End strategy_a_fixed.
