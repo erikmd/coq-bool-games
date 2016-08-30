@@ -824,7 +824,8 @@ Context `{!p_0_1_class p}.
 Let q_0_1 : 0 <= 1 - p <= 1.
 Proof. by case: p_0_1 => H1 H2; split; lra. Qed.
 
-(** Bernoulli distribution "B(p)" *)
+(** Bernoulli distribution "B(p)": a distribution over {true, false}
+such that [P(true) = p]. *)
 Definition distb : {dist bool} := bdist card_bool q_0_1.
 
 Lemma qqE : 1 - (1 - p) = p.
@@ -852,9 +853,11 @@ Proof. by rewrite /= ffunE val0_bool qqE. Qed.
 Lemma distbF : distb false = 1 - p.
 Proof. by rewrite /= ffunE val0_bool. Qed.
 
-Definition bool_row_pow n := 'rV[bool]_(2^n).
+Section Bernoulli_process_def.
+(** Definition of a Bernoulli process: independent repetition of [m := 2^n]
+Bernoulli trials with parameter [p]. *)
 
-(** Distribution of 2^n Bernoulli trials with parameter p: "B(2^n, p)" *)
+Definition bool_row_pow n := 'rV[bool]_(2^n).
 
 Definition dist_Bernoulli_aux : {dist bool_row_pow n} :=
   TupleDist.d distb (2^n).
@@ -922,9 +925,8 @@ Proof.
 by exists bool_fun_of_row; [apply: row_of_bool_funK|apply: bool_fun_of_rowK].
 Qed.
 
-(** Distribution of 2^n Bernoulli trials with parameter p,
-    in terms of Boolean functions *)
-
+(** Distribution of [2^n] Bernoulli trials with parameter [p],
+    in terms of Boolean functions. *)
 Definition dist_Bernoulli : {dist bool_fun n} :=
   dist_img bool_fun_of_row dist_Bernoulli_aux.
 
@@ -962,6 +964,8 @@ rewrite -num_falseE /num_false.
 apply: eq_card => i /=.
 by rewrite !inE. (* . *)
 Qed.
+
+End Bernoulli_process_def.
 
 Let P := dist_Bernoulli.
 
