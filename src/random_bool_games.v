@@ -661,7 +661,7 @@ Definition w_ (a : bg_StratA) : Omega :=
 Definition W_ (a : bg_StratA) : sigmA :=
   [set w : Omega | (w_ a) ⇒0 w].
 
-Theorem winA_sigmA :
+Fact winA_sigmA :
   forall (f : Omega) (a : bg_StratA),
   bg_winA (bool_game_of_bool_fun f) a = (f \in W_ a).
 Proof.
@@ -686,7 +686,7 @@ apply/forallP/idP =>/= H.
   by rewrite ltnNge leq_addr in Hy.
 Qed.
 
-Corollary ex_winA :
+Fact ex_winA :
   forall (f : Omega),
   [exists a : bg_StratA, bg_winA (bool_game_of_bool_fun f) a] =
   (f \in \bigcup_(a in bg_StratA) W_ a).
