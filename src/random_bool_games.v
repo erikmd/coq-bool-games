@@ -661,7 +661,7 @@ Definition w_ (a : bg_StratA) : Omega :=
 Definition W_ (a : bg_StratA) : sigmA :=
   [set w : Omega | (w_ a) ⇒0 w].
 
-Fact winA_sigmA :
+Fact winA_eq :
   forall (f : Omega) (a : bg_StratA),
   bg_winA (bool_game_of_bool_fun f) a = (f \in W_ a).
 Proof.
@@ -693,11 +693,11 @@ Fact ex_winA :
 Proof.
 move=> f.
 apply/existsP/bigcupP.
-- by case=> a Ha; exists a =>//; rewrite -winA_sigmA.
-- by case=> a Ha Hb; exists a =>//; rewrite winA_sigmA.
+- by case=> a ?; exists a =>//; rewrite -winA_eq.
+- by case=> a *; exists a =>//; rewrite winA_eq.
 Qed.
 
-(** To derive [Pr_ex_winA_sigmA], we need to reindex the bigcup above,
+(** To derive [Pr_ex_winA], we need to reindex the bigcup above,
     as [Pr_bigcup_incl_excl] uses integer indices. *)
 
 (** [bg_StratA] is isomorphic to ['I_#|bool_vec k|] *)
@@ -1082,7 +1082,7 @@ Theorem Pr_winA :
 Proof.
 set setF := [set F | _ _ a].
 have {setF} ->: setF = (W_ a).
-{ by apply/setP => v; rewrite /setF !inE winA_sigmA /W_ inE. }
+{ by apply/setP => v; rewrite /setF !inE winA_eq /W_ inE. }
 by rewrite /W_ -[w_ a]finset_of_bool_funK Pr_implies0 card_w_a.
 Qed.
 
