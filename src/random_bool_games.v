@@ -993,7 +993,7 @@ Proof. by apply: subnKC. Qed.
 Let eqn_knk : (n = k + (n - k))%N.
 Proof. by rewrite knk_eqn. Qed.
 
-Lemma Pr_implies0 (S : {set bool_vec n}) :
+Lemma Pr_implies0_Bern (S : {set bool_vec n}) :
   Pr P [set F | bool_fun_of_finset S ⇒0 F] =
   p ^ #|S|.
 Proof.
@@ -1049,7 +1049,7 @@ rewrite inord_val eqxx andbT.
 by case: j.
 Qed.
 
-Lemma card_w_a : #|finset_of_bool_fun (w_ a)| = (2 ^ (n - k))%N.
+Lemma card_w_a_Bern : #|finset_of_bool_fun (w_ a)| = (2 ^ (n - k))%N.
 Proof.
 rewrite /w_ /finset_of_bool_fun (eq_set (ffunE _)).
 pose f := fun b : bg_StratB n k => bool_vec_of_bg_strategy (a, b).
@@ -1076,7 +1076,7 @@ apply/forallP/imageP => /=.
   by rewrite Hj ltnNge leq_addr in Hi.
 Qed.
 
-Theorem Pr_winA :
+Theorem Pr_winA_Bern :
   Pr P [set F | bg_winA (bool_game_of_bool_fun F) a] =
   p ^ (2 ^ (n - k)).
 Proof.
