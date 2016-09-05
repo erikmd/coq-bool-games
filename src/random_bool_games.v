@@ -1083,7 +1083,7 @@ Proof.
 set setF := [set F | _ _ a].
 have {setF} ->: setF = (W_ a).
 { by apply/setP => v; rewrite /setF !inE winA_eq /W_ inE. }
-by rewrite /W_ -[w_ a]finset_of_bool_funK Pr_implies0 card_w_a.
+by rewrite /W_ -[w_ a]finset_of_bool_funK Pr_implies0_Bern card_w_a_Bern.
 Qed.
 
 End strategy_a_fixed.
