@@ -363,6 +363,10 @@ Proof.
 by case: k => [//|k _]; rewrite subn1 /= Ropp_mult_distr_l oppRK Rmult_1_l.
 Qed.
 
+Lemma bigsum_card_constE (I : finType) (B : pred I) x0 :
+  \rsum_(i in B) x0 = (INR #|B| * x0)%Re.
+Proof. by rewrite big_const iter_Rplus. Qed.
+
 Lemma bigmul_constE (x0 : R) (k : nat) : \rmul_(i < k) x0 = (x0 ^ k)%Re.
 Proof.
 rewrite big_const cardT size_enum_ord.
@@ -657,6 +661,24 @@ Definition bg_winA_wide (g : bool_game) (s : bg_strategy) : bool :=
 
 Definition w_ (a : bg_StratA) : Omega :=
   [ffun v : bool ^ n => [forall i : 'I_k, v (widen_k_n i) == a i]].
+
+Lemma w_inj a a' : w_ a = w_ a' -> a = a'.
+Proof.
+rewrite /w_ => /ffunP H.
+apply/ffunP => /= i.
+pose v := bool_vec_of_bg_strategy (a, [ffun i => false]).
+move/(_ v) in H.
+rewrite !ffunE in H.
+have HT : forall i0, v (widen_k_n i0) = a i0.
+{ move=> i'; apply/eqP; rewrite /v /bool_vec_of_bg_strategy ffunE.
+  case: splitP => j /=; first by move/ord_inj ->.
+  case: i' => [i' Hi'] /= => K; exfalso; rewrite K in Hi'.
+  by rewrite ltnNge leq_addr in Hi'. }
+symmetry in H; move/forallP in H; rewrite ifT in H; last first.
+  apply/forallP => *; exact/eqP.
+rewrite -HT.
+exact/eqP/H.
+Qed.
 
 Definition W_ (a : bg_StratA) : sigmA :=
   [set w : Omega | (w_ a) ⇒0 w].
@@ -979,13 +1001,13 @@ rewrite /Pr /P big_set1 dist_BernoulliE num_falseE /num_true.
 by rewrite bool_fun_of_finsetK.
 Qed.
 
-Section strategy_a_fixed.
-
 Variable k : nat.
 
-Variable a : bg_StratA k.
-
 Context `{!le_k_n_class k n}.
+
+Section strategy_a_fixed.
+
+Variable a : bg_StratA k.
 
 Let knk_eqn : (k + (n - k) = n)%N.
 Proof. by apply: subnKC. Qed.
@@ -1022,7 +1044,7 @@ swap under big j Hj under big i Hi rewrite (_ : #|i :|: S| = j + #|S|)%N.
   2: by rewrite ltnS -card_bool_vec max_card.
   rewrite /subseteq0 -disjoints_subset -setI_eq0 in Hic.
   by rewrite Hij (eqP Hic) cards0 subn0. }
-under big j Hj rewrite big_const /= iter_Rplus.
+under big j Hj rewrite bigsum_card_constE.
 swap under big j Hj rewrite (_ : INR _ = INR 'C(#|~: S|, j)).
 { congr INR; rewrite -cards_draws -cardsE /subseteq0.
   apply: eq_card => i; rewrite !inE unfold_in; congr andb.
@@ -1087,5 +1109,68 @@ by rewrite /W_ -[w_ a]finset_of_bool_funK Pr_implies0_Bern card_w_a_Bern.
 Qed.
 
 End strategy_a_fixed.
+
+Lemma big_implies0 (J : {set bg_StratA k}) :
+  \bigcap_(a in J) [set w | w_ a ⇒0 w] =
+  [set w | bool_fun_of_finset (\bigcup_(a in J) finset_of_bool_fun (w_ a)) ⇒0 w].
+Proof.
+apply/setP => /= w; rewrite inE; apply/bigcapP/idP.
+{ move=> Hw; rewrite implies0E bool_fun_of_finsetK.
+  rewrite /subseteq0; apply/subsetP => y /bigcupP [a Ha Hya].
+  move/(_ a Ha) in Hw; rewrite inE implies0E in Hw.
+  exact: (subsetP Hw). }
+rewrite implies0E bool_fun_of_finsetK => Hw a Ha.
+rewrite inE implies0E /subseteq0.
+by apply subset_trans with (1 := bigcup_sup a Ha) (2 := Hw).
+Qed.
+
+Theorem Pr_ex_winA_Bern :
+  Pr P [set F | [exists a : bg_StratA k, bg_winA (bool_game_of_bool_fun F) a]] =
+  1 - (1 - p ^ (2 ^ (n - k))) ^ (2 ^ k).
+Proof.
+rewrite Pr_ex_winA /W_.
+have prelim :
+  forall J : {set bg_StratA k},
+  {in J &, injective (fun i0 : bool ^ k => finset_of_bool_fun (w_ i0))}.
+{ move=> J x y Hx Hy /(congr1 (@bool_fun_of_finset n)).
+  rewrite !finset_of_bool_funK; exact: w_inj. }
+under big i _ under big J _
+  rewrite big_implies0 Pr_implies0_Bern -(big_imset id) //.
+have Htriv : forall i : nat, (1 <= i < (2^k).+1)%N -> forall J : {set bg_StratA k}, #|J| == i ->
+  trivIset [set finset_of_bool_fun (w_ i0) | i0 in J].
+{ move=> i Hi J HJ; apply/trivIsetP => A B HA HB HAB.
+  have {HA} /imsetP [a Ha Hwa] := HA.
+  have {HB} /imsetP [b Hb Hwb] := HB.
+  rewrite {}Hwa {}Hwb in HAB *.
+  rewrite -setI_eq0.
+  apply/set0Pn; case => [x /setIP [Hxa Hxb]].
+  move/negP: HAB; apply; apply/eqP.
+  suff->: a = b by done.
+  apply/ffunP => v.
+  move: Hxa Hxb; rewrite /w_ !inE !ffunE.
+  by do 2![move/forallP/(_ v)/eqP <-]. }
+rewrite big_nat.
+under big i Hi under big J HJ rewrite -(eqP (Htriv i Hi J (proj2 (andP HJ)))).
+rewrite -big_nat.
+under big i _ under big J _ rewrite big_imset;
+  [under big j _ rewrite card_w_a_Bern|done].
+under big i _ under big J HJ rewrite sum_nat_const (eqP (proj2 (andP HJ))).
+do [under big i _ rewrite bigsum_card_constE (_ : INR _ = INR 'C(2^k, i))];
+  last first.
+{ congr INR.
+  by rewrite -cardsE card_draws (*card_bool_vec*)card_ffun card_ord card_bool. }
+rewrite [LHS](_ : _ = 1 -
+  \rsum_(i<(2^k).+1) INR 'C(2^k, i) * (1 ^ (2^k - i) * (- p ^ (2^(n-k))) ^ i)).
+{ by rewrite -RPascal. }
+rewrite big_add1 big_mkord /= [in RHS]big_ord_recl /=.
+rewrite bin0 pow1 !Rmult_1_r -[INR 1]/R1 /Rminus Ropp_plus_distr -Rplus_assoc.
+rewrite Rplus_opp_r Rplus_0_l.
+rewrite (big_morph Ropp (id1 := R0) (op1 := Rplus)); first last.
+  by rewrite Ropp_0.
+  by move=> *; rewrite Ropp_plus_distr.
+apply: eq_bigr => i _; rewrite /bump add1n subn1 /=.
+rewrite pow1 [(i.+1 * _)%N]mulnC pow_muln [in RHS]pow_opp /=.
+ring.
+Qed.
 
 End Proba_winning.

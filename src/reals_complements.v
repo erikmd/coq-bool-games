@@ -1,5 +1,6 @@
 Require Import Reals.
 From mathcomp Require Import ssreflect.
+From Infotheo Require Import Reals_ext.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -56,7 +57,7 @@ Proof Rplus_opp_r r.
 
 Lemma subRR r : r - r = 0.
 Proof addRN r.
-  
+
 Lemma subR0_eq x y : x - y = 0 -> x = y.
 Proof Rminus_diag_uniq x y.
 
@@ -86,3 +87,13 @@ split.
 { by move<-; rewrite oppRK. }
 by move->; rewrite oppRK.
 Qed.
+
+(** Support results about [pow] *)
+
+Lemma pow_opp r m : (-r) ^ m = (-1) ^ m * r ^ m.
+Proof.
+by rewrite -[- r]Rmult_1_l -Ropp_mult_distr_r -pow_mult Ropp_mult_distr_l.
+Qed.
+
+Lemma pow_muln r m1 m2 : r ^ (m1 * m2) = (r ^ m1) ^ m2.
+Proof (Rfunctions.pow_mult r m1 m2).
