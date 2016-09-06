@@ -381,20 +381,20 @@ apply: (big_rec3 (fun a b c => a = b * c)).
 move=> i a b c Hi Habc; rewrite Habc; ring.
 Qed.
 
-Let SumIndCap (n : nat) (E : 'I_n -> {set A}) (k : nat) (x : A) :=
-  \rsum_(J in {set 'I_n} | #|J| == k) (Ind (\bigcap_(j in J) E j) x).
+Let SumIndCap (n : nat) (S : 'I_n -> {set A}) (k : nat) (x : A) :=
+  \rsum_(J in {set 'I_n} | #|J| == k) (Ind (\bigcap_(j in J) S j) x).
 
-Lemma Ind_bigcup_incl_excl (n : nat) (E : 'I_n -> {set A}) (x : A) :
-  Ind (\bigcup_(i < n) E i) x =
-  (\rsum_(1 <= k < n.+1) ((-1)^(k-1) * (SumIndCap E k x)))%Re.
+Lemma Ind_bigcup_incl_excl (n : nat) (S : 'I_n -> {set A}) (x : A) :
+  Ind (\bigcup_(i < n) S i) x =
+  (\rsum_(1 <= k < n.+1) ((-1)^(k-1) * (SumIndCap S k x)))%Re.
 Proof.
-case: n E => [|n] E; first by rewrite big_ord0 big_geq // Ind_set0.
-set Efull := \bigcup_(i < n.+1) E i.
-have Halg : \big[Rmult/R1]_(i < n.+1) (Ind Efull x - Ind (E i) x) = 0.
+case: n S => [|n] S; first by rewrite big_ord0 big_geq // Ind_set0.
+set Efull := \bigcup_(i < n.+1) S i.
+have Halg : \big[Rmult/R1]_(i < n.+1) (Ind Efull x - Ind (S i) x) = 0.
   case Ex : (x \in Efull); last first.
   { have /Ind_notinP Ex0 := Ex.
     under big ? _ rewrite Ex0.
-    have Ex00 : forall i : 'I_n.+1, Ind (E i) x = 0.
+    have Ex00 : forall i : 'I_n.+1, Ind (S i) x = 0.
       move=> i; apply/Ind_notinP.
       by move/negbT: Ex; rewrite -!in_setC setC_bigcup; move/bigcapP; apply.
     under big ? _ rewrite Ex00; rewrite Rminus_0_r.
@@ -445,7 +445,7 @@ rewrite -!Ind_bigcap bigcap_const; last first.
   rewrite cardsE (eqP K) (eqP Hj) cardT size_enum_ord addn0 in Hcard.
   by rewrite Hcard ltnn in Hlt. }
 rewrite -Ind_cap -/Efull.
-suff : \bigcap_(j0 in j) E j0 \subset Efull by move/setIidPr->.
+suff : \bigcap_(j0 in j) S j0 \subset Efull by move/setIidPr->.
 rewrite /Efull.
 pose i0 := odflt ord0 (pick (mem j)).
 have Hi0 : i0 \in j.
@@ -457,18 +457,19 @@ apply: (subset_trans (bigcap_inf i0 Hi0)).
 exact: (bigcup_sup i0).
 Qed.
 
-Let SumPrCap (n : nat) (E : 'I_n -> {set A}) (k : nat) :=
-  \rsum_(J in {set 'I_n} | #|J| == k) Pr P (\bigcap_(j in J) E j).
+Let SumPrCap (n : nat) (S : 'I_n -> {set A}) (k : nat) :=
+  \rsum_(J in {set 'I_n} | #|J| == k) Pr P (\bigcap_(j in J) S j).
 
-Lemma E_SumIndCap n (E : 'I_n -> {set A}) k :
-  `E (rv (SumIndCap E k)) = SumPrCap E k.
+Lemma E_SumIndCap n (S : 'I_n -> {set A}) k :
+  `E (rv (SumIndCap S k)) = SumPrCap S k.
 Proof.
 rewrite /SumIndCap /SumPrCap E_rsum; apply: eq_bigr => i Hi.
 by rewrite E_Ind.
 Qed.
 
-Theorem Pr_bigcup_incl_excl n (E : 'I_n -> {set A}) :
-  Pr P (\bigcup_(i < n) E i) = \big[Rplus/0]_(1 <= k < n.+1) ((-1)^(k-1) * SumPrCap E k).
+Theorem Pr_bigcup_incl_excl n (S : 'I_n -> {set A}) :
+  Pr P (\bigcup_(i < n) S i) =
+  \big[Rplus/0]_(1 <= k < n.+1) ((-1)^(k-1) * SumPrCap S k).
 Proof.
 rewrite -E_Ind.
 under big ? _ rewrite /= Ind_bigcup_incl_excl.
