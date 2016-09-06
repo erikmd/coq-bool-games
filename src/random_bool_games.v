@@ -886,8 +886,8 @@ Definition dist_Bernoulli_aux : {dist bool_row_pow n} :=
 
 (** [bool_vec n] is isomorphic to ['I_(2^n)] *)
 
-Lemma card_bool_vec : #|bool_vec n| = (2 ^ n)%N.
-Proof. by rewrite /bool_vec card_ffun card_bool card_ord. Qed.
+Lemma card_bool_vec : forall {n}, #|bool_vec n| = (2 ^ n)%N.
+Proof. by move=> ?; rewrite /bool_vec card_ffun card_bool card_ord. Qed.
 
 Definition ord_of_bool_vec : bool_vec n -> 'I_(2 ^ n) :=
   cast_ord card_bool_vec \o enum_rank.
@@ -1158,7 +1158,7 @@ under big i _ under big J HJ rewrite sum_nat_const (eqP (proj2 (andP HJ))).
 do [under big i _ rewrite bigsum_card_constE (_ : INR _ = INR 'C(2^k, i))];
   last first.
 { congr INR.
-  by rewrite -cardsE card_draws (*card_bool_vec*)card_ffun card_ord card_bool. }
+  by rewrite -cardsE card_draws card_bool_vec. }
 rewrite [LHS](_ : _ = 1 -
   \rsum_(i<(2^k).+1) INR 'C(2^k, i) * (1 ^ (2^k - i) * (- p ^ (2^(n-k))) ^ i)).
 { by rewrite -RPascal. }
