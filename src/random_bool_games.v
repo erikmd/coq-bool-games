@@ -112,21 +112,13 @@ by exists bool_fun_of_finset; [apply: finset_of_bool_funK|apply: bool_fun_of_fin
 Qed.
 
 (** Definition 1.
-    [w0 ⊆0 w1] := [w1] is true on [w0], i.e. on all elements of [w0] *)
-Definition subseteq0 (w0 w1 : {set bool_vec}) := w0 \subset w1.
-
-Infix "⊆0" := subseteq0 (at level 70).
-
+    [w0 ⇒0 w1] := [w1] is true on [w0], i.e. on all elements of [w0] *)
 Definition implies0 (w0 w1 : bool_fun) : bool := [forall i, w0 i ==> w1 i].
 
 Infix "⇒0" := implies0 (at level 70).
 
-Definition subseteq1 (s0 s1 : {set {set bool_vec}}) := s0 \subset s1.
-
-Infix "⊆1" := subseteq1 (at level 70).
-
 Lemma implies0E w1 w2 :
-  (w1 ⇒0 w2) = (finset_of_bool_fun w1 ⊆0 finset_of_bool_fun w2).
+  (w1 ⇒0 w2) = (finset_of_bool_fun w1 \subset finset_of_bool_fun w2).
 Proof.
 apply/idP/idP.
 - by move=> H; apply/subsetP => x; move/forallP/(_ x)/implyP: H; rewrite !inE.
@@ -135,9 +127,7 @@ Qed.
 
 End Def.
 
-Infix "⊆0" := (@subseteq0 _) (at level 70).
 Infix "⇒0" := (@implies0 _) (at level 70).
-Infix "⊆1" := (@subseteq1 _) (at level 70).
 
 Local Open Scope ring_scope.
 Local Open Scope R_scope.
@@ -1026,9 +1016,9 @@ underp big j rewrite inE bool_fun_of_finsetK eqxx andbT implies0E !bool_fun_of_f
 under big j _ rewrite dist_BernoulliE num_falseE /num_true !bool_fun_of_finsetK.
 rewrite (reindex_onto (fun s => s :|: S) (fun s => s :\: S)); last first.
 { by move=> i Hi; rewrite setUDKl; apply/setUidPl. }
-have Heq : forall j, ((S ⊆0 j :|: S) && ((j :|: S) :\: S == j)) = (j ⊆0 ~: S).
-{ move=> /= j. rewrite setDUKr setDE /subseteq0 subsetUr /=.
-  by apply/eqP/idP; move/setIidPl. }
+have Heq :
+  forall j, ((S \subset j :|: S) && ((j :|: S) :\: S == j)) = (j \subset ~: S).
+{ move=> j; rewrite setDUKr setDE subsetUr /=; by apply/eqP/idP; move/setIidPl. }
 underp big j rewrite Heq.
 rewrite (partition_big
            (fun i : {set bool_vec n} => @inord (2^n) #|i|)
@@ -1042,11 +1032,11 @@ swap under big j Hj under big i Hi rewrite (_ : #|i :|: S| = j + #|S|)%N.
   move/(congr1 val) in Hij.
   rewrite /= inordK in Hij.
   2: by rewrite ltnS -card_bool_vec max_card.
-  rewrite /subseteq0 -disjoints_subset -setI_eq0 in Hic.
+  rewrite -disjoints_subset -setI_eq0 in Hic.
   by rewrite Hij (eqP Hic) cards0 subn0. }
 under big j Hj rewrite bigsum_card_constE.
 swap under big j Hj rewrite (_ : INR _ = INR 'C(#|~: S|, j)).
-{ congr INR; rewrite -cards_draws -cardsE /subseteq0.
+{ congr INR; rewrite -cards_draws -cardsE.
   apply: eq_card => i; rewrite !inE unfold_in; congr andb.
   apply/eqP/eqP; last move->.
   - move/(congr1 val); rewrite /= inordK //.
@@ -1116,11 +1106,10 @@ Lemma big_implies0 (J : {set bg_StratA k}) :
 Proof.
 apply/setP => /= w; rewrite inE; apply/bigcapP/idP.
 { move=> Hw; rewrite implies0E bool_fun_of_finsetK.
-  rewrite /subseteq0; apply/subsetP => y /bigcupP [a Ha Hya].
+  apply/subsetP => y /bigcupP [a Ha Hya].
   move/(_ a Ha) in Hw; rewrite inE implies0E in Hw.
   exact: (subsetP Hw). }
-rewrite implies0E bool_fun_of_finsetK => Hw a Ha.
-rewrite inE implies0E /subseteq0.
+rewrite implies0E bool_fun_of_finsetK => Hw a Ha; rewrite inE implies0E.
 by apply subset_trans with (1 := bigcup_sup a Ha) (2 := Hw).
 Qed.
 
