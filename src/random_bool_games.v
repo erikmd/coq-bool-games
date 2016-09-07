@@ -942,7 +942,7 @@ Definition num_false (f : bool_fun n) := #|~: finset_of_bool_fun f|.
 Lemma num_falseE f : num_false f = (2^n - num_true f)%N.
 Proof. by rewrite /num_false /num_true cardsCs card_bool_vec setCK. Qed.
 
-Theorem dist_BernoulliE f :
+Fact dist_BernoulliE f :
   dist_Bernoulli f = p ^ (num_true f) * (1 - p) ^ (num_false f).
 Proof.
 rewrite /dist_Bernoulli /dist_img /=.
@@ -1106,6 +1106,22 @@ rewrite implies0E bool_fun_of_finsetK => Hw a Ha; rewrite inE implies0E.
 by apply subset_trans with (1 := bigcup_sup a Ha) (2 := Hw).
 Qed.
 
+Lemma w_trivIset : forall J : {set bg_StratA k},
+  trivIset [set finset_of_bool_fun (w_ a) | a in J].
+Proof.
+move=> J; apply/trivIsetP => A B HA HB HAB.
+have {HA} /imsetP [a Ha Hwa] := HA.
+have {HB} /imsetP [b Hb Hwb] := HB.
+rewrite {}Hwa {}Hwb in HAB *.
+rewrite -setI_eq0.
+apply/set0Pn; case => [x /setIP [Hxa Hxb]].
+move/negP: HAB; apply; apply/eqP.
+suff->: a = b by done.
+apply/ffunP => v.
+move: Hxa Hxb; rewrite /w_ !inE !ffunE.
+by do 2![move/forallP/(_ v)/eqP <-].
+Qed.
+
 Theorem Pr_ex_winA_Bern :
   Pr P [set F | [exists a : bg_StratA k, bg_winA (bool_game_of_bool_fun F) a]] =
   1 - (1 - p ^ (2 ^ (n - k))) ^ (2 ^ k).
@@ -1117,22 +1133,9 @@ have prelim :
 { move=> J x y Hx Hy /(congr1 (@bool_fun_of_finset n)).
   rewrite !finset_of_bool_funK; exact: w_inj. }
 under big i _ under big J _
-  rewrite big_implies0 Pr_implies0_Bern -(big_imset id) //.
-have Htriv : forall i : nat, (1 <= i < (2^k).+1)%N -> forall J : {set bg_StratA k}, #|J| == i ->
-  trivIset [set finset_of_bool_fun (w_ i0) | i0 in J].
-{ move=> i Hi J HJ; apply/trivIsetP => A B HA HB HAB.
-  have {HA} /imsetP [a Ha Hwa] := HA.
-  have {HB} /imsetP [b Hb Hwb] := HB.
-  rewrite {}Hwa {}Hwb in HAB *.
-  rewrite -setI_eq0.
-  apply/set0Pn; case => [x /setIP [Hxa Hxb]].
-  move/negP: HAB; apply; apply/eqP.
-  suff->: a = b by done.
-  apply/ffunP => v.
-  move: Hxa Hxb; rewrite /w_ !inE !ffunE.
-  by do 2![move/forallP/(_ v)/eqP <-]. }
+  rewrite big_implies0 Pr_implies0_Bern -(big_imset id) //=.
 rewrite big_nat.
-under big i Hi under big J HJ rewrite -(eqP (Htriv i Hi J (proj2 (andP HJ)))).
+under big i Hi under big J HJ rewrite -(eqP (w_trivIset J)).
 rewrite -big_nat.
 under big i _ under big J _ rewrite big_imset;
   [under big j _ rewrite card_w_a_Bern|done].
