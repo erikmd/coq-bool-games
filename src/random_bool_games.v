@@ -645,7 +645,7 @@ Definition g := bg_game_of random_f.
 *)
 
 Definition bg_winA (g : bool_game) (a : bg_StratA) : bool :=
-  [forall b : bg_StratB, g (a, b) (* == true *)].
+  [forall b : bg_StratB, g (a, b) (** == true *)].
 
 Definition bg_winA_wide (g : bool_game) (s : bg_strategy) : bool :=
   bg_winA g s.1.
@@ -1157,5 +1157,43 @@ apply: eq_bigr => i _; rewrite /bump add1n subn1 /=.
 rewrite pow1 [(i.+1 * _)%N]mulnC pow_muln [in RHS]pow_opp /=.
 ring.
 Qed.
+
+Definition bg_winB (g : bool_game n k) (b : bg_StratB n k) : bool :=
+  [forall a : bg_StratA k, g (a, b) == false].
+
+Definition bg_strategy_sym := (bg_StratB n k * bg_StratA k)%type.
+
+Definition bool_game_sym := {ffun bg_strategy_sym -> bg_Outc}.
+
+Lemma bool_game_symE : bool_game_sym = bool_game n (n - k).
+Proof.
+rewrite /bool_game_sym /bool_game /bg_strategy_sym /bg_strategy /bg_StratB.
+by rewrite subKn.
+Qed.
+
+Definition bool_game_sym_of (g : bool_game n k) : bool_game_sym :=
+  [ffun c => ~~ g (c.2, c.1)].
+
+Definition bool_game_sym'_of (g : bool_game n k) : bool_game n (n - k) :=
+  ecast i {ffun bg_StratB n k * bg_StratA i -> bg_Outc} (esym (subKn le_k_n))
+        (bool_game_sym_of g).
+
+Lemma winB_eq (g : bool_game n k) (b : bg_StratB n k) :
+  bg_winB g b = @bg_winA n (n - k) (bool_game_sym'_of g) b.
+Proof.
+rewrite /bg_winB /bg_winA /bool_game_sym'_of /bool_game_sym_of.
+apply/forallP/forallP => H /= x.
+set e := esym _.
+admit.
+admit.
+Admitted.
+
+Theorem Pr_ex_winB_Bern :
+  Pr P [set F | [exists b : bg_StratB n k, bg_winB (bool_game_of_bool_fun F) b]] =
+  1 - (1 - (1 - p) ^ (2 ^ k)) ^ (2 ^ (n - k)).
+Proof.
+rewrite /Pr.
+admit.
+Admitted.
 
 End Proba_winning.
