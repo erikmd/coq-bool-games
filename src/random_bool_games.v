@@ -1164,21 +1164,6 @@ Qed.
 Definition bg_winB (g : bool_game n k) (b : bg_StratB n k) : bool :=
   [forall a : bg_StratA k, g (a, b) == false].
 
-(*
-Definition bg_strategy_sym := (bg_StratB n k * bg_StratA k)%type.
-
-Definition bool_game_sym := {ffun bg_strategy_sym -> bg_Outc}.
-
-Lemma bool_game_symE : bool_game_sym = bool_game n (n - k).
-Proof.
-rewrite /bool_game_sym /bool_game /bg_strategy_sym /bg_strategy /bg_StratB.
-by rewrite subKn.
-Qed.
-
-Definition bool_game_sym_of (g : bool_game n k) : bool_game_sym :=
-  [ffun c => ~~ g (c.2, c.1)].
- *)
-
 (** [bg_StratB n (n - k)] is isomorphic to [bg_StratA k] *)
 
 Definition bg_castAB (s : bg_StratA k) : bg_StratB n (n - k) :=
@@ -1187,37 +1172,27 @@ Definition bg_castAB (s : bg_StratA k) : bg_StratB n (n - k) :=
 Definition bg_castBA (s : bg_StratB n (n - k)) : bg_StratA k :=
   ecast i (bg_StratA i) (subKn Hkn) s.
 
-Lemma bg_cast_trans (s : bg_StratA k)
-    (eq_k : (n - (n - k) = k)%N) (eq_k' : (k = n - (n - k))%N) :
-  ecast i (bg_StratA i) (etrans eq_k' eq_k) s =
-  ecast i (bg_StratA i) eq_k (ecast j (bg_StratA j) eq_k' s).
+Lemma bg_cast_trans : forall m n p (s : bg_StratA m)
+    (eq_mn : m = n) (eq_np : n = p),
+  ecast i (bg_StratA i) (etrans eq_mn eq_np) s =
+  ecast i (bg_StratA i) eq_np (ecast j (bg_StratA j) eq_mn s).
 Proof.
-case: (n - (n - k))%N / eq_k' eq_k => eq_k.
-by rewrite etrans_id.
+move=> m n' p' s eq_mn eq_np.
+case: n' / eq_mn eq_np.
+by case: p' /.
 Qed.
 
 Lemma bg_castABK : cancel bg_castAB bg_castBA.
 Proof.
 rewrite /bg_castAB /bg_castBA => s.
 rewrite -bg_cast_trans.
-set e := etrans _ _.
-by rewrite (eq_axiomK e).
-Qed.
-
-(* Generalizes [bg_cast_trans] *)
-Lemma bg_cast_trans' m (s : bg_StratA m)
-    (eq_k : k = m) (eq_k' : m = k) :
-  ecast i (bg_StratA i) (etrans eq_k' eq_k) s =
-  ecast i (bg_StratA i) eq_k (ecast j (bg_StratA j) eq_k' s).
-Proof.
-case: k / eq_k' eq_k => eq_k.
-by rewrite etrans_id.
+by rewrite (eq_axiomK (etrans _ _)).
 Qed.
 
 Lemma bg_castBAK : cancel bg_castBA bg_castAB.
 Proof.
 rewrite /bg_castAB /bg_castBA => s.
-rewrite -bg_cast_trans'.
+rewrite -bg_cast_trans.
 by rewrite (eq_axiomK (etrans _ _)).
 Qed.
 
@@ -1274,7 +1249,7 @@ apply/forallP/forallP => H a.
 by move: (H (bg_castAB a)); rewrite ffunE /= bg_castABK; move/negbTE/eqP.
 Qed.
 
-(** Defining the symmetric(al) boolean function w.r.t parameter [k] *)
+(** The dual of a boolean function [F] w.r.t parameter [k] *)
 
 Definition bool_fun_sym (F : bool_fun n) : bool_fun n :=
   bool_fun_of_bool_game (bool_game_sym (@bool_game_of_bool_fun n k Hkn F)).
@@ -1321,14 +1296,7 @@ Variable k : nat.
 
 Context `{Hkn : !le_k_n_class k n}.
 
-(* First attempt.
-
-Definition negb_fun {T : finType} (F : {ffun T -> bool}) :=
-  [ffun t => ~~ F t].
-
-Definition swap_fun : bool_fun n -> bool_fun n :=
-  negb_fun \o @bool_fun_sym' n k Hkn.
- *)
+(** The symmetric of a boolean vector [v] w.r.t parameter [k] *)
 
 Definition swap_vec (v : bool_vec n) : bool_vec n :=
   bool_vec_of_bg_strategy
@@ -1337,20 +1305,6 @@ Definition swap_vec (v : bool_vec n) : bool_vec n :=
 Definition swap_vec' (v : bool_vec n) : bool_vec n :=
   bool_vec_of_bg_strategy
     ([ffun x => (x.2, bg_castAB x.1)] (@bg_strategy_of_bool_vec n k Hkn v)).
-
-Definition swap_fun (f : bool_fun n) : bool_fun n :=
-  [ffun v => f (swap_vec v)].
-
-Definition swap_fun' (f : bool_fun n) : bool_fun n :=
-  [ffun v => f (swap_vec' v)].
-
-Lemma swap_funE (f : bool_fun n) (v : bool_vec n) :
-  swap_fun f v = ~~ @bool_fun_sym n k Hkn f v.
-Proof. by rewrite /swap_fun /swap_vec /bool_fun_sym !ffunE negbK. Qed.
-
-Lemma swap_fun'E (f : bool_fun n) (v : bool_vec n) :
-  swap_fun' f v = ~~ @bool_fun_sym' n k Hkn f v.
-Proof. by rewrite /swap_fun' /swap_vec' /bool_fun_sym' !ffunE negbK. Qed.
 
 Lemma swap_vecK : cancel swap_vec swap_vec'.
 Proof.
@@ -1374,6 +1328,14 @@ Proof.
 by exists swap_vec; [apply: swap_vec'K|apply: swap_vecK].
 Qed.
 
+(** The symmetric of a boolean function [v] w.r.t parameter [k] (no negation) *)
+
+Definition swap_fun (f : bool_fun n) : bool_fun n :=
+  [ffun v => f (swap_vec v)].
+
+Definition swap_fun' (f : bool_fun n) : bool_fun n :=
+  [ffun v => f (swap_vec' v)].
+
 Lemma swap_funK : cancel swap_fun swap_fun'.
 Proof.
 rewrite /swap_fun /swap_fun' => f.
@@ -1396,7 +1358,15 @@ Proof.
 by exists swap_fun; [apply: swap_fun'K|apply: swap_funK].
 Qed.
 
-Definition card_swap_fun F :
+Lemma swap_funE (f : bool_fun n) (v : bool_vec n) :
+  swap_fun f v = ~~ @bool_fun_sym n k Hkn f v.
+Proof. by rewrite /swap_fun /swap_vec /bool_fun_sym !ffunE negbK. Qed.
+
+Lemma swap_fun'E (f : bool_fun n) (v : bool_vec n) :
+  swap_fun' f v = ~~ @bool_fun_sym' n k Hkn f v.
+Proof. by rewrite /swap_fun' /swap_vec' /bool_fun_sym' !ffunE negbK. Qed.
+
+Lemma card_swap_fun F :
   #|finset_of_bool_fun F| = #|finset_of_bool_fun (swap_fun F)|.
 Proof.
 set rhs := RHS.
@@ -1409,7 +1379,7 @@ apply: eq_card => v.
 by rewrite !inE; rewrite /swap_fun ffunE.
 Qed.
 
-Definition card_swap_fun' F :
+Lemma card_swap_fun' F :
   #|finset_of_bool_fun F| = #|finset_of_bool_fun (swap_fun' F)|.
 Proof.
 set rhs := RHS.
