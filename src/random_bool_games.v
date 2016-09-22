@@ -1448,6 +1448,15 @@ Variable s : nat.
 
 Context `{!leq_class s (n - k)}.
 
+(** We assume that player A knows the first [s] bits of the [n - k]
+variables controlled by player B.
+
+The "possible worlds" compatible with this assumption are represented
+by an element [bs : bool_vec s] and all strategy profiles [(a, b)]
+such that [b] satisfies [compat_k bs b].
+
+Hence the following definitions. *)
+
 Definition bg_known_StratB := bool_vec s.
 
 Definition widen_s_nk : 'I_s -> 'I_(n - k) := widen_ord leq_prop.
