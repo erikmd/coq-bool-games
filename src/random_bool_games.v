@@ -535,9 +535,9 @@ Variable n : nat.
 
 Variable k : nat.
 
-Class le_k_n_class k n := le_k_n : (k <= n)%N.
+Class leq_class k n := leq_prop : (k <= n)%N.
 
-Context `{!le_k_n_class k n}.
+Context `{!leq_class k n}.
 
 Let knk_eqn : (k + (n - k) = n)%N.
 Proof. by apply: subnKC. Qed.
@@ -562,7 +562,7 @@ Definition bool_vec_of_bg_strategy (s : bg_strategy) : bool_vec n :=
                     | inr ink => s.2 ink
                     end].
 
-Definition widen_k_n : 'I_k -> 'I_n := widen_ord le_k_n.
+Definition widen_k_n : 'I_k -> 'I_n := widen_ord leq_prop.
 
 Definition bg_strategy_of_bool_vec (v : bool_vec n) : bg_strategy :=
   ([ffun ik : 'I_k => v (widen_k_n ik)],
@@ -986,9 +986,9 @@ Qed.
 
 Variable k : nat.
 
-Context `{Hkn : !le_k_n_class k n}.
+Context `{Hkn : !leq_class k n}.
 
-Global Instance Hnkn : le_k_n_class (n - k) n | 99.
+Global Instance Hnkn : leq_class (n - k) n | 99.
 Proof. exact: leq_subr. Qed.
 
 Section strategy_a_fixed.
@@ -1294,7 +1294,7 @@ Context `{Hp : !p_0_1_class p}.
 
 Variable k : nat.
 
-Context `{Hkn : !le_k_n_class k n}.
+Context `{Hkn : !leq_class k n}.
 
 (** The symmetric of a boolean vector [v] w.r.t parameter [k] *)
 
@@ -1439,5 +1439,25 @@ rewrite -{7}[k](subKn Hkn).
 have <- := @Pr_ex_winA_Bern n (1 - p)%Re (@q_0_1 p Hp) (n - k) (Hnkn _ _).
 by underp big j rewrite inE.
 Qed.
+
+(** ** Partial Information on the Opponent's Choices *)
+
+Section parameter_s_fixed.
+
+Variable s : nat.
+
+Context `{!leq_class s (n - k)}.
+
+Definition bg_known_StratB := bool_vec s.
+
+Definition widen_s_nk : 'I_s -> 'I_(n - k) := widen_ord leq_prop.
+
+Definition compat_k (bs : bg_known_StratB) (b : bg_StratB n k) : bool :=
+  [forall i : 'I_s, b (widen_s_nk i) == bs i].
+
+Definition ex_winA_k (g : bool_game n k) (bs : bg_known_StratB) : bool :=
+  [exists a : bg_StratA k, forall b : bg_StratB n k, compat_k bs b ==> g (a, b)].
+
+End parameter_s_fixed.
 
 End Proba_winning1.
