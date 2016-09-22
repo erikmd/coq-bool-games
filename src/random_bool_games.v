@@ -644,11 +644,11 @@ Variable random_f : Omega.
 Definition g := bg_game_of random_f.
 *)
 
-Definition bg_winA (g : bool_game) (a : bg_StratA) : bool :=
+Definition winA (g : bool_game) (a : bg_StratA) : bool :=
   [forall b : bg_StratB, g (a, b) (** == true *)].
 
-Definition bg_winA_wide (g : bool_game) (s : bg_strategy) : bool :=
-  bg_winA g s.1.
+Definition winA_wide (g : bool_game) (s : bg_strategy) : bool :=
+  winA g s.1.
 
 Definition w_ (a : bg_StratA) : Omega :=
   [ffun v : bool ^ n => [forall i : 'I_k, v (widen_k_n i) == a i]].
@@ -676,9 +676,9 @@ Definition W_ (a : bg_StratA) : sigmA :=
 
 Fact winA_eq :
   forall (f : Omega) (a : bg_StratA),
-  bg_winA (bool_game_of_bool_fun f) a = (f \in W_ a).
+  winA (bool_game_of_bool_fun f) a = (f \in W_ a).
 Proof.
-move=> f a; rewrite /bg_winA /W_.
+move=> f a; rewrite /winA /W_.
 apply/forallP/idP =>/= H.
 - rewrite -(bool_game_of_bool_funK f) inE implies0E.
   rewrite /bool_fun_of_bool_game.
@@ -767,11 +767,11 @@ by exists set_ord_of_StratA; [apply: set_StratA_of_ordK|apply: set_ord_of_StratA
 Qed.
 
 Theorem Pr_ex_winA :
-  Pr P [set F | [exists a : bg_StratA, bg_winA (bool_game_of_bool_fun F) a]] =
+  Pr P [set F | [exists a : bg_StratA, winA (bool_game_of_bool_fun F) a]] =
   \rsum_(1 <= i < (2^k).+1) (-1)^(i-1) *
   \rsum_(J in {set bg_StratA} | #|J| == i) Pr P (\bigcap_(a in J) W_ a).
 Proof.
-have->: [set F | [exists a, bg_winA (bool_game_of_bool_fun F) a]] =
+have->: [set F | [exists a, winA (bool_game_of_bool_fun F) a]] =
   \bigcup_(a in bg_StratA) W_ a.
 { apply/setP => f; rewrite !inE.
   apply/existsP/bigcupP.
@@ -1085,7 +1085,7 @@ apply/forallP/imageP => /=.
 Qed.
 
 Theorem Pr_winA_Bern :
-  Pr P [set F | bg_winA (bool_game_of_bool_fun F) a] =
+  Pr P [set F | winA (bool_game_of_bool_fun F) a] =
   p ^ (2 ^ (n - k)).
 Proof.
 set setF := [set F | _ _ a].
@@ -1126,7 +1126,7 @@ by do 2![move/forallP/(_ v)/eqP <-].
 Qed.
 
 Theorem Pr_ex_winA_Bern :
-  Pr P [set F | [exists a : bg_StratA k, bg_winA (bool_game_of_bool_fun F) a]] =
+  Pr P [set F | [exists a : bg_StratA k, winA (bool_game_of_bool_fun F) a]] =
   1 - (1 - p ^ (2 ^ (n - k))) ^ (2 ^ k).
 Proof.
 rewrite Pr_ex_winA /W_.
@@ -1161,7 +1161,7 @@ rewrite pow1 [(i.+1 * _)%N]mulnC pow_muln [in RHS]pow_opp /=.
 ring.
 Qed.
 
-Definition bg_winB (g : bool_game n k) (b : bg_StratB n k) : bool :=
+Definition winB (g : bool_game n k) (b : bg_StratB n k) : bool :=
   [forall a : bg_StratA k, g (a, b) == false].
 
 (** [bg_StratB n (n - k)] is isomorphic to [bg_StratA k] *)
@@ -1238,12 +1238,12 @@ Proof.
 by exists bool_game_sym; [apply: bool_game_sym'K|apply: bool_game_symK].
 Qed.
 
-(** We can write [bg_winB] in terms of the dual game [bool_game_sym] *)
+(** We can write [winB] in terms of the dual game [bool_game_sym] *)
 
 Lemma winB_eq (g : bool_game n k) (b : bg_StratB n k) :
-  bg_winB g b = @bg_winA n (n - k) (bool_game_sym g) b.
+  winB g b = @winA n (n - k) (bool_game_sym g) b.
 Proof.
-rewrite /bg_winB /bg_winA /bool_game_sym.
+rewrite /winB /winA /bool_game_sym.
 apply/forallP/forallP => H a.
 { by rewrite ffunE; apply/negbT/eqP/H. }
 by move: (H (bg_castAB a)); rewrite ffunE /= bg_castABK; move/negbTE/eqP.
@@ -1418,14 +1418,14 @@ Qed.
 
 Let P := @dist_Bernoulli n p Hp.
 
-Theorem Pr_ex_winB_Bern :
-  Pr P [set F | [exists b : bg_StratB n k, bg_winB (bool_game_of_bool_fun F) b]] =
+Corollary Pr_ex_winB_Bern :
+  Pr P [set F | [exists b : bg_StratB n k, winB (bool_game_of_bool_fun F) b]] =
   1 - (1 - (1 - p) ^ (2 ^ k)) ^ (2 ^ (n - k)).
 Proof.
 rewrite /Pr.
 set lhs := LHS.
 have->: lhs = \rsum_(a in [set F |
-    [exists b, @bg_winA n (n - k) (bool_game_of_bool_fun (bool_fun_sym F)) b]]) P a.
+    [exists b, @winA n (n - k) (bool_game_of_bool_fun (bool_fun_sym F)) b]]) P a.
 rewrite /lhs.
 apply: eq_bigl.
 { move=> F; rewrite !in_set !bool_fun_of_bool_gameK.
