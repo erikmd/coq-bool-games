@@ -539,10 +539,10 @@ Class leq_class k n := leq_prop : (k <= n)%N.
 
 Context `{!leq_class k n}.
 
-Let knk_eqn : (k + (n - k) = n)%N.
+Lemma knk_eqn : (k + (n - k) = n)%N.
 Proof. by apply: subnKC. Qed.
 
-Let eqn_knk : (n = k + (n - k))%N.
+Lemma eqn_knk : (n = k + (n - k))%N.
 Proof. by rewrite knk_eqn. Qed.
 
 Definition bg_StratA := (bool_vec k)%type.
@@ -802,6 +802,16 @@ by rewrite map_id mem_enum_setE.
 Qed.
 
 End Proba_games.
+
+(*
+Section Proba_product.
+
+Variables (I : finType) (T_ : I -> finType).
+(* Check #|{: {i : I & T_ i}}|. *)
+Variable P_ : forall i, dist (T_ i).
+
+End Proba_product.
+ *)
 
 Section Proba_winning.
 
@@ -1446,7 +1456,7 @@ Section parameter_s_fixed.
 
 Variable s : nat.
 
-Context `{!leq_class s (n - k)}.
+Context `{Hsnk : !leq_class s (n - k)}.
 
 (** We assume that player A knows the first [s] bits of the [n - k]
 variables controlled by player B.
@@ -1461,11 +1471,192 @@ Definition bg_known_StratB := bool_vec s.
 
 Definition widen_s_nk : 'I_s -> 'I_(n - k) := widen_ord leq_prop.
 
-Definition compat_k (bs : bg_known_StratB) (b : bg_StratB n k) : bool :=
+Definition compat_knowing (bs : bg_known_StratB) (b : bg_StratB n k) : bool :=
   [forall i : 'I_s, b (widen_s_nk i) == bs i].
 
-Definition ex_winA_k (g : bool_game n k) (bs : bg_known_StratB) : bool :=
-  [exists a : bg_StratA k, forall b : bg_StratB n k, compat_k bs b ==> g (a, b)].
+Definition winA_knowing
+  (g : bool_game n k) (bs : bg_known_StratB) (a : bg_StratA k) : bool :=
+  [forall b : bg_StratB n k, compat_knowing bs b ==> g (a, b)].
+
+(*
+Compute val (@widen_ord 1 2 erefl ord0).
+Compute val (rshift 2 (@ord_max 1)).
+*)
+
+Definition rshift_nk_n (i : 'I_(n - k)) : 'I_n :=
+  cast_ord (@knk_eqn _ _ Hkn) (rshift k i).
+
+Definition w_knowing (bs : bg_known_StratB) : Omega n :=
+  [ffun v : bool ^ n => [forall i : 'I_s, v (rshift_nk_n (widen_s_nk i)) == bs i]].
+
+Local Instance leq_s_nk : leq_class s n.
+Proof. apply: (leq_trans (n := n - k)) =>//; exact: Hnkn. Qed.
+
+Local Instance leq_k_sn : leq_class k (n - s).
+Proof. red in Hsnk |- *.
+case: s Hsnk => [|s'] H'.
+{ rewrite subn0; exact: Hkn. }
+case: k H'  => [//|k'].
+by rewrite !ltn_subRL !addSn addnC.
+Qed.
+
+(*
+Lemma widen_s_nK x : rshift_nk_n (widen_s_nk x) = @widen_k_n n s _ x.
+Proof.
+rewrite /widen_k_n /rshift_nk_n /widen_s_nk.
+apply/val_inj; rewrite /=.
+Abort.
+ *)
+
+Definition rshift_s_n (i : 'I_(n - s)) : 'I_n :=
+  cast_ord (@knk_eqn _ _ leq_s_nk) (rshift s i).
+
+(* Use [bool_vec_of_bg_strategy] in a different context (refactor?) *)
+Definition bool_vec_cat n k `{!leq_class k n} :
+  {ffun 'I_k -> bool} * {ffun 'I_(n - k) -> bool} -> bool_vec n
+  := @bool_vec_of_bg_strategy n k _.
+
+Definition bool_vec_fst n k `{!leq_class k n} (v : bool_vec n) : bool_vec k :=
+  (bg_strategy_of_bool_vec v).1.
+
+Definition bool_vec_snd n k `{!leq_class k n} (v : bool_vec n) : bool_vec (n - k) :=
+  (bg_strategy_of_bool_vec v).2.
+
+Definition bool_vec_snd_nks (v : bool_vec n) : bool_vec (n - k - s) :=
+  bool_vec_snd (bool_vec_snd v).
+
+(*
+(* sam := split and merge *)
+Definition bool_vec_sam (v : bool_vec n) : bool_vec (n - s) :=
+  @bool_vec_cat (n - s) k _ (bool_vec_fst v, bool_vec_snd v).
+*)
+
+Definition subnC : forall m n p, (m - n - p = m - p - n)%N.
+Proof. clear=> m n p. by rewrite -!subnDA addnC. Qed.
+
+Definition cast_bool_vecB : forall m n p (v : bool_vec (m - n - p)),
+  bool_vec (m - p - n) :=
+  fun m n p v =>
+  ecast i (bool_vec i) (subnC m n p) v.
+
+Definition bool_game_knowing (g : bool_game n k) (bs : bg_known_StratB) :
+  bool_game (n - s) k :=
+  [ffun c => g (c.1, (bool_vec_cat (bs, cast_bool_vecB c.2)))].
+
+Lemma bool_vec_cast_trans : forall m n p (v : bool_vec m)
+    (eq_mn : m = n) (eq_np : n = p),
+  ecast i (bool_vec i) (etrans eq_mn eq_np) v =
+  ecast i (bool_vec i) eq_np (ecast j (bg_StratA j) eq_mn v).
+Proof.
+move=> m n' p' v eq_mn eq_np.
+case: n' / eq_mn eq_np.
+by case: p' /.
+Qed.
+
+Lemma cast_bool_vecB_K :
+  forall m n p, cancel (@cast_bool_vecB m n p) (@cast_bool_vecB m p n).
+Proof.
+clear=> m n p.
+move=> x; rewrite /cast_bool_vecB.
+rewrite -bool_vec_cast_trans.
+by rewrite (eq_axiomK (etrans _ _)).
+Qed.
+
+Lemma bool_vec_sndK (bs : bool_vec s) (b : bool_vec (n - k)) :
+  compat_knowing bs b ->
+  bool_vec_cat (bs, bool_vec_snd b) = b.
+Proof.
+move/forallP => Hall.
+apply/ffunP => i; rewrite !ffunE.
+case: splitP => /= j H.
+{ suff->: i = widen_s_nk j by symmetry; apply: (eqP (Hall j)).
+  exact/ord_inj. }
+rewrite ffunE; apply: congr1; exact/ord_inj.
+Qed.
+
+Lemma winA_knowingE g bs a :
+  winA_knowing g bs a = winA (bool_game_knowing g bs) a.
+Proof.
+rewrite /winA_knowing /winA /bool_game_knowing.
+apply/forallP/forallP => Hall b; rewrite ?ffunE /=.
+{ apply (implyP (Hall _)); rewrite /compat_knowing.
+  apply/forallP => i; apply/eqP.
+  rewrite ffunE; case: splitP => j /=; first by move/ord_inj->.
+  case: i => i Hi /= K; rewrite K in Hi *; exfalso.
+  by rewrite ltnNge leq_addr in Hi. }
+apply/implyP => Hc.
+rewrite /compat_knowing in Hc.
+pose b2 := cast_bool_vecB (@bool_vec_snd (n - k) s Hsnk b).
+move/(_ b2): Hall; rewrite ffunE /=.
+by rewrite /b2 cast_bool_vecB_K bool_vec_sndK.
+Qed.
+
+(* DRAFT
+
+Definition WK_ (bs : bg_known_StratB) : {set Omega n} :=
+  [set w : Omega n | (w_knowing bs) ⇒0 w].
+
+Fact winA_knowing_eq :
+  forall (f : Omega n) (a : bg_StratA k) (bs : bg_known_StratB),
+  winA_knowing (bool_game_of_bool_fun f) bs a = (f \in WK_ bs).
+Proof.
+move=> f a bs; rewrite /winA_knowing /WK_ /w_knowing inE implies0E.
+apply/forallP/subsetP => H /= x.
+rewrite !inE !ffunE.
+Show 2.
+rewrite inE.
+Admitted.
+
+Lemma w_knowingE bs : w_knowing bs = @w_ (n - s) (n - k s) bs
+
+Lemma w_knowingE bs :
+  w_knowing bs = @w_ n s _ bs.
+Proof.
+apply/ffunP => v; rewrite !ffunE.
+apply: eq_forallb => x; congr eq_op; apply congr1.
+apply: val_inj =>/=.
+
+Definition ex_winA_knowing (g : bool_game n k) (bs : bg_known_StratB) : bool :=
+  [exists a : bg_StratA k, forall b : bg_StratB n k, compat_knowing bs b ==> g (a, b)].
+
+*)
+
+Definition bool_fun_knowing (F : bool_fun n) (bs : bg_known_StratB) :=
+  bool_fun_of_bool_game (bool_game_knowing (bool_game_of_bool_fun F) bs).
+
+Lemma bool_game_knowingE F bs :
+  (bool_game_knowing (bool_game_of_bool_fun F) bs)
+  = @bool_game_of_bool_fun (n - s) k _ (bool_fun_knowing F bs).
+Proof. by rewrite /bool_fun_knowing bool_fun_of_bool_gameK. Qed.
+
+Lemma Pr_indep_knowing_Bern Q :
+  Pr P [set F | [forall bs, Q (bool_fun_knowing F bs)]] =
+  \rmul_(bs in bg_known_StratB) Pr P [set F | Q (bool_fun_knowing F bs)].
+Proof.
+Admitted.
+
+Lemma Pr_isom_knowing_Bern bs Q :
+  Pr P [set F | Q (bool_fun_knowing F bs)] =
+  @Pr _ (@dist_Bernoulli (n - s) p Hp) [set F | Q F].
+Proof.
+Admitted.
+
+Theorem Pr_ex_winA_knowing_Bern :
+  Pr P [set F | [forall bs, exists a : bg_StratA k, winA_knowing (bool_game_of_bool_fun F) bs a]] =
+  (1 - (1 - p ^ (2 ^ (n - s - k))) ^ (2 ^ k)) ^ 2 ^ s.
+Proof.
+stepr (Pr P [set F | [forall bs, exists a, winA (bool_game_of_bool_fun (bool_fun_knowing F bs)) a]]).
+{ apply: eq_bigl => F; rewrite !inE.
+  apply: eq_forallb => bs.
+  apply: eq_existsb => a.
+    by rewrite winA_knowingE bool_game_knowingE. }
+pose Q := (fun F' => [exists a, winA (bool_game_of_bool_fun F') a]).
+rewrite (Pr_indep_knowing_Bern (Q _ _ _)).
+under big bs _ rewrite (Pr_isom_knowing_Bern bs (Q _ _ _)).
+under big bs _ rewrite Pr_ex_winA_Bern.
+rewrite bigmul_card_constE.
+by rewrite !(card_ffun, card_bool, card_ord).
+Qed.
 
 End parameter_s_fixed.
 
