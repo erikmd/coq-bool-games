@@ -588,39 +588,114 @@ Canonical prodn_subFinType := Eval hnf in [subFinType of prodn_finType].
 Print prodn_finm.
 Print prodn_cntm. *)
 
+Lemma sigT_eta A (P : A -> Type) (s : {x : A & P x}) :
+  s = existT _ (projT1 s) (projT2 s).
+Proof. by move: s => [x Q]. Qed.
+
+(* PROVED BUT UNNEEDED
+
+Lemma ecast_trans : forall m n p (s : T_ m)
+    (eq_mn : m = n) (eq_np : n = p),
+  ecast i (T_ i) (etrans eq_mn eq_np) s =
+  ecast i (T_ i) eq_np (ecast j (T_ j) eq_mn s).
+Proof.
+move=> m n' p' s eq_mn eq_np.
+case: n' / eq_mn eq_np.
+by case: p' /.
+Qed.
+
+Lemma ecast_id (i : I) (erefl_i : i = i) (t : T_ i) :
+  ecast i (T_ i) erefl_i t = t.
+Proof. by rewrite [erefl_i]eq_axiomK. Qed.
+ *)
+
 Lemma prodn_type_of_prodnK : cancel prodn_type_of_prodn prodn_of_prodn_type.
 Proof.
-move => x; apply: val_inj =>/=.
+move => x.
+rewrite /prodn_type_of_prodn /prodn_of_prodn_type.
+apply: val_inj =>/=.
 apply/ffunP => i; rewrite !ffunE.
 case: x => f p /=.
-apply/eqP.
-rewrite -/(Tagged _ _).
-rewrite eq_sym.
-have Hi: i = tag (f i) by apply/eqP; move: p => /= /forallP; rewrite eq_sym.
-rewrite {2 3}Hi.
-rewrite eq_Tagged.
-move: Hi p; case E: (f i) => [a b] /= Hi p.
-rewrite /prodn_type_of_prodn /=.
-rewrite {}Hi in E.
-apply/eqP.
-have Ha: a = tag (f a) by apply/eqP; move: p => /= /forallP; rewrite eq_sym.
-(* rewrite [X in _ = eq_rect _ _ _ X _]Ha. *)
-move: b E; rewrite 2!Ha => b E.
-rewrite /tag in Ha.
-Fail apply Eqdep_dec.eq_rect_eq_dec.
-have->: b = projT2 (f (tag (f a))).
-admit.
-Fail apply Eqdep_dec.eq_rect_eq_dec.
+rewrite [RHS]sigT_eta.
+(* rewrite -/tag -/tagged -/(Tagged _ _) -/(Tagged _ _) in p *. *)
+(* apply/eqP; rewrite eq_sym; rewrite eq_Tagged. *)
+set Ei := eqP (elimTF forallP p i).
+apply EqdepFacts.eq_dep_eq_sigT.
+apply EqdepFacts.eq_dep1_dep.
+by apply: EqdepFacts.eq_dep1_intro.
+Qed.
+
+(*
+Check eq_axiomK.
+Check Eqdep_dec.eq_rect_eq_dec.
 Check rew_opp_l.
-Print Module EqdepFacts.
-Check tagged_asE.
-Admitted.
+ *)
+
+Check card_partition.
+Check (big_seq, big_uniq).
+Check card_tagged.
 
 Lemma card_prodn :
-  #|prodn| = \big[muln/O]_(i : I) #|T_ i|.
+  #|prodn| = \big[muln/1%N]_(i : I) #|T_ i|.
 Proof.
 rewrite card_sub.
+(* UNNEEDED
+rewrite (eq_card (_ : _ =i [set x : {ffun I -> {i : I & T_ i}} | [forall i, projT1 (x i) == i]])).
+2: by move=> i; rewrite inE.
+ *)
+rewrite -[LHS]/#|family (fun i : I => [pred j : {i : I & T_ i} | projT1 j == i])|.
+rewrite card_family.
+set lhs := LHS; suff->: lhs = foldr muln 1%N [seq #|T_ i| | i : I]; rewrite {}/lhs.
+by rewrite /image_mem foldr_map BigOp.bigopE /reducebig; f_equal; rewrite enumT.
+f_equal; apply eq_map => i.
+rewrite -sum1_card; (underp big i0 rewrite inE).
+pose IT := tag_finType T_.
+rewrite -sum1_card.
 Admitted.
+
+(*
+Check tagged_as.
+change i with (tag _ (Tagged _)).
+apply eq_big.
+
+(* pose p := fun a : IT => tagged a : T_ (tag a). *)
+pose p := fun a : IT => tagged a : [finType of T_ (tag a)].
+rewrite (partition_big p).
+rewrite sum1dep_card.
+
+set lhs := LHS; have->: lhs = #||; rewrite /lhs.
+rewrite cardE.
+erewrite <-eq_card_sub.
+Check (reindex (@tagged _ _ _)).
+rewrite sum1dep_card.
+
+rewrite cardsE /=.
+eapply eq_card.
+rewrite card1.
+apply card_bool.
+rewrite card_tagged.
+set lhs := LHS; have->: lhs = foldr muln 1%N [seq #|T_ i| | i : I]; rewrite /lhs.
+rewrite card1.
+rewrite card_tagged.
+rewrite -card_map.
+rewrite card_sig.
+rewrite /foldr.
+rewrite foldr_map.
+
+rewrite card1.
+rewrite /family_mem.
+apply eq_card.
+rewrite -[LHS]/(family (fun i => [pred j | projT1 j == i])).
+
+rewrite !cardE size_filter -!enumT /enum_mem -enumT.
+rewrite count_map -size_filter enumT -cardE.
+rewrite card_preim.
+elim: (index_enum I) =>//=.
+
+rewrite card_ffun.
+rewrite card_sig.
+rewrite card_ffun.
+*)
 
 End Finite_product_structure.
 
@@ -1844,9 +1919,9 @@ rewrite (reindex_onto
            (fun a : {ffun bool ^ (n - s) -> bool} => knowing_bool_fun a)); last first.
 { by move=> i Hi; rewrite knowing_bool_funK. }
 simpl.
-apply eq_bigr => i Hi.
+(* apply eq_bigr => i Hi.
 rewrite /num_true.
-admit.
+admit. *)
 Admitted.
 
 Lemma Pr_indep_knowing_Bern Q :
