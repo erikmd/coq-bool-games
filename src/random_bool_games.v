@@ -518,59 +518,48 @@ Defined.
 End Pushforward_distribution.
 
 
+Section Misc.
+
+Lemma Tagged_eta A (P : A -> Type) (s : {x : A & P x}) :
+  s = @Tagged _ (tag s) _ (tagged s).
+Proof. by move: s => [x Q]. Qed.
+
+(** Tip to leverage a Boolean condition *)
+Definition sumb (b : bool) : {b = true} + {b = false} :=
+  if b is true then left erefl else right erefl.
+
+End Misc.
+
+
 Section Finite_product_structure.
 
 Variables (I : finType) (T_ : I -> finType).
 
+Definition tagged' i (u : {i : I & T_ i}) (p : tag u == i) : T_ i.
+rewrite -(eqP p).
+exact (tagged u).
+Defined.
+
 Definition prodn_type := forall i : I, T_ i.
 
-(* Inductive or Record *)
+(** Definition and cardinal of [prodn] := dependent product of finTypes *)
+
 Record prodn : predArgType :=
   { prodn_fun :> {ffun I -> {i : I & T_ i}} ;
-    prodn_prop : [forall i : I, projT1 (prodn_fun i) == i] }.
+    prodn_prop : [forall i : I, tag (prodn_fun i) == i] }.
 
 Program Definition prodn_type_of_prodn (f : prodn) : prodn_type :=
-  fun i => ecast j (Finite.sort (T_ j)) _ (projT2 (prodn_fun f i)).
+  fun i => ecast j (Finite.sort (T_ j)) _ (tagged (prodn_fun f i)).
 Next Obligation.
 case: f => f p /=; apply/eqP.
 by move/forallP in p.
 Defined.
-(*
-Proof.
-move=> i.
-assert (fi := (projT2 (prodn_fun f i))).
-assert (H : projT1 (f i) = i).
-  by apply/eqP; case: (f) => [ff] /= /forallP.
-by rewrite -H.
-Defined.
- *)
 
 Program Definition prodn_of_prodn_type (f : prodn_type) : prodn :=
   @Build_prodn (finfun (fun i => @existT _ _ i (f i))) _.
 Next Obligation.
 by apply/forallP => i; rewrite ffunE.
 Defined.
-(*
-Proof.
-eapply Build_prodn.
-red in f.
-Unshelve.
-2: apply (finfun (fun i => @existT _ _ i (f i))).
-by apply/forallP => i; rewrite ffunE /=.
-Defined.
- *)
-
-(* Local Notation enumF T := (Finite.enum T). *)
-
-(*
-filter_map:
-  forall (T1 T2 : Type) (f : T1 -> T2) (a : pred T2) (s : seq T1),
-  [seq x <- [seq f i | i <- s] | a x] = [seq f i | i <- s & (preim f a) i]
-
-filter_map:
-  forall (T1 T2 : Type) (f : forall _ : T1, T2) (a : pred T2) (s : list T1),
-  eq (filter a (map f s)) (map f (filter (preim f a) s))
-*)
 
 (* Canonical prodn_fun_finType := [finType of {ffun I -> {i : I & T_ i}}]. *)
 Canonical prodn_subType := Eval hnf in [subType for prodn_fun].
@@ -588,27 +577,6 @@ Canonical prodn_subFinType := Eval hnf in [subFinType of prodn_finType].
 Print prodn_finm.
 Print prodn_cntm. *)
 
-Lemma sigT_eta A (P : A -> Type) (s : {x : A & P x}) :
-  s = existT _ (projT1 s) (projT2 s).
-Proof. by move: s => [x Q]. Qed.
-
-(* PROVED BUT UNNEEDED
-
-Lemma ecast_trans : forall m n p (s : T_ m)
-    (eq_mn : m = n) (eq_np : n = p),
-  ecast i (T_ i) (etrans eq_mn eq_np) s =
-  ecast i (T_ i) eq_np (ecast j (T_ j) eq_mn s).
-Proof.
-move=> m n' p' s eq_mn eq_np.
-case: n' / eq_mn eq_np.
-by case: p' /.
-Qed.
-
-Lemma ecast_id (i : I) (erefl_i : i = i) (t : T_ i) :
-  ecast i (T_ i) erefl_i t = t.
-Proof. by rewrite [erefl_i]eq_axiomK. Qed.
- *)
-
 Lemma prodn_type_of_prodnK : cancel prodn_type_of_prodn prodn_of_prodn_type.
 Proof.
 move => x.
@@ -616,17 +584,98 @@ rewrite /prodn_type_of_prodn /prodn_of_prodn_type.
 apply: val_inj =>/=.
 apply/ffunP => i; rewrite !ffunE.
 case: x => f p /=.
-rewrite [RHS]sigT_eta.
-(* rewrite -/tag -/tagged -/(Tagged _ _) -/(Tagged _ _) in p *. *)
-(* apply/eqP; rewrite eq_sym; rewrite eq_Tagged. *)
+rewrite [RHS]Tagged_eta.
 set Ei := eqP (elimTF forallP p i).
 apply EqdepFacts.eq_dep_eq_sigT.
 apply EqdepFacts.eq_dep1_dep.
 by apply: EqdepFacts.eq_dep1_intro.
 Qed.
 
+Lemma card_prodn :
+  #|prodn| = \big[muln/1%N]_(i : I) #|T_ i|.
+Proof.
+rewrite card_sub.
+rewrite -[LHS]/#|family (fun i : I => [pred j : {i : I & T_ i} | tag j == i])|.
+rewrite card_family.
+set lhs := LHS; suff->: lhs = foldr muln 1%N [seq #|T_ i| | i : I]; rewrite {}/lhs.
+by rewrite /image_mem foldr_map BigOp.bigopE /reducebig; f_equal; rewrite enumT.
+f_equal; apply eq_map => i.
+rewrite -sum1_card ; (underp big i0 rewrite inE).
+rewrite -sum1_card.
+pose IT := tag_finType T_.
+pose h : T_ i -> IT := @Tagged I _ _.
+pose h'0 := @tagged' i.
+case Ecard: #|T_ i|.
+{ rewrite !big_pred0 // => x.
+  by rewrite inE -(ltnn 0); symmetry; rewrite -{2}Ecard; apply/card_gt0P; exists x.
+  move/eqP: Ecard; apply: contraTF; rewrite -leqn0 -ltnNge => Hi.
+  apply/card_gt0P.
+  by exists (tagged' Hi). }
+have {Ecard} /card_gt0P [it0 _] : (0 < #|T_ i|)%N by rewrite Ecard.
+pose h' : IT -> T_ i := fun x => match sumb (tag x == i) with
+                              | left prf => tagged' prf
+                              | right _ => it0
+                             end.
+rewrite (reindex h); last first.
+{ exists h'.
+  move => it; rewrite inE => Hx.
+  { rewrite /= /h' /h.
+    case: sumb => prf; first by rewrite /tagged' (eq_axiomK (eqP prf)).
+    exfalso.
+    by rewrite eqxx in prf. }
+  move=> x Hx.
+  rewrite /h' /h.
+  case: sumb => prf.
+  { rewrite /= [x in RHS]Tagged_eta /=.
+    (* and then *)
+    apply EqdepFacts.eq_dep_eq_sigT.
+    apply EqdepFacts.eq_dep1_dep.
+    apply: EqdepFacts.eq_dep1_intro; first exact/eqP.
+    by move=> H0; rewrite /tagged' [eqP prf]eq_irrelevance. }
+  exfalso; move/negbT/negP: prf; apply.
+  by rewrite inE in Hx. }
+by apply: eq_bigl => j; rewrite /= eqxx.
+Qed.
+
+End Finite_product_structure.
+
+(* UNNEEDED
+
+Section Subtag.
+Variables (I : finType) (T_ : I -> finType).
+(* Context {i : I}. *)
+Context (i : I).
+Record subtag : predArgType :=
+  { subtag0 :> {i : I & T_ i} ;
+    subtag_prop : tag (subtag0) == i }.
+Canonical subtag_subType := Eval hnf in [subType for subtag0].
+Definition subtag_eqm := Eval hnf in [eqMixin of subtag by <:].
+Canonical subtag_eqType := Eval hnf in EqType subtag subtag_eqm.
+Definition subtag_chm := [choiceMixin of subtag by <:].
+Canonical subtag_choiceType := Eval hnf in ChoiceType subtag subtag_chm.
+Definition subtag_cntm := [countMixin of subtag by <:].
+Canonical subtag_countType := Eval hnf in CountType subtag subtag_cntm.
+Canonical subtag_subCountType := Eval hnf in [subCountType of subtag].
+Definition subtag_finm := [finMixin of subtag by <:].
+Canonical subtag_finType := Eval hnf in FinType subtag subtag_finm.
+Canonical subtag_subFinType := Eval hnf in [subFinType of subtag_finType].
+
+Definition tagged_sub (sti : subtag) := tagged' (subtag_prop sti).
+
+Program Definition Tagged_sub (sti : T_ i) : subtag.
+eapply Build_subtag.
+Unshelve.
+2: eapply Tagged.
+2: eapply sti.
+done.
+Defined.
+End Subtag.
+*)
+
 (*
+Check filter_map.
 Check eq_axiomK.
+Check eqVneq.
 Check Eqdep_dec.eq_rect_eq_dec.
 Check Eqdep_dec.inj_pair2_eq_dec.
 Check rew_opp_l.
@@ -646,110 +695,6 @@ Check card1.
 Check card_sig.
 Check card_ffun.
  *)
-
-Section Subtag.
-(* Context {i : I}. *)
-Context (i : I).
-Record subtag  : predArgType :=
-  { subtag0 :> {i : I & T_ i} ;
-    subtag_prop : tag (subtag0) == i }.
-Canonical subtag_subType := Eval hnf in [subType for subtag0].
-Definition subtag_eqm := Eval hnf in [eqMixin of subtag by <:].
-Canonical subtag_eqType := Eval hnf in EqType subtag subtag_eqm.
-Definition subtag_chm := [choiceMixin of subtag by <:].
-Canonical subtag_choiceType := Eval hnf in ChoiceType subtag subtag_chm.
-Definition subtag_cntm := [countMixin of subtag by <:].
-Canonical subtag_countType := Eval hnf in CountType subtag subtag_cntm.
-Canonical subtag_subCountType := Eval hnf in [subCountType of subtag].
-Definition subtag_finm := [finMixin of subtag by <:].
-Canonical subtag_finType := Eval hnf in FinType subtag subtag_finm.
-Canonical subtag_subFinType := Eval hnf in [subFinType of subtag_finType].
-End Subtag.
-
-Definition tagged' i (u : {i : I & T_ i}) (p : tag u == i) : T_ i.
-rewrite -(eqP p).
-exact (tagged u).
-Defined.
-
-Definition tagged_sub i (sti : subtag i) := tagged' (subtag_prop sti).
-
-Program Definition Tagged_sub i (sti : T_ i) : subtag i.
-eapply Build_subtag.
-Unshelve.
-2: eapply Tagged.
-2: eapply sti.
-done.
-Defined.
-
-(** Tip to leverage a Boolean condition *)
-Definition sumb (b : bool) : {b = true} + {b = false} :=
-  if b is true then left erefl else right erefl.
-
-Lemma card_prodn :
-  #|prodn| = \big[muln/1%N]_(i : I) #|T_ i|.
-Proof.
-rewrite card_sub.
-(* UNNEEDED
-rewrite (eq_card (_ : _ =i [set x : {ffun I -> {i : I & T_ i}} | [forall i, projT1 (x i) == i]])).
-2: by move=> i; rewrite inE.
- *)
-rewrite -[LHS]/#|family (fun i : I => [pred j : {i : I & T_ i} | projT1 j == i])|.
-rewrite card_family.
-set lhs := LHS; suff->: lhs = foldr muln 1%N [seq #|T_ i| | i : I]; rewrite {}/lhs.
-by rewrite /image_mem foldr_map BigOp.bigopE /reducebig; f_equal; rewrite enumT.
-f_equal; apply eq_map => i.
-rewrite -sum1_card ; (underp big i0 rewrite inE).
-rewrite -sum1_card.
-(* pose IT := subtag i. *)
-pose IT := tag_finType T_.
-pose h : T_ i -> IT := @Tagged I _ _.
-pose h'0 := @tagged' i.
-(* UNNEEDED
-have f_inj : injective f.
-{ move=> x y; rewrite /f; case; apply: Eqdep_dec.inj_pair2_eq_dec.
-  move=> j k; case: (eqVneq j k); [left|right] =>//; exact/eqP. } *)
-case Ecard: #|T_ i|.
-{ rewrite !big_pred0 // => x.
-  by rewrite inE -(ltnn 0); symmetry; rewrite -{2}Ecard; apply/card_gt0P; exists x.
-  move/eqP: Ecard; apply: contraTF; rewrite -leqn0 -ltnNge => Hi.
-  apply/card_gt0P.
-  by exists (tagged' Hi). }
-have {Ecard} /card_gt0P [it0 _] : (0 < #|T_ i|)%N by rewrite Ecard.
-pose h' : IT -> T_ i := fun x => match sumb (tag x == i) with
-                              | left prf => tagged' prf
-                              | right _ => it0
-                             end.
-rewrite (reindex h); last first.
-{ exists h'.
-  move => it; rewrite inE => Hx /=.
-  rewrite /h' /h.
-  case: sumb => prf.
-  { rewrite /tagged' /=.
-    rewrite /eq_rect.
-    by rewrite (eq_axiomK (eqP prf)). }
-  exfalso.
-  by rewrite eqxx in prf.
-  move=> x Hx.
-  rewrite /h' /h.
-  case: sumb => prf.
-  { rewrite /=.
-    rewrite [x in RHS]sigT_eta /Tagged /=.
-    (* and then *)
-    apply EqdepFacts.eq_dep_eq_sigT.
-    apply EqdepFacts.eq_dep1_dep.
-    apply: EqdepFacts.eq_dep1_intro.
-    exact/eqP.
-    rewrite /tagged' => H0.
-    rewrite /tagged.
-    by rewrite [eqP prf]eq_irrelevance. }
-  exfalso.
-  move/negbT/negP: prf; apply.
-  by rewrite inE in Hx. }
-apply: eq_bigl => j.
-by rewrite /= eqxx.
-Qed.
-
-End Finite_product_structure.
 
 (** ** Random Boolean games and characterization of winning strategies *)
 
@@ -1386,7 +1331,7 @@ under big i Hi under big J HJ rewrite -(eqP (w_trivIset J)).
 rewrite -big_nat.
 under big i _ under big J _ rewrite big_imset;
   [under big j _ rewrite card_w_a_Bern|done].
-under big i _ under big J HJ rewrite sum_nat_const (eqP (proj2 (andP HJ))).
+under big i _ under big J HJ rewrite sum_nat_const (eqP (tagged (andP HJ))).
 do [under big i _ rewrite bigsum_card_constE (_ : INR _ = INR 'C(2^k, i))];
   last first.
 { congr INR.
