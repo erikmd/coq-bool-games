@@ -540,16 +540,24 @@ rewrite -(eqP p).
 exact (tagged u).
 Defined.
 
-Definition prodn_type := forall i : I, T_ i.
+Lemma TaggedE i P1 P2 : @Tagged I i T_ P1  = Tagged T_ P2 -> P1 = P2.
+move=> H.
+have H' := (EqdepFacts.eq_sigT_eq_dep _ _ _ _ _ _ H).
+have H'' := (EqdepFacts.eq_dep_dep1 _ _ _ _ _ _ H').
+case: H'' => h.
+by rewrite [h]eq_axiomK /=.
+Qed.
+
+Notation prodn_type := (forall i : I, T_ i) (only parsing).
 
 (** Definition and cardinal of [prodn] := dependent product of finTypes *)
 
 Record prodn : predArgType :=
-  { prodn_fun :> {ffun I -> {i : I & T_ i}} ;
+  { prodn_fun : {ffun I -> {i : I & T_ i}} ;
     prodn_prop : [forall i : I, tag (prodn_fun i) == i] }.
 
 Program Definition prodn_type_of_prodn (f : prodn) : prodn_type :=
-  fun i => ecast j (Finite.sort (T_ j)) _ (tagged (prodn_fun f i)).
+  fun i => ecast j (T_ j) _ (tagged (prodn_fun f i)).
 Next Obligation.
 case: f => f p /=; apply/eqP.
 by move/forallP in p.
@@ -560,6 +568,8 @@ Program Definition prodn_of_prodn_type (f : prodn_type) : prodn :=
 Next Obligation.
 by apply/forallP => i; rewrite ffunE.
 Defined.
+
+Coercion prodn_type_of_prodn : prodn >-> Funclass.
 
 (* Canonical prodn_fun_finType := [finType of {ffun I -> {i : I & T_ i}}]. *)
 Canonical prodn_subType := Eval hnf in [subType for prodn_fun].
@@ -577,7 +587,7 @@ Canonical prodn_subFinType := Eval hnf in [subFinType of prodn_finType].
 Print prodn_finm.
 Print prodn_cntm. *)
 
-Lemma prodn_type_of_prodnK : cancel prodn_type_of_prodn prodn_of_prodn_type.
+Lemma prodnK : cancel prodn_type_of_prodn prodn_of_prodn_type.
 Proof.
 move => x.
 rewrite /prodn_type_of_prodn /prodn_of_prodn_type.
@@ -589,6 +599,36 @@ set Ei := eqP (elimTF forallP p i).
 apply EqdepFacts.eq_dep_eq_sigT.
 apply EqdepFacts.eq_dep1_dep.
 by apply: EqdepFacts.eq_dep1_intro.
+Qed.
+
+Lemma prodnE g : forall x, (prodn_of_prodn_type g) x = g x.
+Proof.
+move=> i.
+rewrite /prodn_of_prodn_type /prodn_type_of_prodn /=.
+rewrite -/(eq_rect _ _ _ _ _).
+set Ej := (eqP (elimTF forallP (prodn_of_prodn_type_obligation_1 g) i)).
+rewrite -[g i](rew_opp_r T_ Ej).
+f_equal.
+(* rewrite /eq_rect_r /eq_rect. *)
+match goal with
+| [|- ?a = ?b] => have : Tagged T_ a = Tagged T_ b
+end.
+{ rewrite -Tagged_eta {1}ffunE /Tagged.
+  apply EqdepFacts.eq_dep_eq_sigT.
+  apply EqdepFacts.eq_dep1_dep.
+  apply: EqdepFacts.eq_dep1_intro.
+  by rewrite rew_opp_r. }
+apply: TaggedE.
+Qed.
+
+Lemma prodnP f1 f2 :
+  (forall x, prodn_type_of_prodn f1 x = prodn_type_of_prodn f2 x) <-> f1 = f2.
+Proof.
+split=> [eq_f12 | -> //].
+rewrite -[f1]prodnK -[f2]prodnK.
+apply: val_inj =>/=.
+apply/ffunP => x; rewrite !ffunE.
+by rewrite eq_f12.
 Qed.
 
 Lemma card_prodn :
@@ -631,13 +671,26 @@ rewrite (reindex h); last first.
     apply EqdepFacts.eq_dep_eq_sigT.
     apply EqdepFacts.eq_dep1_dep.
     apply: EqdepFacts.eq_dep1_intro; first exact/eqP.
-    by move=> H0; rewrite /tagged' [eqP prf]eq_irrelevance. }
+    move=> H0; rewrite /tagged'.
+    by rewrite [eqP prf]eq_irrelevance. }
   exfalso; move/negbT/negP: prf; apply.
   by rewrite inE in Hx. }
 by apply: eq_bigl => j; rewrite /= eqxx.
 Qed.
 
 End Finite_product_structure.
+
+Notation "[ 'prodn' i : I => F ]" := (prodn_of_prodn_type (fun i : I => F))
+  (at level 0, i ident, only parsing) : fun_scope.
+
+Notation "[ 'prodn' : I => F ]" := (prodn_of_prodn_type (fun _ : I => F))
+  (at level 0, only parsing) : fun_scope.
+
+Notation "[ 'prodn' i => F ]" := [prodn i : _ => F]
+  (at level 0, i ident, format "[ 'prodn'  i  =>  F ]") : fun_scope.
+
+Notation "[ 'prodn' => F ]" := [prodn : _ => F]
+  (at level 0, format "[ 'prodn' =>  F ]") : fun_scope.
 
 (* UNNEEDED
 
