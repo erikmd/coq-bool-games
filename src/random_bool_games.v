@@ -628,9 +628,8 @@ Qed.
 (*
 Check eq_axiomK.
 Check Eqdep_dec.eq_rect_eq_dec.
+Check Eqdep_dec.inj_pair2_eq_dec.
 Check rew_opp_l.
- *)
-
 Check card_partition.
 Check (big_seq, big_uniq).
 Check card_tagged.
@@ -639,11 +638,14 @@ Check big_seq.
 Check big_seq_cond.
 Check big_map.
 Check big_filter.
-
-Definition tagged' i (u : {i : I & T_ i}) (p : tag u == i) : T_ i.
-rewrite -(eqP p).
-exact (tagged u).
-Defined.
+Check tagged_as.
+Check partition_big.
+Check sum1dep_card.
+Check eq_card_sub.
+Check card1.
+Check card_sig.
+Check card_ffun.
+ *)
 
 Section Subtag.
 (* Context {i : I}. *)
@@ -664,7 +666,24 @@ Canonical subtag_finType := Eval hnf in FinType subtag subtag_finm.
 Canonical subtag_subFinType := Eval hnf in [subFinType of subtag_finType].
 End Subtag.
 
+Definition tagged' i (u : {i : I & T_ i}) (p : tag u == i) : T_ i.
+rewrite -(eqP p).
+exact (tagged u).
+Defined.
+
 Definition tagged_sub i (sti : subtag i) := tagged' (subtag_prop sti).
+
+Program Definition Tagged_sub i (sti : T_ i) : subtag i.
+eapply Build_subtag.
+Unshelve.
+2: eapply Tagged.
+2: eapply sti.
+done.
+Defined.
+
+(** Tip to leverage a Boolean condition *)
+Definition sumb (b : bool) : {b = true} + {b = false} :=
+  if b is true then left erefl else right erefl.
 
 Lemma card_prodn :
   #|prodn| = \big[muln/1%N]_(i : I) #|T_ i|.
@@ -681,55 +700,54 @@ by rewrite /image_mem foldr_map BigOp.bigopE /reducebig; f_equal; rewrite enumT.
 f_equal; apply eq_map => i.
 rewrite -sum1_card ; (underp big i0 rewrite inE).
 rewrite -sum1_card.
+(* pose IT := subtag i. *)
 pose IT := tag_finType T_.
-pose g : IT -> T_ i := fun it => @tagged' _ it _.
-rewrite (reindex (g _)).
-(* rewrite big_mkcond /=. *)
-Admitted.
-
-(*
-Check tagged_as.
-change i with (tag _ (Tagged _)).
-apply eq_big.
-
-(* pose p := fun a : IT => tagged a : T_ (tag a). *)
-pose p := fun a : IT => tagged a : [finType of T_ (tag a)].
-rewrite (partition_big p).
-rewrite sum1dep_card.
-
-set lhs := LHS; have->: lhs = #||; rewrite /lhs.
-rewrite cardE.
-erewrite <-eq_card_sub.
-Check (reindex (@tagged _ _ _)).
-rewrite sum1dep_card.
-
-rewrite cardsE /=.
-eapply eq_card.
-rewrite card1.
-apply card_bool.
-rewrite card_tagged.
-set lhs := LHS; have->: lhs = foldr muln 1%N [seq #|T_ i| | i : I]; rewrite /lhs.
-rewrite card1.
-rewrite card_tagged.
-rewrite -card_map.
-rewrite card_sig.
-rewrite /foldr.
-rewrite foldr_map.
-
-rewrite card1.
-rewrite /family_mem.
-apply eq_card.
-rewrite -[LHS]/(family (fun i => [pred j | projT1 j == i])).
-
-rewrite !cardE size_filter -!enumT /enum_mem -enumT.
-rewrite count_map -size_filter enumT -cardE.
-rewrite card_preim.
-elim: (index_enum I) =>//=.
-
-rewrite card_ffun.
-rewrite card_sig.
-rewrite card_ffun.
-*)
+pose h : T_ i -> IT := @Tagged I _ _.
+pose h'0 := @tagged' i.
+(* UNNEEDED
+have f_inj : injective f.
+{ move=> x y; rewrite /f; case; apply: Eqdep_dec.inj_pair2_eq_dec.
+  move=> j k; case: (eqVneq j k); [left|right] =>//; exact/eqP. } *)
+case Ecard: #|T_ i|.
+{ rewrite !big_pred0 // => x.
+  by rewrite inE -(ltnn 0); symmetry; rewrite -{2}Ecard; apply/card_gt0P; exists x.
+  move/eqP: Ecard; apply: contraTF; rewrite -leqn0 -ltnNge => Hi.
+  apply/card_gt0P.
+  by exists (tagged' Hi). }
+have {Ecard} /card_gt0P [it0 _] : (0 < #|T_ i|)%N by rewrite Ecard.
+pose h' : IT -> T_ i := fun x => match sumb (tag x == i) with
+                              | left prf => tagged' prf
+                              | right _ => it0
+                             end.
+rewrite (reindex h); last first.
+{ exists h'.
+  move => it; rewrite inE => Hx /=.
+  rewrite /h' /h.
+  case: sumb => prf.
+  { rewrite /tagged' /=.
+    rewrite /eq_rect.
+    by rewrite (eq_axiomK (eqP prf)). }
+  exfalso.
+  by rewrite eqxx in prf.
+  move=> x Hx.
+  rewrite /h' /h.
+  case: sumb => prf.
+  { rewrite /=.
+    rewrite [x in RHS]sigT_eta /Tagged /=.
+    (* and then *)
+    apply EqdepFacts.eq_dep_eq_sigT.
+    apply EqdepFacts.eq_dep1_dep.
+    apply: EqdepFacts.eq_dep1_intro.
+    exact/eqP.
+    rewrite /tagged' => H0.
+    rewrite /tagged.
+    by rewrite [eqP prf]eq_irrelevance. }
+  exfalso.
+  move/negbT/negP: prf; apply.
+  by rewrite inE in Hx. }
+apply: eq_bigl => j.
+by rewrite /= eqxx.
+Qed.
 
 End Finite_product_structure.
 
