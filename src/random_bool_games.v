@@ -634,6 +634,37 @@ Check rew_opp_l.
 Check card_partition.
 Check (big_seq, big_uniq).
 Check card_tagged.
+Check big_mkcond.
+Check big_seq.
+Check big_seq_cond.
+Check big_map.
+Check big_filter.
+
+Definition tagged' i (u : {i : I & T_ i}) (p : tag u == i) : T_ i.
+rewrite -(eqP p).
+exact (tagged u).
+Defined.
+
+Section Subtag.
+(* Context {i : I}. *)
+Context (i : I).
+Record subtag  : predArgType :=
+  { subtag0 :> {i : I & T_ i} ;
+    subtag_prop : tag (subtag0) == i }.
+Canonical subtag_subType := Eval hnf in [subType for subtag0].
+Definition subtag_eqm := Eval hnf in [eqMixin of subtag by <:].
+Canonical subtag_eqType := Eval hnf in EqType subtag subtag_eqm.
+Definition subtag_chm := [choiceMixin of subtag by <:].
+Canonical subtag_choiceType := Eval hnf in ChoiceType subtag subtag_chm.
+Definition subtag_cntm := [countMixin of subtag by <:].
+Canonical subtag_countType := Eval hnf in CountType subtag subtag_cntm.
+Canonical subtag_subCountType := Eval hnf in [subCountType of subtag].
+Definition subtag_finm := [finMixin of subtag by <:].
+Canonical subtag_finType := Eval hnf in FinType subtag subtag_finm.
+Canonical subtag_subFinType := Eval hnf in [subFinType of subtag_finType].
+End Subtag.
+
+Definition tagged_sub i (sti : subtag i) := tagged' (subtag_prop sti).
 
 Lemma card_prodn :
   #|prodn| = \big[muln/1%N]_(i : I) #|T_ i|.
@@ -648,9 +679,12 @@ rewrite card_family.
 set lhs := LHS; suff->: lhs = foldr muln 1%N [seq #|T_ i| | i : I]; rewrite {}/lhs.
 by rewrite /image_mem foldr_map BigOp.bigopE /reducebig; f_equal; rewrite enumT.
 f_equal; apply eq_map => i.
-rewrite -sum1_card; (underp big i0 rewrite inE).
-pose IT := tag_finType T_.
+rewrite -sum1_card ; (underp big i0 rewrite inE).
 rewrite -sum1_card.
+pose IT := tag_finType T_.
+pose g : IT -> T_ i := fun it => @tagged' _ it _.
+rewrite (reindex (g _)).
+(* rewrite big_mkcond /=. *)
 Admitted.
 
 (*
