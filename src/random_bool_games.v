@@ -749,6 +749,52 @@ Check card_sig.
 Check card_ffun.
  *)
 
+Module ProductDist.
+
+Section ProductDist.
+Variable I : finType.
+Variable A_ : I -> finType.
+Variable P_ : forall i : I, dist (A_ i).
+Variable n : nat.
+
+Let A := prodn A_.
+
+(** Define the product distribution for the dep. product of finite spaces. *)
+Definition P (t : A) := \rmul_(i in I) P_ i (t i).
+Lemma P0 (t : A) : 0 <= P t.
+Proof. apply Rle_0_big_mult => ?; by apply Rle0f. Qed.
+
+(** Definition of the product distribution (over a tuple): *)
+
+Lemma P1 : \rsum_(t in A) P t = 1.
+Proof.
+pose P' := fun (a : I) b => P b.
+suff : \rsum_(g : {ffun I -> A}) \rmul_(i : I) P' i (g i) = 1.
+
+Local Open Scope ring_scope.
+
+  rewrite (reindex_onto (fun j : A => finfun (fun x => j))
+                        (fun i => [prodn j : I => i j j])) /P' /P.
+  - move=> H; rewrite -{2}H {H}.
+    apply eq_big => t /=.
+    + by rewrite inE; apply/esym/eqP/prodnP => x; rewrite prodnE ffunE.
+    + move=> _; apply eq_bigr => i _ /=; rewrite ffunE.
+      admit.
+  move=> g _.
+  apply/ffunP => i;  rewrite ffunE; admit.
+rewrite -bigA_distr_bigA /= /P'.
+rewrite [X in _ = X](_ : 1 = \rmul_(i in I) 1)%Re; last by rewrite big1.
+apply eq_bigr => i _.
+Fail apply pmf1.
+Admitted.
+
+Definition d : {dist A} := makeDist P0 P1.
+
+End ProductDist.
+
+End ProductDist.
+
+
 (** ** Random Boolean games and characterization of winning strategies *)
 
 Section Proba_games.
