@@ -517,6 +517,238 @@ Defined.
 
 End Pushforward_distribution.
 
+
+Section Misc.
+
+Lemma Tagged_eta A (P : A -> Type) (s : {x : A & P x}) :
+  s = @Tagged _ (tag s) _ (tagged s).
+Proof. by move: s => [x Q]. Qed.
+
+(** Tip to leverage a Boolean condition *)
+Definition sumb (b : bool) : {b = true} + {b = false} :=
+  if b is true then left erefl else right erefl.
+
+End Misc.
+
+
+Section Finite_product_structure.
+
+Variables (I : finType) (T_ : I -> finType).
+
+Definition tagged' i (u : {i : I & T_ i}) (p : tag u == i) : T_ i.
+rewrite -(eqP p).
+exact (tagged u).
+Defined.
+
+Lemma TaggedE i P1 P2 : @Tagged I i T_ P1  = Tagged T_ P2 -> P1 = P2.
+move=> H.
+have H' := (EqdepFacts.eq_sigT_eq_dep _ _ _ _ _ _ H).
+have H'' := (EqdepFacts.eq_dep_dep1 _ _ _ _ _ _ H').
+case: H'' => h.
+by rewrite [h]eq_axiomK /=.
+Qed.
+
+Notation prodn_type := (forall i : I, T_ i) (only parsing).
+
+(** Definition and cardinal of [prodn] := dependent product of finTypes *)
+
+Record prodn : predArgType :=
+  { prodn_fun : {ffun I -> {i : I & T_ i}} ;
+    prodn_prop : [forall i : I, tag (prodn_fun i) == i] }.
+
+Program Definition prodn_type_of_prodn (f : prodn) : prodn_type :=
+  fun i => ecast j (T_ j) _ (tagged (prodn_fun f i)).
+Next Obligation.
+case: f => f p /=; apply/eqP.
+by move/forallP in p.
+Defined.
+
+Program Definition prodn_of_prodn_type (f : prodn_type) : prodn :=
+  @Build_prodn (finfun (fun i => @existT _ _ i (f i))) _.
+Next Obligation.
+by apply/forallP => i; rewrite ffunE.
+Defined.
+
+Coercion prodn_type_of_prodn : prodn >-> Funclass.
+
+(* Canonical prodn_fun_finType := [finType of {ffun I -> {i : I & T_ i}}]. *)
+Canonical prodn_subType := Eval hnf in [subType for prodn_fun].
+Definition prodn_eqm := Eval hnf in [eqMixin of prodn by <:].
+Canonical prodn_eqType := Eval hnf in EqType prodn prodn_eqm.
+Definition prodn_chm := [choiceMixin of prodn by <:].
+Canonical prodn_choiceType := Eval hnf in ChoiceType prodn prodn_chm.
+Definition prodn_cntm := [countMixin of prodn by <:].
+Canonical prodn_countType := Eval hnf in CountType prodn prodn_cntm.
+Canonical prodn_subCountType := Eval hnf in [subCountType of prodn].
+Definition prodn_finm := [finMixin of prodn by <:].
+Canonical prodn_finType := Eval hnf in FinType prodn prodn_finm.
+Canonical prodn_subFinType := Eval hnf in [subFinType of prodn_finType].
+(* Print Canonical Projections.
+Print prodn_finm.
+Print prodn_cntm. *)
+
+Lemma prodnK : cancel prodn_type_of_prodn prodn_of_prodn_type.
+Proof.
+move => x.
+rewrite /prodn_type_of_prodn /prodn_of_prodn_type.
+apply: val_inj =>/=.
+apply/ffunP => i; rewrite !ffunE.
+case: x => f p /=.
+rewrite [RHS]Tagged_eta.
+set Ei := eqP (elimTF forallP p i).
+apply EqdepFacts.eq_dep_eq_sigT.
+apply EqdepFacts.eq_dep1_dep.
+by apply: EqdepFacts.eq_dep1_intro.
+Qed.
+
+Lemma prodnE g : forall x, (prodn_of_prodn_type g) x = g x.
+Proof.
+move=> i.
+rewrite /prodn_of_prodn_type /prodn_type_of_prodn /=.
+rewrite -/(eq_rect _ _ _ _ _).
+set Ej := (eqP (elimTF forallP (prodn_of_prodn_type_obligation_1 g) i)).
+rewrite -[g i](rew_opp_r T_ Ej).
+f_equal.
+(* rewrite /eq_rect_r /eq_rect. *)
+match goal with
+| [|- ?a = ?b] => have : Tagged T_ a = Tagged T_ b
+end.
+{ rewrite -Tagged_eta {1}ffunE /Tagged.
+  apply EqdepFacts.eq_dep_eq_sigT.
+  apply EqdepFacts.eq_dep1_dep.
+  apply: EqdepFacts.eq_dep1_intro.
+  by rewrite rew_opp_r. }
+apply: TaggedE.
+Qed.
+
+Lemma prodnP f1 f2 :
+  (forall x, prodn_type_of_prodn f1 x = prodn_type_of_prodn f2 x) <-> f1 = f2.
+Proof.
+split=> [eq_f12 | -> //].
+rewrite -[f1]prodnK -[f2]prodnK.
+apply: val_inj =>/=.
+apply/ffunP => x; rewrite !ffunE.
+by rewrite eq_f12.
+Qed.
+
+Lemma card_prodn :
+  #|prodn| = \big[muln/1%N]_(i : I) #|T_ i|.
+Proof.
+rewrite card_sub.
+rewrite -[LHS]/#|family (fun i : I => [pred j : {i : I & T_ i} | tag j == i])|.
+rewrite card_family.
+set lhs := LHS; suff->: lhs = foldr muln 1%N [seq #|T_ i| | i : I]; rewrite {}/lhs.
+by rewrite /image_mem foldr_map BigOp.bigopE /reducebig; f_equal; rewrite enumT.
+f_equal; apply eq_map => i.
+rewrite -sum1_card ; (underp big i0 rewrite inE).
+rewrite -sum1_card.
+pose IT := tag_finType T_.
+pose h : T_ i -> IT := @Tagged I _ _.
+pose h'0 := @tagged' i.
+case Ecard: #|T_ i|.
+{ rewrite !big_pred0 // => x.
+  by rewrite inE -(ltnn 0); symmetry; rewrite -{2}Ecard; apply/card_gt0P; exists x.
+  move/eqP: Ecard; apply: contraTF; rewrite -leqn0 -ltnNge => Hi.
+  apply/card_gt0P.
+  by exists (tagged' Hi). }
+have {Ecard} /card_gt0P [it0 _] : (0 < #|T_ i|)%N by rewrite Ecard.
+pose h' : IT -> T_ i := fun x => match sumb (tag x == i) with
+                              | left prf => tagged' prf
+                              | right _ => it0
+                             end.
+rewrite (reindex h); last first.
+{ exists h'.
+  move => it; rewrite inE => Hx.
+  { rewrite /= /h' /h.
+    case: sumb => prf; first by rewrite /tagged' (eq_axiomK (eqP prf)).
+    exfalso.
+    by rewrite eqxx in prf. }
+  move=> x Hx.
+  rewrite /h' /h.
+  case: sumb => prf.
+  { rewrite /= [x in RHS]Tagged_eta /=.
+    (* and then *)
+    apply EqdepFacts.eq_dep_eq_sigT.
+    apply EqdepFacts.eq_dep1_dep.
+    apply: EqdepFacts.eq_dep1_intro; first exact/eqP.
+    move=> H0; rewrite /tagged'.
+    by rewrite [eqP prf]eq_irrelevance. }
+  exfalso; move/negbT/negP: prf; apply.
+  by rewrite inE in Hx. }
+by apply: eq_bigl => j; rewrite /= eqxx.
+Qed.
+
+End Finite_product_structure.
+
+Notation "[ 'prodn' i : I => F ]" := (prodn_of_prodn_type (fun i : I => F))
+  (at level 0, i ident, only parsing) : fun_scope.
+
+Notation "[ 'prodn' : I => F ]" := (prodn_of_prodn_type (fun _ : I => F))
+  (at level 0, only parsing) : fun_scope.
+
+Notation "[ 'prodn' i => F ]" := [prodn i : _ => F]
+  (at level 0, i ident, format "[ 'prodn'  i  =>  F ]") : fun_scope.
+
+Notation "[ 'prodn' => F ]" := [prodn : _ => F]
+  (at level 0, format "[ 'prodn' =>  F ]") : fun_scope.
+
+(* UNNEEDED
+
+Section Subtag.
+Variables (I : finType) (T_ : I -> finType).
+(* Context {i : I}. *)
+Context (i : I).
+Record subtag : predArgType :=
+  { subtag0 :> {i : I & T_ i} ;
+    subtag_prop : tag (subtag0) == i }.
+Canonical subtag_subType := Eval hnf in [subType for subtag0].
+Definition subtag_eqm := Eval hnf in [eqMixin of subtag by <:].
+Canonical subtag_eqType := Eval hnf in EqType subtag subtag_eqm.
+Definition subtag_chm := [choiceMixin of subtag by <:].
+Canonical subtag_choiceType := Eval hnf in ChoiceType subtag subtag_chm.
+Definition subtag_cntm := [countMixin of subtag by <:].
+Canonical subtag_countType := Eval hnf in CountType subtag subtag_cntm.
+Canonical subtag_subCountType := Eval hnf in [subCountType of subtag].
+Definition subtag_finm := [finMixin of subtag by <:].
+Canonical subtag_finType := Eval hnf in FinType subtag subtag_finm.
+Canonical subtag_subFinType := Eval hnf in [subFinType of subtag_finType].
+
+Definition tagged_sub (sti : subtag) := tagged' (subtag_prop sti).
+
+Program Definition Tagged_sub (sti : T_ i) : subtag.
+eapply Build_subtag.
+Unshelve.
+2: eapply Tagged.
+2: eapply sti.
+done.
+Defined.
+End Subtag.
+*)
+
+(*
+Check filter_map.
+Check eq_axiomK.
+Check eqVneq.
+Check Eqdep_dec.eq_rect_eq_dec.
+Check Eqdep_dec.inj_pair2_eq_dec.
+Check rew_opp_l.
+Check card_partition.
+Check (big_seq, big_uniq).
+Check card_tagged.
+Check big_mkcond.
+Check big_seq.
+Check big_seq_cond.
+Check big_map.
+Check big_filter.
+Check tagged_as.
+Check partition_big.
+Check sum1dep_card.
+Check eq_card_sub.
+Check card1.
+Check card_sig.
+Check card_ffun.
+ *)
+
 (** ** Random Boolean games and characterization of winning strategies *)
 
 Section Proba_games.
@@ -1152,7 +1384,7 @@ under big i Hi under big J HJ rewrite -(eqP (w_trivIset J)).
 rewrite -big_nat.
 under big i _ under big J _ rewrite big_imset;
   [under big j _ rewrite card_w_a_Bern|done].
-under big i _ under big J HJ rewrite sum_nat_const (eqP (proj2 (andP HJ))).
+under big i _ under big J HJ rewrite sum_nat_const (eqP (tagged (andP HJ))).
 do [under big i _ rewrite bigsum_card_constE (_ : INR _ = INR 'C(2^k, i))];
   last first.
 { congr INR.
@@ -1463,7 +1695,7 @@ variables controlled by player B.
 
 The "possible worlds" compatible with this assumption are represented
 by an element [bs : bool_vec s] and all strategy profiles [(a, b)]
-such that [b] satisfies [compat_k bs b].
+such that [b] satisfies [compat_knowing bs b].
 
 Hence the following definitions. *)
 
@@ -1621,24 +1853,171 @@ Definition ex_winA_knowing (g : bool_game n k) (bs : bg_known_StratB) : bool :=
 
 *)
 
+Let eqn_ks_nsk : (n = k + (s + (n - s - k)))%N.
+Proof.
+rewrite -{1}(@subnKC k n) //.
+congr addn.
+rewrite -{1}(@subnKC s (n - k)) //.
+by rewrite subnC.
+Qed.
+
+Let k_nsk_eqn : (k + (n - s - k) = n - s)%N.
+Proof. by rewrite knk_eqn. Qed.
+
+Definition widen_ns_n : 'I_(n - s) -> 'I_n := widen_ord leq_prop.
+
+(* Definition widen_nsk_ns : 'I_(n - s - k) -> 'I_(n - s) := widen_ord leq_prop. *)
+
+Definition rshift_nsk_ns (i : 'I_(n - s - k)) : 'I_(n - s) :=
+  cast_ord k_nsk_eqn (rshift k i).
+
+(* Version 1
 Definition bool_fun_knowing (F : bool_fun n) (bs : bg_known_StratB) :=
   bool_fun_of_bool_game (bool_game_knowing (bool_game_of_bool_fun F) bs).
+ *)
+
+Definition bool_fun_knowing (F : bool_fun n) (bs : bg_known_StratB)
+  : bool_fun (n - s) :=
+  [ffun v : bool ^ (n - s) =>
+   F [ffun i : 'I_n => match split (cast_ord eqn_ks_nsk i) with
+                      | inl ik => v (widen_k_n ik)
+                      | inr isn => match split isn with
+                                  | inl is0 => bs is0
+                                  | inr insk => v (rshift_nsk_ns insk)
+                                  end
+                      end]].
 
 Lemma bool_game_knowingE F bs :
   (bool_game_knowing (bool_game_of_bool_fun F) bs)
   = @bool_game_of_bool_fun (n - s) k _ (bool_fun_knowing F bs).
-Proof. by rewrite /bool_fun_knowing bool_fun_of_bool_gameK. Qed.
+Proof.
+(* by rewrite /bool_fun_knowing bool_fun_of_bool_gameK. *)
+admit. (* TODO *)
+Admitted.
+
+Definition knowing_bool_fun (F : bool_fun (n - s) (* depends on bs…*))
+  : bool_fun n :=
+  [ffun c : bool ^ n => F [ffun i : 'I_(n - s) =>
+                       if (val i < k)%N then c (widen_ns_n i)
+                       else c (rshift_s_n i)]].
+
+Lemma knowing_bool_funK bs : cancel knowing_bool_fun (bool_fun_knowing ^~ bs).
+Proof.
+move=> F.
+rewrite /knowing_bool_fun.
+apply/ffunP => v; rewrite !ffunE; apply congr1.
+apply/ffunP => i; rewrite !ffunE.
+case: ifP => Hif.
+{ case: splitP=> /= j Hj.
+  by apply congr1; apply: val_inj; rewrite /= Hj.
+  case: splitP => l Hl /=.
+  { exfalso; clear - Hif j Hj.
+    suff : (k + j < k)%N by rewrite ltnNge leq_addr.
+    by rewrite -Hj /= Hif. }
+  apply congr1; apply: val_inj; rewrite /= Hj.
+  { exfalso; clear - Hif j Hj.
+    suff : (k + j < k)%N by rewrite ltnNge leq_addr.
+    by rewrite -Hj /= Hif. } }
+case: splitP=> j Hj /=.
+{ exfalso; clear - Hif j Hj.
+  move/negbT in Hif; rewrite -leqNgt in Hif.
+  suff : (k < k)%N by rewrite ltnn.
+  apply: leq_ltn_trans Hif (leq_ltn_trans _ (ltn_ord j)).
+  by rewrite -Hj leq_addl. }
+case: splitP => /= l Hl.
+{ exfalso; clear - Hif j Hj l Hl.
+  simpl in Hj.
+  suff : (s + i > k + j)%N by rewrite Hj ltnn.
+  rewrite -addnS addnC; apply: leq_add; first by rewrite Hl; exact: ltn_ord.
+  by rewrite leqNgt; apply/negbT. }
+apply congr1; apply: val_inj; rewrite /=.
+simpl in Hj.
+by apply/eqP; rewrite -(eqn_add2l s) {}Hj {}Hl !addnA (addnC s k).
+Qed.
+
+(*
+Lemma bool_fun_knowingK bs : cancel (bool_fun_knowing ^~ bs) knowing_bool_fun.
+Proof.
+move=> F.
+rewrite /bool_fun_knowing.
+apply/ffunP => v; rewrite !ffunE; apply congr1.
+apply/ffunP => i; rewrite !ffunE.
+case: splitP=> /= j Hj.
+{ rewrite !ffunE.
+  rewrite ifT; first by apply congr1; apply: val_inj; rewrite /= Hj.
+  simpl; exact: ltn_ord. }
+case: splitP => l Hl /=.
+admit.
+Abort.
+ *)
+
+Definition knowing (bs : bg_known_StratB) (F : bool_fun n) : bool :=
+  knowing_bool_fun (bool_fun_knowing F bs) == F.
+
+Lemma Pr_isom_knowing_Bern bs Q :
+  Pr P [set F | Q (bool_fun_knowing F bs) (*  && knowing bs F *)] =
+  @Pr _ (@dist_Bernoulli (n - s) p Hp) [set F | Q F].
+Proof.
+rewrite /P /Pr.
+under big a _ rewrite dist_BernoulliE.
+under big a _ rewrite dist_BernoulliE.
+underp big a rewrite in_set.
+underp big a rewrite in_set.
+simpl.
+rewrite (reindex_onto
+           (fun a : {ffun bool ^ (n) -> bool} => bool_fun_knowing a bs)
+           (fun a : {ffun bool ^ (n - s) -> bool} => knowing_bool_fun a)); last first.
+{ by move=> i Hi; rewrite knowing_bool_funK. }
+simpl.
+(* apply eq_bigr => i Hi.
+rewrite /num_true.
+admit. *)
+Admitted.
 
 Lemma Pr_indep_knowing_Bern Q :
   Pr P [set F | [forall bs, Q (bool_fun_knowing F bs)]] =
   \rmul_(bs in bg_known_StratB) Pr P [set F | Q (bool_fun_knowing F bs)].
 Proof.
-Admitted.
+stepr (Pr P (\bigcap_(bs in bg_known_StratB) [set F | Q (bool_fun_knowing F bs)])).
+{ rewrite /Pr.
+  apply: eq_bigl => x; rewrite in_set; apply/forallP/bigcapP => H y.
+  { rewrite inE => _; apply: H. }
+  have := H y; rewrite inE; exact. }
+now_show (Pr P (\bigcap_(bs in bg_known_StratB)
+            [set F | Q (bool_fun_knowing F bs)]) =
+         \rmul_(bs in bg_known_StratB) Pr P
+            [set F | Q (bool_fun_knowing F bs)]).
 
-Lemma Pr_isom_knowing_Bern bs Q :
-  Pr P [set F | Q (bool_fun_knowing F bs)] =
-  @Pr _ (@dist_Bernoulli (n - s) p Hp) [set F | Q F].
-Proof.
+(*
+  underp big a rewrite in_set.
+stepr \r
+underp big a rewrite in_set.
+symmetry; (under big bs _ underp big a rewrite in_set); symmetry.
+rewrite /= /Pr.
+symmetry; (under big bs _ underp big a rewrite in_set); symmetry.
+under big bs _ rewrite set1
+rewrite /TupleDist.f num_falseE.
+underp big a rewrite in_set.
+rewrite (reindex row_of_bool_fun) /=; last first.
+  apply: onW_bij; exact: row_of_bool_fun_bij.
+underp big j rewrite row_of_bool_funK.
+rewrite big_pred1_eq.
+under big i _ rewrite ffunE /row_of_bool_fun mxE.
+rewrite (reindex ord_of_bool_vec) /=; last first.
+  apply: onW_bij; exact: ord_of_bool_vec_bij.
+under big j _ rewrite ord_of_bool_vecK val0_bool.
+rewrite (bigID f predT) /=.
+under big i Hi rewrite Hi eqxx qqE.
+rewrite bigmul_card_constE.
+under big i Hi rewrite (negbTE Hi) /=.
+rewrite bigmul_card_constE /=.
+rewrite /num_true.
+congr Rmult; congr pow.
+{ by rewrite cardsE. }
+rewrite -num_falseE /num_false.
+apply: eq_card => i /=.
+by rewrite !inE. (* . *)
+*)
 Admitted.
 
 Theorem Pr_ex_winA_knowing_Bern :
