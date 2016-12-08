@@ -1507,7 +1507,7 @@ under big i Hi under big J HJ rewrite -(eqP (w_trivIset J)).
 rewrite -big_nat.
 under big i _ under big J _ rewrite big_imset;
   [under big j _ rewrite card_w_a_Bern|done].
-under big i _ under big J HJ rewrite sum_nat_const (eqP (tagged (andP HJ))).
+under big i _ under big J HJ rewrite sum_nat_const (eqP (proj2 (andP HJ))).
 do [under big i _ rewrite bigsum_card_constE (_ : INR _ = INR 'C(2^k, i))];
   last first.
 { congr INR.
