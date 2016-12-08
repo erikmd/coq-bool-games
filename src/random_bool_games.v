@@ -598,7 +598,7 @@ rewrite [RHS]Tagged_eta.
 set Ei := eqP (elimTF forallP p i).
 apply EqdepFacts.eq_dep_eq_sigT.
 apply EqdepFacts.eq_dep1_dep.
-by apply: EqdepFacts.eq_dep1_intro.
+exact: EqdepFacts.eq_dep1_intro.
 Qed.
 
 Lemma prodnE g : forall x, (prodn_of_prodn_type g) x = g x.
@@ -609,16 +609,12 @@ rewrite -/(eq_rect _ _ _ _ _).
 set Ej := (eqP (elimTF forallP (prodn_of_prodn_type_obligation_1 g) i)).
 rewrite -[g i](rew_opp_r T_ Ej).
 f_equal.
-(* rewrite /eq_rect_r /eq_rect. *)
-match goal with
-| [|- ?a = ?b] => have : Tagged T_ a = Tagged T_ b
-end.
-{ rewrite -Tagged_eta {1}ffunE /Tagged.
-  apply EqdepFacts.eq_dep_eq_sigT.
-  apply EqdepFacts.eq_dep1_dep.
-  apply: EqdepFacts.eq_dep1_intro.
-  by rewrite rew_opp_r. }
 apply: TaggedE.
+rewrite -!Tagged_eta {1}ffunE /Tagged.
+apply EqdepFacts.eq_dep_eq_sigT.
+apply EqdepFacts.eq_dep1_dep.
+apply: EqdepFacts.eq_dep1_intro.
+by rewrite rew_opp_r.
 Qed.
 
 Lemma prodnP f1 f2 :
@@ -811,13 +807,24 @@ apply: eq_big => j; first by rewrite /otagged /= eqxx /=.
 move=> H; rewrite /otagged /tagged' /=.
 case: sumb; last by rewrite eqxx.
 by move=> E; f_equal; rewrite [eqP E]eq_irrelevance.
-Qed.  
+Qed.
 
 Definition oprodn (idx : prodn A_) (f : {ffun I -> {i : I & A_ i}}) :=
   match sumb ([forall i : I, tag (f i) == i]) with
   | left prf => @Build_prodn I A_ f prf
   | right _ => idx
   end.
+
+Lemma tagged'E (a : A) (i : I) (E : tag ((prodn_fun a) i) == i) :
+  tagged' E = a i.
+Proof.
+rewrite /tagged'.
+rewrite /eq_rect -/(ecast y (A_ y) (eqP E) (tagged ((prodn_fun a) i))).
+case: a E => f p /= E.
+rewrite /prodn_type_of_prodn /=.
+rewrite [eqP E]eq_irrelevance; first exact/eqP.
+move=> H; rewrite [eqP (elimTF forallP p i)]eq_irrelevance; first exact/eqP.
+Qed.
 
 Lemma big_prodn (* (R : Type) (zero one : R) (times : Monoid.mul_law zero)
     (plus : Monoid.add_law zero times) *) :
@@ -846,14 +853,17 @@ rewrite (reindex h); last first.
   move=> x Hx.
   rewrite /h' /h /oprodn.
   case: sumb => prf; case: x prf Hx => //= f p p'.
-  by rewrite !inE /= p in p'. }  
+  by rewrite !inE /= p in p'. }
 apply: eq_big => a; first by case: a.
 move=> _; apply: eq_bigr => i Hi.
 rewrite /otagged /tagged' /=.
 case: sumb =>//= H.
-{ f_equal.
-  admit. }
-Admitted.
+{ f_equal; symmetry; clear Hi.
+  rewrite -/(tagged' _).
+  apply: tagged'E. }
+case: a H => f p /= H.
+by rewrite (forallP p i) in H.
+Qed.
 
 Lemma P1 : \rsum_(t in A) P t = 1.
 Proof.
@@ -870,7 +880,6 @@ Definition d : {dist A} := makeDist P0 P1.
 End ProductDist.
 
 End ProductDist.
-
 
 (** ** Random Boolean games and characterization of winning strategies *)
 
