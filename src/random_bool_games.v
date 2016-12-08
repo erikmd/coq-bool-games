@@ -403,7 +403,7 @@ have Halg : \big[Rmult/R1]_(i < n.+1) (Ind Efull x - Ind (S i) x) = 0.
     have /bigcupP [i Hi Hi0] := Ex.
     apply/bigmul_eq0; exists i =>//.
     by rewrite /Efull (Ind_inP _ _ Ex) (Ind_inP _ _ Hi0) /Rminus Rplus_opp_r. }
-rewrite (@bigA_distr R R0 R1) in Halg.
+rewrite bigA_distr in Halg.
 under big in Halg k _ under big J _ rewrite bigID2.
 rewrite big_ltn //= in Halg.
 rewrite -> addR_eq0 in Halg.
@@ -631,6 +631,13 @@ apply/ffunP => x; rewrite !ffunE.
 by rewrite eq_f12.
 Qed.
 
+Definition otagged
+  (R : Type) (i : I) (F : T_ i -> R) (idx : R) (x : {i : I & T_ i}) :=
+  match sumb (tag x == i) with
+  | left prf => F (tagged' prf)
+  | right _ => idx
+  end.
+
 Lemma card_prodn :
   #|prodn| = \big[muln/1%N]_(i : I) #|T_ i|.
 Proof.
@@ -652,19 +659,16 @@ case Ecard: #|T_ i|.
   apply/card_gt0P.
   by exists (tagged' Hi). }
 have {Ecard} /card_gt0P [it0 _] : (0 < #|T_ i|)%N by rewrite Ecard.
-pose h' : IT -> T_ i := fun x => match sumb (tag x == i) with
-                              | left prf => tagged' prf
-                              | right _ => it0
-                             end.
+pose h' := otagged id it0.
 rewrite (reindex h); last first.
 { exists h'.
   move => it; rewrite inE => Hx.
-  { rewrite /= /h' /h.
+  { rewrite /= /h' /h /otagged.
     case: sumb => prf; first by rewrite /tagged' (eq_axiomK (eqP prf)).
     exfalso.
     by rewrite eqxx in prf. }
   move=> x Hx.
-  rewrite /h' /h.
+  rewrite /h' /h /otagged.
   case: sumb => prf.
   { rewrite /= [x in RHS]Tagged_eta /=.
     (* and then *)
@@ -731,6 +735,7 @@ Check eq_axiomK.
 Check eqVneq.
 Check Eqdep_dec.eq_rect_eq_dec.
 Check Eqdep_dec.inj_pair2_eq_dec.
+Check EqdepFacts.eq_rect_eq__eq_dep1_eq.
 Check rew_opp_l.
 Check card_partition.
 Check (big_seq, big_uniq).
@@ -760,33 +765,105 @@ Variable n : nat.
 Let A := prodn A_.
 
 (** Define the product distribution for the dep. product of finite spaces. *)
-Definition P (t : A) := \rmul_(i in I) P_ i (t i).
+
+Definition P (t : A) := \rmul_(i : I) P_ i (t i).
+
 Lemma P0 (t : A) : 0 <= P t.
 Proof. apply Rle_0_big_mult => ?; by apply Rle0f. Qed.
 
-(** Definition of the product distribution (over a tuple): *)
+(* TODO: generalize wrt the carrier *)
+Lemma big_tag (i : I) :
+  \big[Rplus/R0]_(j : {i0 : I & A_ i0} | tag j == i) otagged (P_ i) 0 j =
+  \rsum_(j : A_ i) P_ i j.
+Proof.
+pose IT := tag_finType A_.
+pose h : A_ i -> IT := @Tagged I _ _.
+pose h'0 := @tagged' _ _ i.
+case Ecard: #|A_ i|.
+{ rewrite !big_pred0 // => x.
+  move/eqP: Ecard; apply: contraTF; rewrite -leqn0 -ltnNge => Hi.
+  by apply/card_gt0P; exists (tagged' Hi).
+  move/eqP: Ecard; apply: contraTF; rewrite -leqn0 -ltnNge => Hi.
+  by apply/card_gt0P; exists x. }
+have {Ecard} /card_gt0P [it0 _] : (0 < #|A_ i|)%N by rewrite Ecard.
+pose h' := otagged id it0.
+rewrite (reindex h); last first.
+{ exists h'.
+  move => it; rewrite inE => Hx.
+  { rewrite /= /h' /h /otagged.
+    case: sumb => prf; first by rewrite /tagged' (eq_axiomK (eqP prf)).
+    exfalso.
+    by rewrite eqxx in prf. }
+  move=> x Hx.
+  rewrite /h' /h /otagged.
+  case: sumb => prf.
+  { rewrite /= [x in RHS]Tagged_eta /=.
+    (* and then *)
+    apply EqdepFacts.eq_dep_eq_sigT.
+    apply EqdepFacts.eq_dep1_dep.
+    apply: EqdepFacts.eq_dep1_intro; first exact/eqP.
+    move=> H0; rewrite /tagged'.
+    by rewrite [eqP prf]eq_irrelevance. }
+  exfalso; move/negbT/negP: prf; apply.
+  by rewrite inE in Hx. }
+rewrite /otagged.
+apply: eq_big => j; first by rewrite /otagged /= eqxx /=.
+move=> H; rewrite /otagged /tagged' /=.
+case: sumb; last by rewrite eqxx.
+by move=> E; f_equal; rewrite [eqP E]eq_irrelevance.
+Qed.  
+
+Definition oprodn (idx : prodn A_) (f : {ffun I -> {i : I & A_ i}}) :=
+  match sumb ([forall i : I, tag (f i) == i]) with
+  | left prf => @Build_prodn I A_ f prf
+  | right _ => idx
+  end.
+
+Lemma big_prodn (* (R : Type) (zero one : R) (times : Monoid.mul_law zero)
+    (plus : Monoid.add_law zero times) *) :
+  \big[Rplus/R0]_(t : A) \big[Rmult/R1]_(i in I) P_ i (t i) =
+  \big[Rplus/R0]_(g in family (fun i : I => [pred j : {i : I & A_ i} | tag j == i]))
+    \big[Rmult/R1]_(i : I) (otagged (P_ i) R0 (g i)).
+Proof.
+rewrite /A.
+case Ecard: #|A|.
+{ rewrite !big_pred0 // => x.
+  move/eqP: Ecard; apply: contraTF; rewrite -leqn0 -ltnNge => H.
+  by apply/card_gt0P; exists x.
+  move/eqP: Ecard; apply: contraTF; rewrite -leqn0 -ltnNge => H.
+  apply/card_gt0P.
+  by exists (@Build_prodn _ _ x H). }
+have {Ecard} /card_gt0P [it0 _] : (0 < #|A|)%N by rewrite Ecard.
+pose h := @prodn_fun I A_.
+pose h' := oprodn it0.
+rewrite (reindex h); last first.
+{ exists h'.
+  move => it; rewrite inE => Hx.
+  { rewrite /= /h' /h /oprodn.
+    case: sumb => prf; case: it prf Hx =>//= f p p'.
+      by rewrite [p]eq_irrelevance.
+      by rewrite p in p'. }
+  move=> x Hx.
+  rewrite /h' /h /oprodn.
+  case: sumb => prf; case: x prf Hx => //= f p p'.
+  by rewrite !inE /= p in p'. }  
+apply: eq_big => a; first by case: a.
+move=> _; apply: eq_bigr => i Hi.
+rewrite /otagged /tagged' /=.
+case: sumb =>//= H.
+{ f_equal.
+  admit. }
+Admitted.
 
 Lemma P1 : \rsum_(t in A) P t = 1.
 Proof.
-pose P' := fun (a : I) b => P b.
-suff : \rsum_(g : {ffun I -> A}) \rmul_(i : I) P' i (g i) = 1.
-
-Local Open Scope ring_scope.
-
-  rewrite (reindex_onto (fun j : A => finfun (fun x => j))
-                        (fun i => [prodn j : I => i j j])) /P' /P.
-  - move=> H; rewrite -{2}H {H}.
-    apply eq_big => t /=.
-    + by rewrite inE; apply/esym/eqP/prodnP => x; rewrite prodnE ffunE.
-    + move=> _; apply eq_bigr => i _ /=; rewrite ffunE.
-      admit.
-  move=> g _.
-  apply/ffunP => i;  rewrite ffunE; admit.
-rewrite -bigA_distr_bigA /= /P'.
+rewrite /P big_prodn /=.
+rewrite -(bigA_distr_big_dep _ (fun i j => otagged (P_ i) R0 j)).
 rewrite [X in _ = X](_ : 1 = \rmul_(i in I) 1)%Re; last by rewrite big1.
-apply eq_bigr => i _.
-Fail apply pmf1.
-Admitted.
+apply eq_bigr => i _ /=.
+rewrite big_tag.
+exact: pmf1.
+Qed.
 
 Definition d : {dist A} := makeDist P0 P1.
 
