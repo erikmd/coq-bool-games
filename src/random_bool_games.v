@@ -754,34 +754,34 @@ Module ProductDist.
 
 Section ProductDist.
 Variable I : finType.
-Variable A_ : I -> finType.
-Variable P_ : forall i : I, dist (A_ i).
+Variable T_ : I -> finType.
+Variable P_ : forall i : I, dist (T_ i).
 Variable n : nat.
 
-Let A := prodn A_.
+Let T := prodn T_.
 
 (** Define the product distribution for the dep. product of finite spaces. *)
 
-Definition P (t : A) := \rmul_(i : I) P_ i (t i).
+Definition P (t : T) := \rmul_(i : I) P_ i (t i).
 
-Lemma P0 (t : A) : 0 <= P t.
+Lemma P0 (t : T) : 0 <= P t.
 Proof. apply Rle_0_big_mult => ?; by apply Rle0f. Qed.
 
 (* TODO: generalize wrt the carrier *)
 Lemma big_tag (i : I) :
-  \big[Rplus/R0]_(j : {i0 : I & A_ i0} | tag j == i) otagged (P_ i) 0 j =
-  \rsum_(j : A_ i) P_ i j.
+  \big[Rplus/R0]_(j : {i0 : I & T_ i0} | tag j == i) otagged (P_ i) 0 j =
+  \rsum_(j : T_ i) P_ i j.
 Proof.
-pose IT := tag_finType A_.
-pose h : A_ i -> IT := @Tagged I _ _.
+pose IT := tag_finType T_.
+pose h : T_ i -> IT := @Tagged I _ _.
 pose h'0 := @tagged' _ _ i.
-case Ecard: #|A_ i|.
+case Ecard: #|T_ i|.
 { rewrite !big_pred0 // => x.
   move/eqP: Ecard; apply: contraTF; rewrite -leqn0 -ltnNge => Hi.
   by apply/card_gt0P; exists (tagged' Hi).
   move/eqP: Ecard; apply: contraTF; rewrite -leqn0 -ltnNge => Hi.
   by apply/card_gt0P; exists x. }
-have {Ecard} /card_gt0P [it0 _] : (0 < #|A_ i|)%N by rewrite Ecard.
+have {Ecard} /card_gt0P [it0 _] : (0 < #|T_ i|)%N by rewrite Ecard.
 pose h' := otagged id it0.
 rewrite (reindex h); last first.
 { exists h'.
@@ -809,17 +809,17 @@ case: sumb; last by rewrite eqxx.
 by move=> E; f_equal; rewrite [eqP E]eq_irrelevance.
 Qed.
 
-Definition oprodn (idx : prodn A_) (f : {ffun I -> {i : I & A_ i}}) :=
+Definition oprodn (idx : prodn T_) (f : {ffun I -> {i : I & T_ i}}) :=
   match sumb ([forall i : I, tag (f i) == i]) with
-  | left prf => @Build_prodn I A_ f prf
+  | left prf => @Build_prodn I T_ f prf
   | right _ => idx
   end.
 
-Lemma tagged'E (a : A) (i : I) (E : tag ((prodn_fun a) i) == i) :
+Lemma tagged'E (a : T) (i : I) (E : tag ((prodn_fun a) i) == i) :
   tagged' E = a i.
 Proof.
 rewrite /tagged'.
-rewrite /eq_rect -/(ecast y (A_ y) (eqP E) (tagged ((prodn_fun a) i))).
+rewrite /eq_rect -/(ecast y (T_ y) (eqP E) (tagged ((prodn_fun a) i))).
 case: a E => f p /= E.
 rewrite /prodn_type_of_prodn /=.
 rewrite [eqP E]eq_irrelevance; first exact/eqP.
@@ -828,20 +828,20 @@ Qed.
 
 Lemma big_prodn (* (R : Type) (zero one : R) (times : Monoid.mul_law zero)
     (plus : Monoid.add_law zero times) *) :
-  \big[Rplus/R0]_(t : A) \big[Rmult/R1]_(i in I) P_ i (t i) =
-  \big[Rplus/R0]_(g in family (fun i : I => [pred j : {i : I & A_ i} | tag j == i]))
+  \big[Rplus/R0]_(t : T) \big[Rmult/R1]_(i in I) P_ i (t i) =
+  \big[Rplus/R0]_(g in family (fun i : I => [pred j : {i : I & T_ i} | tag j == i]))
     \big[Rmult/R1]_(i : I) (otagged (P_ i) R0 (g i)).
 Proof.
-rewrite /A.
-case Ecard: #|A|.
+rewrite /T.
+case Ecard: #|T|.
 { rewrite !big_pred0 // => x.
   move/eqP: Ecard; apply: contraTF; rewrite -leqn0 -ltnNge => H.
   by apply/card_gt0P; exists x.
   move/eqP: Ecard; apply: contraTF; rewrite -leqn0 -ltnNge => H.
   apply/card_gt0P.
   by exists (@Build_prodn _ _ x H). }
-have {Ecard} /card_gt0P [it0 _] : (0 < #|A|)%N by rewrite Ecard.
-pose h := @prodn_fun I A_.
+have {Ecard} /card_gt0P [it0 _] : (0 < #|T|)%N by rewrite Ecard.
+pose h := @prodn_fun I T_.
 pose h' := oprodn it0.
 rewrite (reindex h); last first.
 { exists h'.
@@ -865,7 +865,7 @@ case: a H => f p /= H.
 by rewrite (forallP p i) in H.
 Qed.
 
-Lemma P1 : \rsum_(t in A) P t = 1.
+Lemma P1 : \rsum_(t : T) P t = 1.
 Proof.
 rewrite /P big_prodn /=.
 rewrite -(bigA_distr_big_dep _ (fun i j => otagged (P_ i) R0 j)).
@@ -875,7 +875,7 @@ rewrite big_tag.
 exact: pmf1.
 Qed.
 
-Definition d : {dist A} := makeDist P0 P1.
+Definition d : {dist T} := makeDist P0 P1.
 
 End ProductDist.
 
