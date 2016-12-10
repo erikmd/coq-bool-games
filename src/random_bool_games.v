@@ -1437,13 +1437,13 @@ Lemma distbF : distb false = 1 - p.
 Proof. by rewrite /= ffunE val0_bool. Qed.
 
 Section Bernoulli_process_def.
-(** Definition of a Bernoulli process: independent repetition of [m := 2^n]
+(** Definition of a Bernoulli process: independent repetition of [2^n]
 Bernoulli trials with parameter [p]. *)
 
-Definition bool_row_pow n := 'rV[bool]_(2^n).
+Definition bool_pow n := fprod (fun i : 'I_(2^n) => bool_finType).
 
-Definition dist_Bernoulli_aux : {dist bool_row_pow n} :=
-  TupleDist.d distb (2^n).
+Definition dist_Bernoulli_aux : {dist bool_pow n} :=
+  ProductDist.d (fun i => distb).
 
 (** [bool_vec n] is isomorphic to ['I_(2^n)] *)
 
@@ -1478,40 +1478,40 @@ Proof.
 by exists ord_of_bool_vec; [apply: bool_vec_of_ordK|apply: ord_of_bool_vecK].
 Qed.
 
-(** [bool_row_pow n] is isomorphic to [bool_fun n] *)
+(** [bool_pow n] is isomorphic to [bool_fun n] *)
 
-Definition bool_fun_of_row (g : bool_row_pow n) : bool_fun n :=
-  [ffun v => g ``_ (ord_of_bool_vec v)].
+Definition bool_fun_of_pow (g : bool_pow n) : bool_fun n :=
+  [ffun v => g (ord_of_bool_vec v) : bool].
 
-Definition row_of_bool_fun (f : bool_fun n) : bool_row_pow n :=
-  \matrix_(i, j) f (bool_vec_of_ord j).
+Definition pow_of_bool_fun (f : bool_fun n) : bool_pow n :=
+  [fprod j => f (bool_vec_of_ord j)].
 
-Lemma bool_fun_of_rowK : cancel bool_fun_of_row row_of_bool_fun.
+Lemma bool_fun_of_powK : cancel bool_fun_of_pow pow_of_bool_fun.
 Proof.
-move=> r; rewrite /bool_fun_of_row /row_of_bool_fun.
-by apply/matrixP => i j; rewrite mxE ffunE bool_vec_of_ordK [i]ord1.
+move=> r; rewrite /bool_fun_of_pow /pow_of_bool_fun.
+by apply/fprodP => j; rewrite fprodE ffunE bool_vec_of_ordK.
 Qed.
 
-Lemma row_of_bool_funK : cancel row_of_bool_fun bool_fun_of_row.
+Lemma pow_of_bool_funK : cancel pow_of_bool_fun bool_fun_of_pow.
 Proof.
-move=> f; rewrite /bool_fun_of_row /row_of_bool_fun.
-by apply/ffunP => v; rewrite ffunE mxE ord_of_bool_vecK.
+move=> f; rewrite /bool_fun_of_pow /pow_of_bool_fun.
+by apply/ffunP => v; rewrite ffunE fprodE ord_of_bool_vecK.
 Qed.
 
-Lemma bool_fun_of_row_bij : bijective bool_fun_of_row.
+Lemma bool_fun_of_pow_bij : bijective bool_fun_of_pow.
 Proof.
-by exists row_of_bool_fun; [apply: bool_fun_of_rowK|apply: row_of_bool_funK].
+by exists pow_of_bool_fun; [apply: bool_fun_of_powK|apply: pow_of_bool_funK].
 Qed.
 
-Lemma row_of_bool_fun_bij : bijective row_of_bool_fun.
+Lemma pow_of_bool_fun_bij : bijective pow_of_bool_fun.
 Proof.
-by exists bool_fun_of_row; [apply: row_of_bool_funK|apply: bool_fun_of_rowK].
+by exists bool_fun_of_pow; [apply: pow_of_bool_funK|apply: bool_fun_of_powK].
 Qed.
 
 (** Distribution of [2^n] Bernoulli trials with parameter [p],
     in terms of Boolean functions. *)
 Definition dist_Bernoulli : {dist bool_fun n} :=
-  dist_img bool_fun_of_row dist_Bernoulli_aux.
+  dist_img bool_fun_of_pow dist_Bernoulli_aux.
 
 Definition num_true (f : bool_fun n) := #|finset_of_bool_fun f|.
 
@@ -1523,27 +1523,25 @@ Proof. by rewrite /num_false /num_true cardsCs card_bool_vec setCK. Qed.
 Fact dist_BernoulliE f :
   dist_Bernoulli f = p ^ (num_true f) * (1 - p) ^ (num_false f).
 Proof.
-rewrite /dist_Bernoulli /dist_img /=.
-rewrite /dist_Bernoulli_aux /TupleDist.d /Pr /=.
-rewrite /TupleDist.f num_falseE.
 underp big a rewrite in_set.
-rewrite (reindex row_of_bool_fun) /=; last first.
-  apply: onW_bij; exact: row_of_bool_fun_bij.
-underp big j rewrite row_of_bool_funK.
+rewrite (reindex pow_of_bool_fun) /=; last first.
+  apply: onW_bij; exact: pow_of_bool_fun_bij.
+underp big j rewrite pow_of_bool_funK.
 rewrite big_pred1_eq.
-under big i _ rewrite ffunE /row_of_bool_fun mxE.
+rewrite /ProductDist.P.
+under big i _ rewrite /pow_of_bool_fun fprodE.
 rewrite (reindex ord_of_bool_vec) /=; last first.
   apply: onW_bij; exact: ord_of_bool_vec_bij.
 under big j _ rewrite ord_of_bool_vecK val0_bool.
 rewrite (bigID f predT) /=.
-under big i Hi rewrite Hi eqxx qqE.
+under big i Hi rewrite ffunE Hi eqxx qqE.
 rewrite bigmul_card_constE.
-under big i Hi rewrite (negbTE Hi) /=.
+under big i Hi rewrite ffunE (negbTE Hi) /=.
 rewrite bigmul_card_constE /=.
 rewrite /num_true.
 congr Rmult; congr pow.
 { by rewrite cardsE. }
-rewrite -num_falseE /num_false.
+rewrite /num_false.
 apply: eq_card => i /=.
 by rewrite !inE. (* . *)
 Qed.
@@ -2337,11 +2335,11 @@ symmetry; (under big bs _ underp big a rewrite in_set); symmetry.
 under big bs _ rewrite set1
 rewrite /TupleDist.f num_falseE.
 underp big a rewrite in_set.
-rewrite (reindex row_of_bool_fun) /=; last first.
-  apply: onW_bij; exact: row_of_bool_fun_bij.
-underp big j rewrite row_of_bool_funK.
+rewrite (reindex pow_of_bool_fun) /=; last first.
+  apply: onW_bij; exact: pow_of_bool_fun_bij.
+underp big j rewrite pow_of_bool_funK.
 rewrite big_pred1_eq.
-under big i _ rewrite ffunE /row_of_bool_fun mxE.
+under big i _ rewrite ffunE /pow_of_bool_fun mxE.
 rewrite (reindex ord_of_bool_vec) /=; last first.
   apply: onW_bij; exact: ord_of_bool_vec_bij.
 under big j _ rewrite ord_of_bool_vecK val0_bool.
