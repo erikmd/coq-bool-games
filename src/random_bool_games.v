@@ -881,6 +881,16 @@ End ProductDist.
 
 End ProductDist.
 
+(*
+Check big_tnth.
+Check big_distr_big_dep.
+Check big_trivIset.
+Check partition_disjoint_bigcup.
+Check partition_big.
+Check exchange_big.
+Check pair_big.
+ *)
+
 (** ** Random Boolean games and characterization of winning strategies *)
 
 Section Proba_games.
