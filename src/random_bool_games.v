@@ -548,49 +548,49 @@ case: H'' => h.
 by rewrite [h]eq_axiomK /=.
 Qed.
 
-Notation prodn_type := (forall i : I, T_ i) (only parsing).
+Notation fprod_type := (forall i : I, T_ i) (only parsing).
 
-(** Definition and cardinal of [prodn] := dependent product of finTypes *)
+(** Definition and cardinal of [fprod] := dependent product of finTypes *)
 
-Record prodn : predArgType :=
-  { prodn_fun : {ffun I -> {i : I & T_ i}} ;
-    prodn_prop : [forall i : I, tag (prodn_fun i) == i] }.
+Record fprod : predArgType :=
+  { fprod_fun : {ffun I -> {i : I & T_ i}} ;
+    fprod_prop : [forall i : I, tag (fprod_fun i) == i] }.
 
-Program Definition prodn_type_of_prodn (f : prodn) : prodn_type :=
-  fun i => ecast j (T_ j) _ (tagged (prodn_fun f i)).
+Program Definition fprod_type_of_fprod (f : fprod) : fprod_type :=
+  fun i => ecast j (T_ j) _ (tagged (fprod_fun f i)).
 Next Obligation.
 case: f => f p /=; apply/eqP.
 by move/forallP in p.
 Defined.
 
-Program Definition prodn_of_prodn_type (f : prodn_type) : prodn :=
-  @Build_prodn (finfun (fun i => @existT _ _ i (f i))) _.
+Program Definition fprod_of_fprod_type (f : fprod_type) : fprod :=
+  @Build_fprod (finfun (fun i => @existT _ _ i (f i))) _.
 Next Obligation.
 by apply/forallP => i; rewrite ffunE.
 Defined.
 
-Coercion prodn_type_of_prodn : prodn >-> Funclass.
+Coercion fprod_type_of_fprod : fprod >-> Funclass.
 
-(* Canonical prodn_fun_finType := [finType of {ffun I -> {i : I & T_ i}}]. *)
-Canonical prodn_subType := Eval hnf in [subType for prodn_fun].
-Definition prodn_eqm := Eval hnf in [eqMixin of prodn by <:].
-Canonical prodn_eqType := Eval hnf in EqType prodn prodn_eqm.
-Definition prodn_chm := [choiceMixin of prodn by <:].
-Canonical prodn_choiceType := Eval hnf in ChoiceType prodn prodn_chm.
-Definition prodn_cntm := [countMixin of prodn by <:].
-Canonical prodn_countType := Eval hnf in CountType prodn prodn_cntm.
-Canonical prodn_subCountType := Eval hnf in [subCountType of prodn].
-Definition prodn_finm := [finMixin of prodn by <:].
-Canonical prodn_finType := Eval hnf in FinType prodn prodn_finm.
-Canonical prodn_subFinType := Eval hnf in [subFinType of prodn_finType].
+(* Canonical fprod_fun_finType := [finType of {ffun I -> {i : I & T_ i}}]. *)
+Canonical fprod_subType := Eval hnf in [subType for fprod_fun].
+Definition fprod_eqm := Eval hnf in [eqMixin of fprod by <:].
+Canonical fprod_eqType := Eval hnf in EqType fprod fprod_eqm.
+Definition fprod_chm := [choiceMixin of fprod by <:].
+Canonical fprod_choiceType := Eval hnf in ChoiceType fprod fprod_chm.
+Definition fprod_cntm := [countMixin of fprod by <:].
+Canonical fprod_countType := Eval hnf in CountType fprod fprod_cntm.
+Canonical fprod_subCountType := Eval hnf in [subCountType of fprod].
+Definition fprod_finm := [finMixin of fprod by <:].
+Canonical fprod_finType := Eval hnf in FinType fprod fprod_finm.
+Canonical fprod_subFinType := Eval hnf in [subFinType of fprod_finType].
 (* Print Canonical Projections.
-Print prodn_finm.
-Print prodn_cntm. *)
+Print fprod_finm.
+Print fprod_cntm. *)
 
-Lemma prodnK : cancel prodn_type_of_prodn prodn_of_prodn_type.
+Lemma fprodK : cancel fprod_type_of_fprod fprod_of_fprod_type.
 Proof.
 move => x.
-rewrite /prodn_type_of_prodn /prodn_of_prodn_type.
+rewrite /fprod_type_of_fprod /fprod_of_fprod_type.
 apply: val_inj =>/=.
 apply/ffunP => i; rewrite !ffunE.
 case: x => f p /=.
@@ -601,12 +601,12 @@ apply EqdepFacts.eq_dep1_dep.
 exact: EqdepFacts.eq_dep1_intro.
 Qed.
 
-Lemma prodnE g : forall x, (prodn_of_prodn_type g) x = g x.
+Lemma fprodE g : forall x, (fprod_of_fprod_type g) x = g x.
 Proof.
 move=> i.
-rewrite /prodn_of_prodn_type /prodn_type_of_prodn /=.
+rewrite /fprod_of_fprod_type /fprod_type_of_fprod /=.
 rewrite -/(eq_rect _ _ _ _ _).
-set Ej := (eqP (elimTF forallP (prodn_of_prodn_type_obligation_1 g) i)).
+set Ej := (eqP (elimTF forallP (fprod_of_fprod_type_obligation_1 g) i)).
 rewrite -[g i](rew_opp_r T_ Ej).
 f_equal.
 apply: TaggedE.
@@ -617,11 +617,11 @@ apply: EqdepFacts.eq_dep1_intro.
 by rewrite rew_opp_r.
 Qed.
 
-Lemma prodnP f1 f2 :
-  (forall x, prodn_type_of_prodn f1 x = prodn_type_of_prodn f2 x) <-> f1 = f2.
+Lemma fprodP f1 f2 :
+  (forall x, fprod_type_of_fprod f1 x = fprod_type_of_fprod f2 x) <-> f1 = f2.
 Proof.
 split=> [eq_f12 | -> //].
-rewrite -[f1]prodnK -[f2]prodnK.
+rewrite -[f1]fprodK -[f2]fprodK.
 apply: val_inj =>/=.
 apply/ffunP => x; rewrite !ffunE.
 by rewrite eq_f12.
@@ -634,8 +634,8 @@ Definition otagged
   | right _ => idx
   end.
 
-Lemma card_prodn :
-  #|prodn| = \big[muln/1%N]_(i : I) #|T_ i|.
+Lemma card_fprod :
+  #|fprod| = \big[muln/1%N]_(i : I) #|T_ i|.
 Proof.
 rewrite card_sub.
 rewrite -[LHS]/#|family (fun i : I => [pred j : {i : I & T_ i} | tag j == i])|.
@@ -695,51 +695,51 @@ Lemma gt0_prodn (F : I -> nat) :
 Proof. by move=> Hpos i; apply: (@gt0_prodn_cond predT). Qed.
 
 Definition pick_notemp :
-  (0 < #|prodn|)%N -> forall i : I, T_ i.
+  (0 < #|fprod|)%N -> forall i : I, T_ i.
 Proof.
-rewrite /= card_prodn.
+rewrite /= card_fprod.
 move/gt0_prodn => top i; move/(_ i) in top.
 pose x := pick (T_ i).
 case: pickP @x; first done.
 by move/eq_card0 => H0; rewrite H0 in top.
 Qed.
 
-Lemma tagged'E (a : prodn) (i : I) (E : tag ((prodn_fun a) i) == i) :
+Lemma tagged'E (a : fprod) (i : I) (E : tag ((fprod_fun a) i) == i) :
   tagged' E = a i.
 Proof.
 rewrite /tagged'.
-rewrite /eq_rect -/(ecast y (T_ y) (eqP E) (tagged ((prodn_fun a) i))).
+rewrite /eq_rect -/(ecast y (T_ y) (eqP E) (tagged ((fprod_fun a) i))).
 case: a E => f p /= E.
-rewrite /prodn_type_of_prodn /=.
+rewrite /fprod_type_of_fprod /=.
 rewrite [eqP E]eq_irrelevance; first exact/eqP.
 move=> H; rewrite [eqP (elimTF forallP p i)]eq_irrelevance; first exact/eqP.
 Qed.
 
-Definition ftagged (H : (0 < #|prodn|)%N) (f : {ffun I -> {i : I & T_ i}}) (i : I) :=
+Definition ftagged (H : (0 < #|fprod|)%N) (f : {ffun I -> {i : I & T_ i}}) (i : I) :=
   @otagged (T_ i) i id (pick_notemp H i) (f i).
 
-Lemma ftaggedE t H i : ftagged H (prodn_fun t) i = t i.
+Lemma ftaggedE t H i : ftagged H (fprod_fun t) i = t i.
 Proof.
 rewrite /ftagged /otagged.
 case: sumb.
 { by move=> E; rewrite tagged'E. }
 move=> /negbT /negP K; exfalso; apply: K.
-move: i; apply/forallP/prodn_prop. (* might be refactor(iz)ed *)
+move: i; apply/forallP/fprod_prop. (* might be refactor(iz)ed *)
 Qed.
 
 End Finite_product_structure.
 
-Notation "[ 'prodn' i : I => F ]" := (prodn_of_prodn_type (fun i : I => F))
+Notation "[ 'fprod' i : I => F ]" := (fprod_of_fprod_type (fun i : I => F))
   (at level 0, i ident, only parsing) : fun_scope.
 
-Notation "[ 'prodn' : I => F ]" := (prodn_of_prodn_type (fun _ : I => F))
+Notation "[ 'fprod' : I => F ]" := (fprod_of_fprod_type (fun _ : I => F))
   (at level 0, only parsing) : fun_scope.
 
-Notation "[ 'prodn' i => F ]" := [prodn i : _ => F]
-  (at level 0, i ident, format "[ 'prodn'  i  =>  F ]") : fun_scope.
+Notation "[ 'fprod' i => F ]" := [fprod i : _ => F]
+  (at level 0, i ident, format "[ 'fprod'  i  =>  F ]") : fun_scope.
 
-Notation "[ 'prodn' => F ]" := [prodn : _ => F]
-  (at level 0, format "[ 'prodn' =>  F ]") : fun_scope.
+Notation "[ 'fprod' => F ]" := [fprod : _ => F]
+  (at level 0, format "[ 'fprod' =>  F ]") : fun_scope.
 
 (* UNNEEDED
 
@@ -801,7 +801,7 @@ Check card_ffun.
 
 Lemma big_tag_cond (R : Type) (idx : R) (op : Monoid.com_law idx)
   (I : finType) (T_ : I -> finType) (Q_ : forall i, {set T_ i})
-  (P_ : forall i : I, T_ i -> R) (i : I) (E : (0 < #|prodn T_|)%N) :
+  (P_ : forall i : I, T_ i -> R) (i : I) (E : (0 < #|fprod T_|)%N) :
   \big[op/idx]_(j in [finType of {i0 : I & T_ i0}] | (tag j == i) && (otagged id (pick_notemp E i) j \in Q_ i)) otagged (P_ i) idx j =
   \big[op/idx]_(j in Q_ i) P_ i j.
 Proof.
@@ -907,7 +907,7 @@ Variable T_ : I -> finType.
 Variable P_ : forall i : I, dist (T_ i).
 Variable n : nat.
 
-Let T := prodn T_.
+Let T := fprod T_.
 
 (** Define the product distribution for the dep. product of finite spaces. *)
 
@@ -916,14 +916,14 @@ Definition P (t : T) := \rmul_(i : I) P_ i (t i).
 Lemma P0 (t : T) : 0 <= P t.
 Proof. apply Rle_0_big_mult => ?; by apply Rle0f. Qed.
 
-Definition oprodn (idx : prodn T_) (f : {ffun I -> {i : I & T_ i}}) :=
+Definition ofprod (idx : fprod T_) (f : {ffun I -> {i : I & T_ i}}) :=
   match sumb ([forall i : I, tag (f i) == i]) with
-  | left prf => @Build_prodn I T_ f prf
+  | left prf => @Build_fprod I T_ f prf
   | right _ => idx
   end.
 
-Lemma big_prodn_dep (Q : pred {ffun I -> {i : I & T_ i}}) :
-  \big[Rplus/R0]_(t : T | Q (prodn_fun t)) \big[Rmult/R1]_(i in I) P_ i (t i) =
+Lemma big_fprod_dep (Q : pred {ffun I -> {i : I & T_ i}}) :
+  \big[Rplus/R0]_(t : T | Q (fprod_fun t)) \big[Rmult/R1]_(i in I) P_ i (t i) =
   \big[Rplus/R0]_(g in family (fun i : I => [pred j : {i : I & T_ i} | tag j == i]) | g \in Q)
     \big[Rmult/R1]_(i : I) (otagged (P_ i) R0 (g i)).
 Proof.
@@ -935,19 +935,19 @@ case Ecard: #|T|.
   move/eqP: Ecard; apply: contraTF; rewrite -leqn0 -ltnNge => H.
   apply/card_gt0P.
   have /andP [H1 H2] := H.
-  by exists (@Build_prodn _ _ x H1). }
+  by exists (@Build_fprod _ _ x H1). }
 have {Ecard} /card_gt0P [it0 _] : (0 < #|T|)%N by rewrite Ecard.
-pose h := @prodn_fun I T_.
-pose h' := oprodn it0.
+pose h := @fprod_fun I T_.
+pose h' := ofprod it0.
 rewrite (reindex h); last first.
 { exists h'.
   move => it; rewrite inE => Hx.
-  { rewrite /= /h' /h /oprodn.
+  { rewrite /= /h' /h /ofprod.
     case: sumb => prf; case: it prf Hx =>//= f p p'.
       by rewrite [p]eq_irrelevance.
       by rewrite p in p'. }
   move=> x Hx.
-  rewrite /h' /h /oprodn.
+  rewrite /h' /h /ofprod.
   case: sumb => prf; case: x prf Hx => //= f p p'.
   by rewrite !inE /= p in p'. }
 apply: eq_big => a.
@@ -964,18 +964,18 @@ case: a H => f p /= H.
 by rewrite (forallP p i) in H.
 Qed.
 
-Lemma big_prodn :
+Lemma big_fprod :
   \big[Rplus/R0]_(t : T) \big[Rmult/R1]_(i in I) P_ i (t i) =
   \big[Rplus/R0]_(g in family (fun i : I => [pred j : {i : I & T_ i} | tag j == i]))
     \big[Rmult/R1]_(i : I) (otagged (P_ i) R0 (g i)).
 Proof.
-rewrite (big_prodn_dep predT).
+rewrite (big_fprod_dep predT).
 by apply: eq_bigl => g; rewrite inE andbC.
 Qed.
 
 Lemma P1 : \rsum_(t : T) P t = 1.
 Proof.
-rewrite /P big_prodn /=.
+rewrite /P big_fprod /=.
 rewrite -(bigA_distr_big_dep _ (fun i j => otagged (P_ i) R0 j)).
 rewrite [X in _ = X](_ : 1 = \rmul_(i in I) 1)%Re; last by rewrite big1.
 apply eq_bigr => i _ /=.
@@ -1032,23 +1032,23 @@ case Ecard: #|T|.
   have K1 : #|T_ i| = 0%N.
   (* skip *)
   have := prodn_gt0.
-  rewrite card_prodn in Ecard.
+  rewrite card_fprod in Ecard.
   apply/eqP; move/eqP: Ecard; apply: contraTT.
   rewrite -!lt0n.
   apply: prodn_gt0.
   rewrite -{2}Ecard.
   apply/card_gt0P; simpl.
-exists [prodn i : I => let _ := (i, i) in t].
+exists [fprod i : I => let _ := (i, i) in t].
 (* have {Ecard} /card_gt0P [it0 _] : (0 < #|T|)%N by rewrite Ecard. *)
 have Ecard0 : (0 < #|T|)%N by rewrite Ecard.
  *)
 (underp big t rewrite inE
   (_: [forall i, t i \in Q_ i] =
-    [pred f | [forall i, ftagged Hcard f i \in Q_ i]] (prodn_fun t))); last first.
+    [pred f | [forall i, ftagged Hcard f i \in Q_ i]] (fprod_fun t))); last first.
 rewrite inE; apply/forallP/forallP.
 { by move=> H x; rewrite ftaggedE. }
 by move=> H x; move/(_ x): H; rewrite ftaggedE.
-rewrite big_prodn_dep.
+rewrite big_fprod_dep.
 symmetry.
 under big i _ rewrite -(big_tag_cond (idx := R0) (op := addR_comoid) Q_ P_).
 symmetry.
