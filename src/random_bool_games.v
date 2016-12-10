@@ -2225,8 +2225,23 @@ Lemma bool_game_knowingE F bs :
   (bool_game_knowing (bool_game_of_bool_fun F) bs)
   = @bool_game_of_bool_fun (n - s) k _ (bool_fun_knowing F bs).
 Proof.
-(* by rewrite /bool_fun_knowing bool_fun_of_bool_gameK. *)
-admit. (* TODO *)
+rewrite /bool_game_of_bool_fun /bool_game_knowing.
+apply/ffunP => c; rewrite !ffunE.
+apply: congr1.
+rewrite /bool_vec_of_bg_strategy.
+apply/ffunP => i; rewrite !ffunE.
+case: splitP => i1 H1 /=.
+{ case: splitP => i2 H2.
+  { rewrite ffunE; case: splitP => i3 H3.
+    { by f_equal; apply/ord_inj; rewrite -H1 -H3 /= -H2. }
+    exfalso; admit. }
+  case: splitP => i3 H3.
+  { exfalso; admit. }
+  rewrite ffunE; case: splitP => i4 H4.
+  { simpl in H1, H2, H3, H4.
+    f_equal; apply/ord_inj; rewrite -H1 -H4 H2 H3.
+    admit. }
+  exfalso; admit. }
 Admitted.
 
 Definition knowing_bool_fun (F : bool_fun (n - s) (* depends on bs…*))
