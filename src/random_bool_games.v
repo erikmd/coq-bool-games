@@ -1478,6 +1478,30 @@ Proof.
 by exists ord_of_bool_vec; [apply: bool_vec_of_ordK|apply: ord_of_bool_vecK].
 Qed.
 
+(** [bool_vec n] is isomorphic to [{set 'I_n}] *)
+
+Definition setord_of_bool_vec : bool_vec n -> {set 'I_n} :=
+  fun v => [set i | v i].
+
+Definition bool_vec_of_setord : {set 'I_n} -> bool_vec n :=
+  fun s => [ffun i => i \in s].
+
+Lemma bool_vec_of_setordK : cancel bool_vec_of_setord setord_of_bool_vec.
+Proof. by move=> s; apply/setP => v; rewrite inE ffunE. Qed.
+
+Lemma setord_of_bool_vecK : cancel setord_of_bool_vec bool_vec_of_setord.
+Proof. by move=> f; apply/ffunP => v; rewrite ffunE inE. Qed.
+
+Lemma bool_vec_of_setord_bij : bijective bool_vec_of_setord.
+Proof.
+by exists setord_of_bool_vec; [apply: bool_vec_of_setordK|apply: setord_of_bool_vecK].
+Qed.
+
+Lemma setord_of_bool_vec_bij : bijective setord_of_bool_vec.
+Proof.
+by exists bool_vec_of_setord; [apply: setord_of_bool_vecK|apply: bool_vec_of_setordK].
+Qed.
+
 (** [bool_pow n] is isomorphic to [bool_fun n] *)
 
 Definition bool_fun_of_pow (g : bool_pow n) : bool_fun n :=
@@ -2368,6 +2392,33 @@ apply/ffunP => v; rewrite !ffunE; apply congr1.
 by rewrite bool_vec_knowingK.
 Qed.
 
+(*
+Check cover.
+Check partition.
+ *)
+
+(* Version 1
+
+Definition S_ (bs : bg_known_StratB) : {set {set 'I_n}} :=
+  [set v : {set 'I_n} | compat_knowing bs (bool_vec_snd (bool_vec_of_setord v))].
+ *)
+
+Definition S_ (bs : bg_known_StratB) : {set bool_vec n} :=
+  [set v : bool_vec n | compat_knowing bs (bool_vec_snd v)].
+
+Lemma partition_S :
+  partition [set S_ bs | bs in bg_known_StratB] [set: bool_vec n].
+Proof.
+apply/and3P; split.
+Admitted.
+
+(*
+Lemma Pr_dist_img (bs : bg_known_StratB) Q :
+  Pr P [set F | [forall bs, Q (bool_fun_knowing F bs)]] =
+  Pr (dist_Bernoulli (n - s) (p:=p)) [set f | [forall bs, Q f]].
+Proof.
+Check dist_img.
+ *)
 Lemma Pr_indep_knowing_Bern Q :
   Pr P [set F | [forall bs, Q (bool_fun_knowing F bs)]] =
   \rmul_(bs in bg_known_StratB) Pr P [set F | Q (bool_fun_knowing F bs)].
@@ -2376,6 +2427,7 @@ rewrite -ProductDist.indep; last first.
 { rewrite card_fprod.
   apply: prodn_cond_gt0 => _ _.
   by rewrite !(card_ffun, card_bool) expn_gt0. }
+
 rewrite /P /dist_Bernoulli.
 stepr (Pr P (\bigcap_(bs in bg_known_StratB) [set F | Q (bool_fun_knowing F bs)])).
 { rewrite /Pr.
@@ -2388,6 +2440,8 @@ set dB := dist_img (bool_fun_of_pow (n:=n)) dBn : {dist bool_fun n}.
 rewrite /Pr /= /Pr /=.
 underp big b rewrite inE.
 underp big b rewrite inE /=.
+
+erewrite (set_partition_big).
 
 (* now_show (Pr P (\bigcap_(bs in bg_known_StratB)
             [set F | Q (bool_fun_knowing F bs)]) =
@@ -2576,7 +2630,7 @@ stepr (Pr P [set F | [forall bs, exists a, winA (bool_game_of_bool_fun (bool_fun
 { apply: eq_bigl => F; rewrite !inE.
   apply: eq_forallb => bs.
   apply: eq_existsb => a.
-    by rewrite winA_knowingE bool_game_knowingE. }
+  by rewrite winA_knowingE bool_game_knowingE. }
 pose Q := (fun F' => [exists a, winA (bool_game_of_bool_fun F') a]).
 rewrite (Pr_indep_knowing_Bern (Q _ _ _)).
 (*under big bs _ rewrite (Pr_isom_knowing_Bern bs (Q _ _ _)).
