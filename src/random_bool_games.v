@@ -2100,10 +2100,38 @@ Definition bool_vec_sam (v : bool_vec n) : bool_vec (n - s) :=
 Definition subnC : forall m n p, (m - n - p = m - p - n)%N.
 Proof. clear=> m n p. by rewrite -!subnDA addnC. Qed.
 
+(* UNNEEDED
+
+Definition cast_bool_vec l m (E : l = m) (v : bool_vec l) : bool_vec m :=
+(* match m with
+  | O => [ffun i : 'I_0 => false]
+  | S n' => [ffun i : 'I_n'.+1 => v (@inord n' i)]
+  end. *)
+  [ffun i : 'I_m => v (cast_ord (sym_eq E) i)].
+
+Lemma cast_bool_vec_lem l m v1 v2 (i1 : 'I_l) (i2 : 'I_m) (E : l = m) :
+  (nat_of_ord i1) = (nat_of_ord i2) ->
+  cast_bool_vec E v1 i2 = v2 i2 ->
+  v1 i1 = v2 i2.
+Proof.
+move=> HE.
+case: l E v1 i1 HE => [|l] E v1 i1 HE; case: m E v2 i2 HE  => [|m] E v2 i2 HE.
+- exfalso; apply: ord0_false i1.
+- exfalso; apply: ord0_false i1.
+- exfalso; apply: ord0_false i2.
+- rewrite /cast_bool_vec ffunE -{1}[i2]inord_val -HE /cast_ord /=.
+  move<-; f_equal.
+  apply: val_inj =>/=.
+  case: E =><-.
+  by rewrite inordK.
+Qed.
+ *)
+
 Definition cast_bool_vecB : forall m n p (v : bool_vec (m - n - p)),
   bool_vec (m - p - n) :=
   fun m n p v =>
-  ecast i (bool_vec i) (subnC m n p) v.
+  (* ecast i (bool_vec i) (subnC m n p) v *)
+  [ffun i : 'I_(m - p - n) => v (cast_ord (subnC m p n) i)].
 
 Definition bool_game_knowing (g : bool_game n k) (bs : bg_known_StratB) :
   bool_game (n - s) k :=
@@ -2124,8 +2152,9 @@ Lemma cast_bool_vecB_K :
 Proof.
 clear=> m n p.
 move=> x; rewrite /cast_bool_vecB.
-rewrite -bool_vec_cast_trans.
-by rewrite (eq_axiomK (etrans _ _)).
+apply/ffunP => i; rewrite !ffunE.
+have->: subnC m p n = esym (subnC m n p) by exact: eq_irrelevance.
+by rewrite cast_ordK.
 Qed.
 
 Lemma bool_vec_sndK (bs : bool_vec s) (b : bool_vec (n - k)) :
@@ -2171,7 +2200,7 @@ apply/forallP/subsetP => H /= x.
 rewrite !inE !ffunE.
 Show 2.
 rewrite inE.
-Admitted.
+Abort.
 
 Lemma w_knowingE bs : w_knowing bs = @w_ (n - s) (n - k s) bs
 
@@ -2234,15 +2263,59 @@ case: splitP => i1 H1 /=.
 { case: splitP => i2 H2.
   { rewrite ffunE; case: splitP => i3 H3.
     { by f_equal; apply/ord_inj; rewrite -H1 -H3 /= -H2. }
-    exfalso; admit. }
+    simpl in H1, H2, H3.
+    exfalso; have : (k + i3 < k)%N by rewrite -H3; apply: ltn_ord.
+    by rewrite ltnNge leq_addr. }
   case: splitP => i3 H3.
-  { exfalso; admit. }
+  { simpl in H1, H2.
+    exfalso; have : (k + i2 < k)%N by rewrite -H2 H1; apply: ltn_ord.
+    by rewrite ltnNge leq_addr. }
   rewrite ffunE; case: splitP => i4 H4.
   { simpl in H1, H2, H3, H4.
-    f_equal; apply/ord_inj; rewrite -H1 -H4 H2 H3.
-    admit. }
-  exfalso; admit. }
-Admitted.
+    exfalso; have : (k + i2 < k)%N by rewrite -H2 H1; apply: ltn_ord.
+    by rewrite ltnNge leq_addr. }
+  simpl in H1, H2, H3, H4.
+  exfalso; have : (k + i2 < k)%N by rewrite -H2 H1; apply: ltn_ord.
+  by rewrite ltnNge leq_addr. }
+case: splitP => i2 H2.
+{ rewrite !ffunE /=.
+  case: splitP => i3 H3; case: splitP => i4 H4; simpl in H1, H2, H3, H4.
+  - exfalso; have : (k + i1 < k)%N by rewrite -H1 H2 H4; apply: ltn_ord.
+    by rewrite ltnNge leq_addr.
+  - exfalso; have : (k + i4 < k)%N by rewrite -H4; apply: ltn_ord.
+    by rewrite ltnNge leq_addr.
+  - exfalso; have : (k + i1 < k)%N by rewrite -H1 H2; apply: ltn_ord.
+    by rewrite ltnNge leq_addr.
+  - exfalso; have : (k + i1 < k)%N by rewrite -H1 H2; apply: ltn_ord.
+    by rewrite ltnNge leq_addr. }
+rewrite !ffunE.
+case: splitP => i3 H3; case: splitP => i4 H4; simpl in H1, H2, H3, H4.
+- f_equal.
+  by apply: ord_inj; rewrite -H3 -H4; apply: (@addnI k); rewrite -H1 -H2.
+- rewrite !ffunE /=.
+  case: splitP => i5 /= H5.
+  { exfalso; have : (k + i4 < k)%N by rewrite H5; apply: ltn_ord.
+    by rewrite ltnNge leq_addr. }
+  exfalso; have : (s + i4 < s)%N.
+  { rewrite -H4 (_: nat_of_ord i2 = nat_of_ord i1);
+      first by rewrite H3; exact: ltn_ord.
+    by apply: (@addnI k); rewrite -H1 -H2. }
+  by rewrite ltnNge leq_addr.
+- exfalso; have : (s + i3 < s)%N.
+  { rewrite -H3 (_ : nat_of_ord i1 = nat_of_ord i2);
+      first by rewrite H4; exact: ltn_ord.
+    by apply: (@addnI k); rewrite -H1 -H2. }
+  by rewrite ltnNge leq_addr.
+- rewrite !ffunE /=.
+  case: splitP => i5 /= H5.
+  { exfalso; have : (k + i4 < k)%N by rewrite H5 ltn_ord.
+    by rewrite ltnNge leq_addr. }
+  f_equal.
+  apply: ord_inj =>/=.
+  apply: (@addnI k); rewrite -H5; f_equal.
+  apply: (@addnI s); rewrite -H3 -H4.
+  apply: (@addnI k); rewrite -H1 -H2 //.
+Qed.
 
 Definition knowing_bool_fun (F : bool_fun (n - s) (* depends on bs…*))
   : bool_fun n :=
@@ -2296,7 +2369,6 @@ case: splitP=> /= j Hj.
   rewrite ifT; first by apply congr1; apply: val_inj; rewrite /= Hj.
   simpl; exact: ltn_ord. }
 case: splitP => l Hl /=.
-admit.
 Abort.
  *)
 
@@ -2328,7 +2400,7 @@ Lemma Pr_indep_knowing_Bern Q :
   \rmul_(bs in bg_known_StratB) Pr P [set F | Q (bool_fun_knowing F bs)].
 Proof.
 rewrite -ProductDist.indep.
-rewrite /P  /dist_Bernoulli.
+rewrite /P  /dist_Bernoulli /dist_Bernoulli_aux.
 stepr (Pr P (\bigcap_(bs in bg_known_StratB) [set F | Q (bool_fun_knowing F bs)])).
 { rewrite /Pr.
   apply: eq_bigl => x; rewrite in_set; apply/forallP/bigcapP => H y.
