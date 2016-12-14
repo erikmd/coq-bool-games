@@ -2112,6 +2112,9 @@ Definition bool_vec_fst n k `{!leq_class k n} (v : bool_vec n) : bool_vec k :=
 Definition bool_vec_snd n k `{!leq_class k n} (v : bool_vec n) : bool_vec (n - k) :=
   (bg_strategy_of_bool_vec v).2.
 
+Definition bool_vec_snd_s (v : bool_vec n) : bool_vec s :=
+  bool_vec_fst (bool_vec_snd v).
+
 Definition bool_vec_snd_nks (v : bool_vec n) : bool_vec (n - k - s) :=
   bool_vec_snd (bool_vec_snd v).
 
@@ -2410,7 +2413,39 @@ Lemma partition_S :
   partition [set S_ bs | bs in bg_known_StratB] [set: bool_vec n].
 Proof.
 apply/and3P; split.
-Admitted.
+{ apply/eqP/setP/subset_eqP/andP; split; first exact: subsetT.
+  rewrite /cover; apply/subsetP => S HS; apply/bigcupP; simpl in S |- *.
+  exists (S_ (bool_vec_snd_s S)).
+  { by apply/imsetP; exists (bool_vec_snd_s S). }
+  rewrite inE. (* TODO: lemma ? *)
+  rewrite /compat_knowing; apply/forallP => i; apply/eqP.
+  by rewrite /bool_vec_snd_s /bool_vec_fst /= [in RHS]ffunE. }
+{ apply/trivIsetP => x y HA HB HAB.
+  have {HA} /imsetP [a Ha Hwa] := HA.
+  have {HB} /imsetP [b Hb Hwb] := HB.
+  rewrite {}Hwa {}Hwb in HAB *.
+  rewrite -setI_eq0.
+  apply/set0Pn; case => [c /setIP [Hxa Hxb]].
+  move/negP: HAB; apply; apply/eqP.
+  suff->: a = b by done.
+  apply/ffunP => v.
+  move: Hxa Hxb; rewrite /w_ !inE /compat_knowing.
+  by do 2![move/forallP/(_ v)/eqP <-]. }
+apply/imsetP; case => x Hx; rewrite /S_.
+move/eqP; apply/negP; rewrite eq_sym; apply/set0Pn; simpl.
+exists (bool_vec_knowing [ffun i : 'I_(n - s) => true] x).
+rewrite inE /compat_knowing; apply/forallP => i.
+rewrite /bool_vec_snd /= ffunE /bool_vec_knowing ffunE cast_ord_comp.
+case: splitP.
+{ move=> j /= Hj.
+  exfalso; have : (k + i < k)%N by rewrite Hj ltn_ord.
+  by rewrite ltnNge leq_addr. }
+move=> j /= /(@addnI k) Hj.
+case: splitP => l Hl.
+{ by apply/eqP; f_equal; apply/ord_inj; rewrite -Hl -Hj. }
+{ exfalso; have : (s + l < s)%N by rewrite -Hl -Hj ltn_ord.
+  by rewrite ltnNge leq_addr. }
+Qed.
 
 (*
 Lemma Pr_dist_img (bs : bg_known_StratB) Q :
