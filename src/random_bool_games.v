@@ -2448,12 +2448,37 @@ case: splitP => l Hl.
 Qed.
 
 (*
+Definition compat_dist (A : finType) (P1 : {dist A}) (P2 : {dist A}) := P1 =1 P2.
+ *)
+
+Definition eqdist (A B : finType) (PA : {dist A}) (PB : {dist B})
+  (f : A -> B) (g : B -> A) :=
+  [/\ cancel f g, cancel g f, PB =1 dist_img f PA & PA =1 dist_img g PB].
+
+Lemma eq_Pr (A : finType) (P1 P2 : {dist A}) :
+  P1 =1 P2 -> forall E : {set A}, Pr P1 E = Pr P2 E.
+Proof. move=> Heq E; apply: eq_bigr => i Hi; exact: Heq. Qed.
+
+Lemma eqdist_img (A B : finType) (PA : {dist A})
+  (f : A -> B) (g : B -> A) : cancel f g -> cancel g f ->
+  eqdist PA (dist_img f PA) f g.
+Proof.
+move=> fK gK; split =>//= a.
+rewrite /dist_img /Pr /=.
+underp big b rewrite !inE (can2_eq gK fK).
+rewrite big_pred1_eq.
+underp big b rewrite !inE (can_eq fK).
+by rewrite big_pred1_eq.
+Qed.
+
+(*
 Lemma Pr_dist_img (bs : bg_known_StratB) Q :
   Pr P [set F | [forall bs, Q (bool_fun_knowing F bs)]] =
   Pr (dist_Bernoulli (n - s) (p:=p)) [set f | [forall bs, Q f]].
 Proof.
 Check dist_img.
  *)
+
 Lemma Pr_indep_knowing_Bern Q :
   Pr P [set F | [forall bs, Q (bool_fun_knowing F bs)]] =
   \rmul_(bs in bg_known_StratB) Pr P [set F | Q (bool_fun_knowing F bs)].
