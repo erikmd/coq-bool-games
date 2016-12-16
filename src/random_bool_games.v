@@ -2451,17 +2451,34 @@ Qed.
 Definition compat_dist (A : finType) (P1 : {dist A}) (P2 : {dist A}) := P1 =1 P2.
  *)
 
-Definition eqdist (A B : finType) (PA : {dist A}) (PB : {dist B})
+Definition isom_dist (A B : finType) (PA : {dist A}) (PB : {dist B})
   (f : A -> B) (g : B -> A) :=
   [/\ cancel f g, cancel g f, PB =1 dist_img f PA & PA =1 dist_img g PB].
+
+Lemma isom_distI (A : finType) (P1 P2 : {dist A}):
+  P1 =1 P2 -> isom_dist P1 P2 id id.
+Proof.
+move=> Heq; split =>// E;
+  by rewrite /dist_img /=; (underp big b rewrite inE); rewrite big_pred1_eq Heq.
+Qed.
 
 Lemma eq_Pr (A : finType) (P1 P2 : {dist A}) :
   P1 =1 P2 -> forall E : {set A}, Pr P1 E = Pr P2 E.
 Proof. move=> Heq E; apply: eq_bigr => i Hi; exact: Heq. Qed.
 
-Lemma eqdist_img (A B : finType) (PA : {dist A})
+(*
+Lemma isom_Pr (A : finType) (P1 P2 : {dist A}) :
+  isom_dist P1 P2 -> forall E : {set A}, Pr P1 E = Pr P2 E.
+Proof.
+move=> [f [g [fK gK Hf Hg]]] E.
+rewrite {1}/Pr (*(reindex f) /=; last by apply: onW_bij; exists g*).
+rewrite (eq_Pr Hf) /Pr /dist_img /=.
+Abort.
+ *)
+
+Lemma isom_dist_img (A B : finType) (PA : {dist A})
   (f : A -> B) (g : B -> A) : cancel f g -> cancel g f ->
-  eqdist PA (dist_img f PA) f g.
+  isom_dist PA (dist_img f PA) f g.
 Proof.
 move=> fK gK; split =>//= a.
 rewrite /dist_img /Pr /=.
@@ -2487,8 +2504,8 @@ rewrite -ProductDist.indep; last first.
 { rewrite card_fprod.
   apply: prodn_cond_gt0 => _ _.
   by rewrite !(card_ffun, card_bool) expn_gt0. }
-
 rewrite /P /dist_Bernoulli.
+eapply eq_Pr.
 stepr (Pr P (\bigcap_(bs in bg_known_StratB) [set F | Q (bool_fun_knowing F bs)])).
 { rewrite /Pr.
   apply: eq_bigl => x; rewrite in_set; apply/forallP/bigcapP => H y.
