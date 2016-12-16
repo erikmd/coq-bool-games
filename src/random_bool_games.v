@@ -515,6 +515,20 @@ refine (mkDist (pmf := (mkPosFun (pos_f := fun b => Pr PA [set x | X x == b])
 exact: dist_img_proof.
 Defined.
 
+Lemma Pr_dist_imgE {A B : finType} (X : A -> B) (PA : {dist A}) (E : {set B}):
+  Pr (dist_img X PA) E = Pr PA (X @^-1: E).
+Proof.
+rewrite /dist_img /Pr /=.
+symmetry; (underp big a rewrite inE); symmetry.
+under big a _ underp big b rewrite inE.
+rewrite [RHS](partition_big X (mem E)) //=.
+apply: eq_bigr => i Hi.
+apply: eq_bigl => j.
+apply/eqP/andP.
+{ by move=> ->; split. }
+by case=> _ /eqP ->.
+Qed.
+
 End Pushforward_distribution.
 
 
@@ -2448,6 +2462,70 @@ case: splitP => l Hl.
 Qed.
 
 (*
+Definition OmegaS_ bs := {set {v : bool_vec n | v \in S_ bs}}.
+
+Definition OmegaS_inj bs : OmegaS_ bs -> {set bool_vec n} :=
+  fun S => [set tag v | v : {v : bool_vec n | v \in S_ bs} in S].
+ *)
+
+Section vecS.
+Variable (bs : bg_known_StratB).
+Record vecS := { vec : bool_vec n ; _ : vec \in S_ bs}.
+
+Canonical vecS_subType := Eval hnf in [subType for vec].
+Definition vecS_eqm := Eval hnf in [eqMixin of vecS by <:].
+Canonical vecS_eqType := Eval hnf in EqType vecS vecS_eqm.
+Definition vecS_chm := [choiceMixin of vecS by <:].
+Canonical vecS_choiceType := Eval hnf in ChoiceType vecS vecS_chm.
+Definition vecS_cntm := [countMixin of vecS by <:].
+Canonical vecS_countType := Eval hnf in CountType vecS vecS_cntm.
+Canonical vecS_subCountType := Eval hnf in [subCountType of vecS].
+Definition vecS_finm := [finMixin of vecS by <:].
+Canonical vecS_finType := Eval hnf in FinType vecS vecS_finm.
+Canonical vecS_subFinType := Eval hnf in [subFinType of vecS_finType].
+End vecS.
+
+Definition OmegaS bs := {set (vecS bs)}.
+
+(*
+Lemma inj_vec bs : injective (@vec bs).
+Proof. exact: val_inj. Qed.
+ *)
+
+Definition imgOmegaS bs (S : OmegaS bs) := [set vec s | s in S].
+
+(** [OmegaS bs] is isomorphic to [bool_fun (n - s)] *)
+
+Definition bool_fun_of_OmegaS bs (S : OmegaS bs) : bool_fun (n - s) :=
+  [ffun v : bool_vec (n - s) => bool_vec_knowing v bs \in imgOmegaS S].
+
+Definition OmegaS_of_bool_fun bs (f : bool_fun (n - s)) : OmegaS bs :=
+  [set v : vecS bs | f (knowing_bool_vec (val v))].
+
+Lemma bool_fun_of_OmegaSK bs : cancel (@bool_fun_of_OmegaS bs) (OmegaS_of_bool_fun bs).
+Proof.
+move=> S; rewrite /bool_fun_of_OmegaS /OmegaS_of_bool_fun /imgOmegaS.
+apply/setP => v; rewrite !(inE, ffunE).
+Admitted.
+
+Lemma OmegaS_of_bool_funK bs : cancel (OmegaS_of_bool_fun bs) (@bool_fun_of_OmegaS bs).
+Proof.
+move=> f; rewrite /bool_fun_of_OmegaS /OmegaS_of_bool_fun /imgOmegaS.
+apply/ffunP => v; rewrite !(inE, ffunE).
+Admitted.
+
+Lemma bool_fun_of_OmegaS_bij bs : bijective (@bool_fun_of_OmegaS bs).
+Proof.
+by exists (OmegaS_of_bool_fun bs); [apply: bool_fun_of_OmegaSK|apply: OmegaS_of_bool_funK].
+Qed.
+
+Lemma OmegaS_of_bool_fun_bij bs : bijective (OmegaS_of_bool_fun bs).
+Proof.
+by exists (@bool_fun_of_OmegaS bs); [apply: OmegaS_of_bool_funK|apply: bool_fun_of_OmegaSK].
+Qed.
+
+Definition distS_ := @dist_Bernoulli (n - s) p.
+(*
 Definition compat_dist (A : finType) (P1 : {dist A}) (P2 : {dist A}) := P1 =1 P2.
  *)
 
@@ -2500,18 +2578,18 @@ Lemma Pr_indep_knowing_Bern Q :
   Pr P [set F | [forall bs, Q (bool_fun_knowing F bs)]] =
   \rmul_(bs in bg_known_StratB) Pr P [set F | Q (bool_fun_knowing F bs)].
 Proof.
+rewrite /P /dist_Bernoulli /dist_Bernoulli_aux.
 rewrite -ProductDist.indep; last first.
 { rewrite card_fprod.
   apply: prodn_cond_gt0 => _ _.
   by rewrite !(card_ffun, card_bool) expn_gt0. }
-rewrite /P /dist_Bernoulli.
-eapply eq_Pr.
 stepr (Pr P (\bigcap_(bs in bg_known_StratB) [set F | Q (bool_fun_knowing F bs)])).
 { rewrite /Pr.
   apply: eq_bigl => x; rewrite in_set; apply/forallP/bigcapP => H y.
   { rewrite inE => _; apply: H. }
   have := H y; rewrite inE; exact. }
 rewrite /P /dist_Bernoulli.
+rewrite Pr_dist_imgE /dist_Bernoulli_aux.
 set dBn := dist_Bernoulli_aux n (p := p).
 set dB := dist_img (bool_fun_of_pow (n:=n)) dBn : {dist bool_fun n}.
 rewrite /Pr /= /Pr /=.
