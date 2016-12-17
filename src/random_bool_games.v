@@ -2132,12 +2132,6 @@ Definition bool_vec_snd_s (v : bool_vec n) : bool_vec s :=
 Definition bool_vec_snd_nks (v : bool_vec n) : bool_vec (n - k - s) :=
   bool_vec_snd (bool_vec_snd v).
 
-(*
-(* sam := split and merge *)
-Definition bool_vec_sam (v : bool_vec n) : bool_vec (n - s) :=
-  @bool_vec_cat (n - s) k _ (bool_vec_fst v, bool_vec_snd v).
-*)
-
 Definition subnC : forall m n p, (m - n - p = m - p - n)%N.
 Proof. clear=> m n p. by rewrite -!subnDA addnC. Qed.
 
@@ -2173,6 +2167,12 @@ Definition cast_bool_vecB : forall m n p (v : bool_vec (m - n - p)),
   fun m n p v =>
   (* ecast i (bool_vec i) (subnC m n p) v *)
   [ffun i : 'I_(m - p - n) => v (cast_ord (subnC m p n) i)].
+
+(* DUPLICATE OF [knowing_bool_vec] BELOW
+(* sam := split and merge *)
+Definition bool_vec_sam (v : bool_vec n) : bool_vec (n - s) :=
+  @bool_vec_cat (n - s) k _ (bool_vec_fst v, cast_bool_vecB (bool_vec_snd_nks v)).
+ *)
 
 Definition bool_game_knowing (g : bool_game n k) (bs : bg_known_StratB) :
   bool_game (n - s) k :=
@@ -2490,12 +2490,12 @@ Definition OmegaS bs := {set (vecS bs)}.
 Lemma vec_inj bs : injective (@vec bs).
 Proof. exact: val_inj. Qed.
 
-Definition imgOmegaS bs (S : OmegaS bs) := [set vec s | s in S].
+Definition img_OmegaS bs (S : OmegaS bs) := [set vec s | s in S].
 
 (** [OmegaS bs] is isomorphic to [{set bool_vec (n - s)}] *)
 
 Definition bool_fun_of_OmegaS bs (S : OmegaS bs) : bool_fun (n - s) :=
-  [ffun v : bool_vec (n - s) => bool_vec_knowing v bs \in imgOmegaS S].
+  [ffun v : bool_vec (n - s) => bool_vec_knowing v bs \in img_OmegaS S].
 
 Definition OmegaS_of_bool_fun bs (f : bool_fun (n - s)) : OmegaS bs :=
   [set v : vecS bs | f (knowing_bool_vec (val v))].
@@ -2534,7 +2534,7 @@ Qed.
 
 Lemma bool_fun_of_OmegaSK bs : cancel (@bool_fun_of_OmegaS bs) (OmegaS_of_bool_fun bs).
 Proof.
-move=> S; rewrite /bool_fun_of_OmegaS /OmegaS_of_bool_fun /imgOmegaS.
+move=> S; rewrite /bool_fun_of_OmegaS /OmegaS_of_bool_fun /img_OmegaS.
 apply/setP => v; rewrite !(inE, ffunE).
 apply/imsetP; case: ifP => Hv.
 { exists v =>//.
@@ -2561,7 +2561,7 @@ Defined.
 
 Lemma OmegaS_of_bool_funK bs : cancel (OmegaS_of_bool_fun bs) (@bool_fun_of_OmegaS bs).
 Proof.
-move=> f; rewrite /bool_fun_of_OmegaS /OmegaS_of_bool_fun /imgOmegaS.
+move=> f; rewrite /bool_fun_of_OmegaS /OmegaS_of_bool_fun /img_OmegaS.
 apply/ffunP => v; rewrite !(inE, ffunE).
 apply/imsetP; case: ifP => Hf.
 { exists (vecS_bool_vec_knowing bs v) =>//.
@@ -2581,10 +2581,126 @@ Proof.
 by exists (@bool_fun_of_OmegaS bs); [apply: OmegaS_of_bool_funK|apply: bool_fun_of_OmegaSK].
 Qed.
 
-Definition distS_ := @dist_Bernoulli (n - s) p.
+Definition Omega' := (fprod (fun bs => [finType of OmegaS bs])).
+
+Definition dist_OmegaS bs : {dist OmegaS bs} :=
+  dist_img (OmegaS_of_bool_fun bs) (@dist_Bernoulli (n - s) p _).
+
+Definition dist_Omega' : {dist Omega'} :=
+  ProductDist.d dist_OmegaS.
+
+(** [Omega'] is isomorphic to [{set bool_vec n}] *)
+
+Definition bool_fun_of_Omega' (S : Omega') : bool_fun n :=
+  [ffun v : bool_vec n => let (w, bs) := (knowing_bool_vec v, bool_vec_snd_s v) in
+                         bool_fun_of_OmegaS (S bs) w].
+
+Definition Omega'_of_bool_fun (f : bool_fun n) : Omega' :=
+  [fprod bs : bg_known_StratB => OmegaS_of_bool_fun bs (bool_fun_knowing f bs)].
+
+Lemma bool_vec_snd_sE bs v : bool_vec_snd_s (bool_vec_knowing v bs) = bs.
+Proof.
+rewrite /bool_vec_snd_s /bool_vec_knowing /bool_vec_fst /bool_vec_snd /=.
+apply/ffunP => i; rewrite !ffunE.
+case: splitP => j /= Hj.
+{ exfalso; have : (k + i < k)%N by rewrite Hj; apply: ltn_ord.
+  by rewrite ltnNge leq_addr. }
+case: splitP => l /= Hl.
+{ by f_equal; apply: ord_inj; rewrite /= -Hl; symmetry; apply: addnI Hj. }
+exfalso; suff: (s + l < s)%N by rewrite ltnNge leq_addr.
+by rewrite -Hl -(addnI Hj).
+Qed.
+
 (*
-Definition compat_dist (A : finType) (P1 : {dist A}) (P2 : {dist A}) := P1 =1 P2.
+Lemma bool_vec_samE bs v : bool_vec_sam (bool_vec_knowing v bs) = v.
+Proof.
+rewrite /bool_vec_sam /bool_vec_knowing /bool_vec_fst /bool_vec_snd /=.
+apply/ffunP => i; rewrite !ffunE /=.
+case: splitP => j /= Hj.
+{ rewrite !ffunE.
+  case: splitP => l /= Hl.
+  { by f_equal; apply: ord_inj; rewrite /= -Hl -Hj. }
+  exfalso; suff: (k + l < k)%N by rewrite ltnNge leq_addr.
+  by rewrite -Hl. }
+rewrite /cast_bool_vecB /bool_vec_snd_nks !ffunE.
+case: splitP => l /= Hl.
+{ exfalso; suff: (k + (s + j) < k)%N by rewrite ltnNge leq_addr.
+  by rewrite /= Hl. }
+case: splitP => m /= Hm.
+{ exfalso; suff: (s + j < s)%N by rewrite ltnNge leq_addr.
+  move/addnI in Hl.
+  by rewrite Hl Hm. }
+f_equal; apply: ord_inj; simpl.
+move/addnI in Hl.
+rewrite -{}Hl in Hm.
+move/addnI in Hm.
+by rewrite -Hm.
+Qed.
  *)
+
+Lemma bool_vec_knowingE v :
+  bool_vec_knowing (knowing_bool_vec v) (bool_vec_snd_s v) = v.
+Proof.
+rewrite /knowing_bool_vec /bool_vec_knowing /bool_vec_fst /bool_vec_snd /=.
+apply/ffunP => i; rewrite !ffunE /=.
+case: splitP => j /= Hj.
+{ rewrite !ffunE.
+  case: ifP => /= Hl.
+  { by f_equal; apply: ord_inj; rewrite /= -Hj. }
+  f_equal; apply: ord_inj =>/=.
+  by rewrite ltn_ord in Hl. }
+case: splitP => l /= Hl.
+{ rewrite !ffunE.
+  f_equal; apply: ord_inj =>/=.
+  by rewrite Hj Hl. }
+rewrite !ffunE; case: splitP => m /= Hm.
+{ exfalso; suff: (k + l < k)%N by rewrite ltnNge leq_addr.
+  by rewrite Hm. }
+f_equal; apply: ord_inj =>/=.
+by rewrite Hj Hl (addnI Hm) !addnA (addnC s k).
+Qed.  
+
+Lemma bool_fun_of_Omega'K : cancel bool_fun_of_Omega' Omega'_of_bool_fun.
+Proof.
+move=> S; rewrite /bool_fun_of_Omega' /Omega'_of_bool_fun.
+apply/fprodP=> bs; rewrite fprodE.
+rewrite -[RHS]bool_fun_of_OmegaSK.
+f_equal.
+apply/ffunP => v.
+rewrite /bool_fun_knowing !ffunE.
+rewrite /bool_fun_knowing /knowing_bool_fun /OmegaS_of_bool_fun.
+by rewrite bool_vec_snd_sE bool_vec_knowingK.
+Qed. 
+
+Lemma Omega'_of_bool_funK : cancel Omega'_of_bool_fun bool_fun_of_Omega'.
+Proof.
+move=> f; rewrite /bool_fun_of_Omega' /Omega'_of_bool_fun.
+apply/ffunP => v; rewrite !(inE, ffunE).
+rewrite fprodE bool_vec_knowingE.
+rewrite /OmegaS_of_bool_fun /img_OmegaS.
+apply/imsetP; case: ifP => Hv.
+{ exists (vecS_bool_vec_knowing (bool_vec_snd_s v) (knowing_bool_vec v)).
+  { rewrite inE /= bool_vec_knowingK.
+    by rewrite ffunE bool_vec_knowingE. }
+  by rewrite /= bool_vec_knowingE. }
+case => [y Hy Hbs].
+ rewrite inE /= /bool_fun_knowing ffunE -Hbs bool_vec_knowingE in Hy.
+by rewrite Hy in Hv.
+Qed.
+
+Lemma bool_fun_of_Omega'_bij : bijective bool_fun_of_Omega'.
+Proof.
+by exists Omega'_of_bool_fun; [apply: bool_fun_of_Omega'K|apply: Omega'_of_bool_funK].
+Qed.
+
+Lemma Omega'_of_bool_fun_bij : bijective Omega'_of_bool_fun.
+Proof.
+by exists bool_fun_of_Omega'; [apply: Omega'_of_bool_funK|apply: bool_fun_of_Omega'K].
+Qed.
+
+(** Two probability spaces (A, {set A}, Pr PA) and (B, {set B}, Pr PB)
+    are isomorphic with respect to [f : A -> B] and [g : B -> A] if
+    [isom_dist PA PB f g] holds. *)
 
 Definition isom_dist (A B : finType) (PA : {dist A}) (PB : {dist B})
   (f : A -> B) (g : B -> A) :=
@@ -2601,16 +2717,6 @@ Lemma eq_Pr (A : finType) (P1 P2 : {dist A}) :
   P1 =1 P2 -> forall E : {set A}, Pr P1 E = Pr P2 E.
 Proof. move=> Heq E; apply: eq_bigr => i Hi; exact: Heq. Qed.
 
-(*
-Lemma isom_Pr (A : finType) (P1 P2 : {dist A}) :
-  isom_dist P1 P2 -> forall E : {set A}, Pr P1 E = Pr P2 E.
-Proof.
-move=> [f [g [fK gK Hf Hg]]] E.
-rewrite {1}/Pr (*(reindex f) /=; last by apply: onW_bij; exists g*).
-rewrite (eq_Pr Hf) /Pr /dist_img /=.
-Abort.
- *)
-
 Lemma isom_dist_img (A B : finType) (PA : {dist A})
   (f : A -> B) (g : B -> A) : cancel f g -> cancel g f ->
   isom_dist PA (dist_img f PA) f g.
@@ -2622,6 +2728,16 @@ rewrite big_pred1_eq.
 underp big b rewrite !inE (can_eq fK).
 by rewrite big_pred1_eq.
 Qed.
+
+Lemma isom_dist_Omega : isom_dist P dist_Omega' Omega'_of_bool_fun bool_fun_of_Omega'.
+Proof.
+split.
+- exact: Omega'_of_bool_funK.
+- exact: bool_fun_of_Omega'K.
+- move=> f; rewrite /dist_Omega' /dist_OmegaS /P /=.
+  admit.
+- admit.
+Admitted.
 
 (*
 Lemma Pr_dist_img (bs : bg_known_StratB) Q :
