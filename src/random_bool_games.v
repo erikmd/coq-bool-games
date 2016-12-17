@@ -2729,15 +2729,54 @@ underp big b rewrite !inE (can_eq fK).
 by rewrite big_pred1_eq.
 Qed.
 
-Lemma isom_dist_Omega : isom_dist P dist_Omega' Omega'_of_bool_fun bool_fun_of_Omega'.
+(*
+Lemma isom_dist_Omega' : isom_dist P dist_Omega' Omega'_of_bool_fun bool_fun_of_Omega'.
 Proof.
 split.
 - exact: Omega'_of_bool_funK.
 - exact: bool_fun_of_Omega'K.
-- move=> f; rewrite /dist_Omega' /dist_OmegaS /P /=.
-  admit.
-- admit.
-Admitted.
+Abort.
+ *)
+
+Lemma isom_dist_Omega' : P =1 dist_img bool_fun_of_Omega' dist_Omega'.
+Proof.
+move=> F.
+rewrite /P /dist_Omega' /dist_OmegaS /dist_Bernoulli /dist_Bernoulli_aux /= /Pr.
+rewrite (reindex_onto (@pow_of_bool_fun n) (@bool_fun_of_pow n)) /=; last first.
+{ by move=> i Hi; rewrite bool_fun_of_powK. }
+rewrite (reindex_onto Omega'_of_bool_fun bool_fun_of_Omega') /=; last first.
+{ by move=> i Hi; rewrite bool_fun_of_Omega'K. }
+apply eq_big => [i|i Hi].
+{ by rewrite !(inE, pow_of_bool_funK, Omega'_of_bool_funK). }
+rewrite /ProductDist.P.
+Opaque distb.
+rewrite (reindex_onto (@ord_of_bool_vec n) (@bool_vec_of_ord n)) /=; last first.
+{ by move=> v Hv; rewrite bool_vec_of_ordK. }
+underp big v rewrite ord_of_bool_vecK eqxx.
+rewrite (partition_big bool_vec_snd_s predT) //=.
+apply: eq_bigr => bs _.
+rewrite /Pr /Omega'_of_bool_fun.
+underp big a rewrite inE fprodE /= inj_eq.
+2: exact/can_inj/OmegaS_of_bool_funK.
+rewrite big_pred1_eq.
+rewrite /= /Pr.
+underp big a rewrite inE.
+rewrite /ProductDist.d /ProductDist.P /=.
+rewrite (reindex_onto (@pow_of_bool_fun _) (@bool_fun_of_pow _)) /=; last first.
+{ by move=> f Hf; rewrite bool_fun_of_powK. }
+underp big j rewrite pow_of_bool_funK eqxx andbC /=.
+rewrite big_pred1_eq.
+rewrite (reindex_onto (@ord_of_bool_vec _) (@bool_vec_of_ord _)) /=; last first.
+{ by move => j _; rewrite bool_vec_of_ordK. }
+underp big j rewrite ord_of_bool_vecK eqxx.
+rewrite (reindex_onto (bool_vec_knowing ^~ bs) knowing_bool_vec) /=; last first.
+{ by move=> v Hv; rewrite -(eqP Hv) bool_vec_knowingE. }
+apply: eq_big => [v|v Hv].
+{ by rewrite bool_vec_knowingK bool_vec_snd_sE !eqxx. }
+rewrite /pow_of_bool_fun /bool_fun_knowing !fprodE ffunE.
+by rewrite !ord_of_bool_vecK.
+Qed.  
+Transparent distb.
 
 (*
 Lemma Pr_dist_img (bs : bg_known_StratB) Q :
@@ -2752,11 +2791,20 @@ Lemma Pr_indep_knowing_Bern Q :
   \rmul_(bs in bg_known_StratB) Pr P [set F | Q (bool_fun_knowing F bs)].
 Proof.
 rewrite /P /dist_Bernoulli /dist_Bernoulli_aux.
+rewrite Pr_dist_imgE.
+under big bs _ rewrite Pr_dist_imgE.
+have->: (bool_fun_of_pow (n:=n) @^-1: [set F | [forall bs, Q (bool_fun_knowing F bs)]])
+= [set i | [forall bs, Q (bool_fun_knowing (bool_fun_of_pow i) bs)]].
+{ by apply/setP => i; rewrite !inE. }
+under big bs _
+  have->: (bool_fun_of_pow (n:=n) @^-1: [set F | Q (bool_fun_knowing F bs)])
+  = [set i | Q (bool_fun_knowing (bool_fun_of_pow i) bs)].
+2: by apply/setP => i; rewrite !inE.
 rewrite -ProductDist.indep; last first.
 { rewrite card_fprod.
   apply: prodn_cond_gt0 => _ _.
-  by rewrite !(card_ffun, card_bool) expn_gt0. }
-stepr (Pr P (\bigcap_(bs in bg_known_StratB) [set F | Q (bool_fun_knowing F bs)])).
+  by rewrite card_fprod prodn_gt0 // card_bool. }
+(*stepr (Pr P (\bigcap_(bs in bg_known_StratB) [set F | Q (bool_fun_knowing F bs)])).
 { rewrite /Pr.
   apply: eq_bigl => x; rewrite in_set; apply/forallP/bigcapP => H y.
   { rewrite inE => _; apply: H. }
@@ -2777,7 +2825,6 @@ erewrite (set_partition_big).
             [set F | Q (bool_fun_knowing F bs)]).
  *)
 
-(*
   underp big a rewrite in_set.
 stepr \r
 underp big a rewrite in_set.
@@ -2807,7 +2854,7 @@ rewrite -num_falseE /num_false.
 apply: eq_card => i /=.
 by rewrite !inE. (* . *)
 *)
-Admitted.
+Abort.
 
 (*
 Lemma bool_fun_knowingK bs : cancel (bool_fun_knowing ^~ bs) knowing_bool_fun.
@@ -2947,8 +2994,16 @@ Admitted.
 Check (knowing, knowing_bool_funK). 
 rewrite 
 admit. *)
-Admitted.
+Abort.
 
+Lemma bool_fun_of_Omega'E (S : Omega') bs :
+  bool_fun_knowing (bool_fun_of_Omega' S) bs = 
+  bool_fun_of_OmegaS (S bs).
+Proof.
+apply/ffunP => v.
+rewrite !ffunE bool_vec_knowingE.
+by rewrite bool_vec_snd_sE.
+Qed.
 
 Theorem Pr_ex_winA_knowing_Bern :
   Pr P [set F | [forall bs, exists a : bg_StratA k, winA_knowing (bool_game_of_bool_fun F) bs a]] =
@@ -2959,14 +3014,31 @@ stepr (Pr P [set F | [forall bs, exists a, winA (bool_game_of_bool_fun (bool_fun
   apply: eq_forallb => bs.
   apply: eq_existsb => a.
   by rewrite winA_knowingE bool_game_knowingE. }
-pose Q := (fun F' => [exists a, winA (bool_game_of_bool_fun F') a]).
-rewrite (Pr_indep_knowing_Bern (Q _ _ _)).
-(*under big bs _ rewrite (Pr_isom_knowing_Bern bs (Q _ _ _)).
-under big bs _ rewrite Pr_ex_winA_Bern.
-rewrite bigmul_card_constE.
-by rewrite !(card_ffun, card_bool, card_ord).
- *)
-Admitted.
+(* case: isom_dist_Omega => _ _ _ HP. *)
+pose HP := isom_dist_Omega'.
+rewrite (eq_Pr HP).
+rewrite Pr_dist_imgE.
+rewrite (_: bool_fun_of_Omega' @^-1: _ =
+  [set S : Omega' | [forall bs, S bs \in
+  [set s | [exists a, winA (bool_game_of_bool_fun (bool_fun_of_OmegaS s)) a]]]]).
+{ rewrite ProductDist.indep; last first.
+  { rewrite card_fprod.
+    apply: prodn_cond_gt0 => i _.
+    by apply/card_gt0P; exists set0. }
+  rewrite /dist_OmegaS.
+  under big i _ rewrite Pr_dist_imgE.
+  under big i _ rewrite (_: OmegaS_of_bool_fun i @^-1: _ =
+    [set F | [exists a, winA (bool_game_of_bool_fun F) a]]).
+  { under big i _ rewrite Pr_ex_winA_Bern.
+    by rewrite bigmul_card_constE card_bool_vec. }
+  apply/setP => F; rewrite !inE.
+  by rewrite OmegaS_of_bool_funK. }
+apply/setP => S; rewrite !inE.
+apply: eq_forallb => bs.
+rewrite inE.
+apply: eq_existsb => a.
+by rewrite bool_fun_of_Omega'E.
+Qed.
 
 End parameter_s_fixed.
 
