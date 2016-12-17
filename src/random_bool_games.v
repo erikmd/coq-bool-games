@@ -144,8 +144,10 @@ Let Omega := bool_fun n.
 
 Let Omega_set := {set bool_vec n}.
 
+(*
   Check @bool_fun_of_finset n : Omega_set -> Omega.
   Check @finset_of_bool_fun n : Omega -> Omega_set.
+ *)
 
 Let sigmA := {set Omega}.
 
@@ -597,9 +599,7 @@ Canonical fprod_subCountType := Eval hnf in [subCountType of fprod].
 Definition fprod_finm := [finMixin of fprod by <:].
 Canonical fprod_finType := Eval hnf in FinType fprod fprod_finm.
 Canonical fprod_subFinType := Eval hnf in [subFinType of fprod_finType].
-(* Print Canonical Projections.
-Print fprod_finm.
-Print fprod_cntm. *)
+(* Print Canonical Projections. Print fprod_finm. Print fprod_cntm. *)
 
 Lemma fprodK : cancel fprod_type_of_fprod fprod_of_fprod_type.
 Proof.
@@ -788,31 +788,6 @@ Defined.
 End Subtag.
 *)
 
-(*
-Check filter_map.
-Check eq_axiomK.
-Check eqVneq.
-Check Eqdep_dec.eq_rect_eq_dec.
-Check Eqdep_dec.inj_pair2_eq_dec.
-Check EqdepFacts.eq_rect_eq__eq_dep1_eq.
-Check rew_opp_l.
-Check card_partition.
-Check (big_seq, big_uniq).
-Check card_tagged.
-Check big_mkcond.
-Check big_seq.
-Check big_seq_cond.
-Check big_map.
-Check big_filter.
-Check tagged_as.
-Check partition_big.
-Check sum1dep_card.
-Check eq_card_sub.
-Check card1.
-Check card_sig.
-Check card_ffun.
- *)
-
 Lemma big_tag_cond (R : Type) (idx : R) (op : Monoid.com_law idx)
   (I : finType) (T_ : I -> finType) (Q_ : forall i, {set T_ i})
   (P_ : forall i : I, T_ i -> R) (i : I) (E : (0 < #|fprod T_|)%N) :
@@ -999,16 +974,6 @@ Qed.
 
 Definition d : {dist T} := makeDist P0 P1.
 
-(*
-Check topredE.
-Check unfold_in.
-Check in_simpl.
-
-Check lt0n.
-Check lt0n_neq0.
-Check eqn0Ngt.
-*)
-
 Lemma prodn_eq0 : forall (I : (*!*)finType) (r : seq I) (P : pred I) (F : I -> nat),
   (\prod_(i <- r | P i) F i = 0)%N -> [exists i : I, F i == 0]%N.
 Proof.
@@ -1029,33 +994,6 @@ Lemma indep (Q_ : forall i, {set T_ i}) :
 Proof.
 move=> Hcard.
 rewrite /Pr /d /= /P.
-(*
-case Ecard: #|T|.
-{ rewrite big1; last first.
-  { move=> t.
-    exfalso; refine (_ (_ : 0 < 0)%N); first by rewrite ltnn.
-    rewrite -{2}Ecard.
-    by apply/card_gt0P; exists t. }
-  under big i _ rewrite big1.
-  { rewrite bigmul_card_constE.
-    set c := #|predT|; have->: c = #|I| by [].
-    rewrite pow_ne_zero //.
-    by apply/eqP; rewrite -lt0n. }
-  move=> t _; exfalso.
-  refine (_ (_ : 0 < 0)%N); first by rewrite ltnn.
-  have K1 : #|T_ i| = 0%N.
-  (* skip *)
-  have := prodn_gt0.
-  rewrite card_fprod in Ecard.
-  apply/eqP; move/eqP: Ecard; apply: contraTT.
-  rewrite -!lt0n.
-  apply: prodn_gt0.
-  rewrite -{2}Ecard.
-  apply/card_gt0P; simpl.
-exists [fprod i : I => let _ := (i, i) in t].
-(* have {Ecard} /card_gt0P [it0 _] : (0 < #|T|)%N by rewrite Ecard. *)
-have Ecard0 : (0 < #|T|)%N by rewrite Ecard.
- *)
 (underp big t rewrite inE
   (_: [forall i, t i \in Q_ i] =
     [pred f | [forall i, ftagged Hcard f i \in Q_ i]] (fprod_fun t))); last first.
@@ -1088,16 +1026,6 @@ Qed.
 End ProductDist.
 
 End ProductDist.
-
-(*
-Check big_tnth.
-Check big_distr_big_dep.
-Check big_trivIset.
-Check partition_disjoint_bigcup.
-Check partition_big.
-Check exchange_big.
-Check pair_big.
- *)
 
 (** ** Random Boolean games and characterization of winning strategies *)
 
@@ -1220,11 +1148,6 @@ Definition Omega := bool_fun n.
 Variable P : {dist Omega}.
 
 Let sigmA := {set Omega}.
-
-(*
-Variable random_f : Omega.
-Definition g := bg_game_of random_f.
-*)
 
 Definition winA (g : bool_game) (a : bg_StratA) : bool :=
   [forall b : bg_StratB, g (a, b) (** == true *)].
@@ -1384,16 +1307,6 @@ by rewrite map_id mem_enum_setE.
 Qed.
 
 End Proba_games.
-
-(*
-Section Proba_product.
-
-Variables (I : finType) (T_ : I -> finType).
-(* Check #|{: {i : I & T_ i}}|. *)
-Variable P_ : forall i, dist (T_ i).
-
-End Proba_product.
- *)
 
 Section Proba_winning.
 
@@ -2082,11 +1995,6 @@ Definition winA_knowing
   (g : bool_game n k) (bs : bg_known_StratB) (a : bg_StratA k) : bool :=
   [forall b : bg_StratB n k, compat_knowing bs b ==> g (a, b)].
 
-(*
-Compute val (@widen_ord 1 2 erefl ord0).
-Compute val (rshift 2 (@ord_max 1)).
-*)
-
 Definition rshift_nk_n (i : 'I_(n - k)) : 'I_n :=
   cast_ord (@knk_eqn _ _ Hkn) (rshift k i).
 
@@ -2103,14 +2011,6 @@ case: s Hsnk => [|s'] H'.
 case: k H'  => [//|k'].
 by rewrite !ltn_subRL !addSn addnC.
 Qed.
-
-(*
-Lemma widen_s_nK x : rshift_nk_n (widen_s_nk x) = @widen_k_n n s _ x.
-Proof.
-rewrite /widen_k_n /rshift_nk_n /widen_s_nk.
-apply/val_inj; rewrite /=.
-Abort.
- *)
 
 Definition rshift_s_n (i : 'I_(n - s)) : 'I_n :=
   cast_ord (@knk_eqn _ _ leq_s_nk) (rshift s i).
@@ -2135,44 +2035,10 @@ Definition bool_vec_snd_nks (v : bool_vec n) : bool_vec (n - k - s) :=
 Definition subnC : forall m n p, (m - n - p = m - p - n)%N.
 Proof. clear=> m n p. by rewrite -!subnDA addnC. Qed.
 
-(* UNNEEDED
-
-Definition cast_bool_vec l m (E : l = m) (v : bool_vec l) : bool_vec m :=
-(* match m with
-  | O => [ffun i : 'I_0 => false]
-  | S n' => [ffun i : 'I_n'.+1 => v (@inord n' i)]
-  end. *)
-  [ffun i : 'I_m => v (cast_ord (sym_eq E) i)].
-
-Lemma cast_bool_vec_lem l m v1 v2 (i1 : 'I_l) (i2 : 'I_m) (E : l = m) :
-  (nat_of_ord i1) = (nat_of_ord i2) ->
-  cast_bool_vec E v1 i2 = v2 i2 ->
-  v1 i1 = v2 i2.
-Proof.
-move=> HE.
-case: l E v1 i1 HE => [|l] E v1 i1 HE; case: m E v2 i2 HE  => [|m] E v2 i2 HE.
-- exfalso; apply: ord0_false i1.
-- exfalso; apply: ord0_false i1.
-- exfalso; apply: ord0_false i2.
-- rewrite /cast_bool_vec ffunE -{1}[i2]inord_val -HE /cast_ord /=.
-  move<-; f_equal.
-  apply: val_inj =>/=.
-  case: E =><-.
-  by rewrite inordK.
-Qed.
- *)
-
 Definition cast_bool_vecB : forall m n p (v : bool_vec (m - n - p)),
   bool_vec (m - p - n) :=
   fun m n p v =>
-  (* ecast i (bool_vec i) (subnC m n p) v *)
   [ffun i : 'I_(m - p - n) => v (cast_ord (subnC m p n) i)].
-
-(* DUPLICATE OF [knowing_bool_vec] BELOW
-(* sam := split and merge *)
-Definition bool_vec_sam (v : bool_vec n) : bool_vec (n - s) :=
-  @bool_vec_cat (n - s) k _ (bool_vec_fst v, cast_bool_vecB (bool_vec_snd_nks v)).
- *)
 
 Definition bool_game_knowing (g : bool_game n k) (bs : bg_known_StratB) :
   bool_game (n - s) k :=
@@ -2227,36 +2093,6 @@ move/(_ b2): Hall; rewrite ffunE /=.
 by rewrite /b2 cast_bool_vecB_K bool_vec_sndK.
 Qed.
 
-(* DRAFT
-
-Definition WK_ (bs : bg_known_StratB) : {set Omega n} :=
-  [set w : Omega n | (w_knowing bs) ⇒0 w].
-
-Fact winA_knowing_eq :
-  forall (f : Omega n) (a : bg_StratA k) (bs : bg_known_StratB),
-  winA_knowing (bool_game_of_bool_fun f) bs a = (f \in WK_ bs).
-Proof.
-move=> f a bs; rewrite /winA_knowing /WK_ /w_knowing inE implies0E.
-apply/forallP/subsetP => H /= x.
-rewrite !inE !ffunE.
-Show 2.
-rewrite inE.
-Abort.
-
-Lemma w_knowingE bs : w_knowing bs = @w_ (n - s) (n - k s) bs
-
-Lemma w_knowingE bs :
-  w_knowing bs = @w_ n s _ bs.
-Proof.
-apply/ffunP => v; rewrite !ffunE.
-apply: eq_forallb => x; congr eq_op; apply congr1.
-apply: val_inj =>/=.
-
-Definition ex_winA_knowing (g : bool_game n k) (bs : bg_known_StratB) : bool :=
-  [exists a : bg_StratA k, forall b : bg_StratB n k, compat_knowing bs b ==> g (a, b)].
-
-*)
-
 Let eqn_ks_nsk : (n = k + (s + (n - s - k)))%N.
 Proof.
 rewrite -{1}(@subnKC k n) //.
@@ -2270,15 +2106,8 @@ Proof. by rewrite knk_eqn. Qed.
 
 Definition widen_ns_n : 'I_(n - s) -> 'I_n := widen_ord leq_prop.
 
-(* Definition widen_nsk_ns : 'I_(n - s - k) -> 'I_(n - s) := widen_ord leq_prop. *)
-
 Definition rshift_nsk_ns (i : 'I_(n - s - k)) : 'I_(n - s) :=
   cast_ord k_nsk_eqn (rshift k i).
-
-(* Version 1
-Definition bool_fun_knowing (F : bool_fun n) (bs : bg_known_StratB) :=
-  bool_fun_of_bool_game (bool_game_knowing (bool_game_of_bool_fun F) bs).
- *)
 
 Definition bool_vec_knowing (v : bool_vec (n - s)) (bs : bg_known_StratB) : bool_vec n :=
   [ffun i => match split (cast_ord eqn_ks_nsk i) with
@@ -2409,17 +2238,6 @@ apply/ffunP => v; rewrite !ffunE; apply congr1.
 by rewrite bool_vec_knowingK.
 Qed.
 
-(*
-Check cover.
-Check partition.
- *)
-
-(* Version 1
-
-Definition S_ (bs : bg_known_StratB) : {set {set 'I_n}} :=
-  [set v : {set 'I_n} | compat_knowing bs (bool_vec_snd (bool_vec_of_setord v))].
- *)
-
 Definition S_ (bs : bg_known_StratB) : {set bool_vec n} :=
   [set v : bool_vec n | compat_knowing bs (bool_vec_snd v)].
 
@@ -2460,13 +2278,6 @@ case: splitP => l Hl.
 { exfalso; have : (s + l < s)%N by rewrite -Hl -Hj ltn_ord.
   by rewrite ltnNge leq_addr. }
 Qed.
-
-(*
-Definition OmegaS_ bs := {set {v : bool_vec n | v \in S_ bs}}.
-
-Definition OmegaS_inj bs : OmegaS_ bs -> {set bool_vec n} :=
-  fun S => [set tag v | v : {v : bool_vec n | v \in S_ bs} in S].
- *)
 
 Section vecS.
 Variable (bs : bg_known_StratB).
@@ -2611,33 +2422,6 @@ exfalso; suff: (s + l < s)%N by rewrite ltnNge leq_addr.
 by rewrite -Hl -(addnI Hj).
 Qed.
 
-(*
-Lemma bool_vec_samE bs v : bool_vec_sam (bool_vec_knowing v bs) = v.
-Proof.
-rewrite /bool_vec_sam /bool_vec_knowing /bool_vec_fst /bool_vec_snd /=.
-apply/ffunP => i; rewrite !ffunE /=.
-case: splitP => j /= Hj.
-{ rewrite !ffunE.
-  case: splitP => l /= Hl.
-  { by f_equal; apply: ord_inj; rewrite /= -Hl -Hj. }
-  exfalso; suff: (k + l < k)%N by rewrite ltnNge leq_addr.
-  by rewrite -Hl. }
-rewrite /cast_bool_vecB /bool_vec_snd_nks !ffunE.
-case: splitP => l /= Hl.
-{ exfalso; suff: (k + (s + j) < k)%N by rewrite ltnNge leq_addr.
-  by rewrite /= Hl. }
-case: splitP => m /= Hm.
-{ exfalso; suff: (s + j < s)%N by rewrite ltnNge leq_addr.
-  move/addnI in Hl.
-  by rewrite Hl Hm. }
-f_equal; apply: ord_inj; simpl.
-move/addnI in Hl.
-rewrite -{}Hl in Hm.
-move/addnI in Hm.
-by rewrite -Hm.
-Qed.
- *)
-
 Lemma bool_vec_knowingE v :
   bool_vec_knowing (knowing_bool_vec v) (bool_vec_snd_s v) = v.
 Proof.
@@ -2729,14 +2513,7 @@ underp big b rewrite !inE (can_eq fK).
 by rewrite big_pred1_eq.
 Qed.
 
-(*
-Lemma isom_dist_Omega' : isom_dist P dist_Omega' Omega'_of_bool_fun bool_fun_of_Omega'.
-Proof.
-split.
-- exact: Omega'_of_bool_funK.
-- exact: bool_fun_of_Omega'K.
-Abort.
- *)
+(* |- isom_dist P dist_Omega' Omega'_of_bool_fun bool_fun_of_Omega'. *)
 
 Lemma isom_dist_Omega' : P =1 dist_img bool_fun_of_Omega' dist_Omega'.
 Proof.
@@ -2778,223 +2555,11 @@ by rewrite !ord_of_bool_vecK.
 Qed.  
 Transparent distb.
 
-(*
-Lemma Pr_dist_img (bs : bg_known_StratB) Q :
-  Pr P [set F | [forall bs, Q (bool_fun_knowing F bs)]] =
-  Pr (dist_Bernoulli (n - s) (p:=p)) [set f | [forall bs, Q f]].
-Proof.
-Check dist_img.
- *)
-
-Lemma Pr_indep_knowing_Bern Q :
-  Pr P [set F | [forall bs, Q (bool_fun_knowing F bs)]] =
-  \rmul_(bs in bg_known_StratB) Pr P [set F | Q (bool_fun_knowing F bs)].
-Proof.
-rewrite /P /dist_Bernoulli /dist_Bernoulli_aux.
-rewrite Pr_dist_imgE.
-under big bs _ rewrite Pr_dist_imgE.
-have->: (bool_fun_of_pow (n:=n) @^-1: [set F | [forall bs, Q (bool_fun_knowing F bs)]])
-= [set i | [forall bs, Q (bool_fun_knowing (bool_fun_of_pow i) bs)]].
-{ by apply/setP => i; rewrite !inE. }
-under big bs _
-  have->: (bool_fun_of_pow (n:=n) @^-1: [set F | Q (bool_fun_knowing F bs)])
-  = [set i | Q (bool_fun_knowing (bool_fun_of_pow i) bs)].
-2: by apply/setP => i; rewrite !inE.
-rewrite -ProductDist.indep; last first.
-{ rewrite card_fprod.
-  apply: prodn_cond_gt0 => _ _.
-  by rewrite card_fprod prodn_gt0 // card_bool. }
-(*stepr (Pr P (\bigcap_(bs in bg_known_StratB) [set F | Q (bool_fun_knowing F bs)])).
-{ rewrite /Pr.
-  apply: eq_bigl => x; rewrite in_set; apply/forallP/bigcapP => H y.
-  { rewrite inE => _; apply: H. }
-  have := H y; rewrite inE; exact. }
-rewrite /P /dist_Bernoulli.
-rewrite Pr_dist_imgE /dist_Bernoulli_aux.
-set dBn := dist_Bernoulli_aux n (p := p).
-set dB := dist_img (bool_fun_of_pow (n:=n)) dBn : {dist bool_fun n}.
-rewrite /Pr /= /Pr /=.
-underp big b rewrite inE.
-underp big b rewrite inE /=.
-
-erewrite (set_partition_big).
-
-(* now_show (Pr P (\bigcap_(bs in bg_known_StratB)
-            [set F | Q (bool_fun_knowing F bs)]) =
-         \rmul_(bs in bg_known_StratB) Pr P
-            [set F | Q (bool_fun_knowing F bs)]).
- *)
-
-  underp big a rewrite in_set.
-stepr \r
-underp big a rewrite in_set.
-symmetry; (under big bs _ underp big a rewrite in_set); symmetry.
-rewrite /= /Pr.
-symmetry; (under big bs _ underp big a rewrite in_set); symmetry.
-under big bs _ rewrite set1
-rewrite /TupleDist.f num_falseE.
-underp big a rewrite in_set.
-rewrite (reindex pow_of_bool_fun) /=; last first.
-  apply: onW_bij; exact: pow_of_bool_fun_bij.
-underp big j rewrite pow_of_bool_funK.
-rewrite big_pred1_eq.
-under big i _ rewrite ffunE /pow_of_bool_fun mxE.
-rewrite (reindex ord_of_bool_vec) /=; last first.
-  apply: onW_bij; exact: ord_of_bool_vec_bij.
-under big j _ rewrite ord_of_bool_vecK val0_bool.
-rewrite (bigID f predT) /=.
-under big i Hi rewrite Hi eqxx qqE.
-rewrite bigmul_card_constE.
-under big i Hi rewrite (negbTE Hi) /=.
-rewrite bigmul_card_constE /=.
-rewrite /num_true.
-congr Rmult; congr pow.
-{ by rewrite cardsE. }
-rewrite -num_falseE /num_false.
-apply: eq_card => i /=.
-by rewrite !inE. (* . *)
-*)
-Abort.
-
-(*
-Lemma bool_fun_knowingK bs : cancel (bool_fun_knowing ^~ bs) knowing_bool_fun.
-Proof.
-move=> F.
-rewrite /bool_fun_knowing.
-apply/ffunP => v; rewrite !ffunE; apply congr1.
-apply/ffunP => i; rewrite !ffunE.
-case: splitP=> /= j Hj.
-{ rewrite !ffunE.
-  rewrite ifT; first by apply congr1; apply: val_inj; rewrite /= Hj.
-  simpl; exact: ltn_ord. }
-case: splitP => l Hl /=.
-Abort.
- *)
-
 Definition knowing_vec (bs : bg_known_StratB) (v : bool_vec n) : bool :=
   bool_vec_knowing (knowing_bool_vec v) bs == v.
 
 Definition knowing_fun (bs : bg_known_StratB) (F : bool_fun n) : bool :=
   knowing_bool_fun (bool_fun_knowing F bs) == F.
-
-Lemma knowing_funE (bs : bg_known_StratB) (F : bool_fun n) :
-  knowing_fun bs F ->
-  (forall v, F v -> knowing_vec bs v).
-Proof.
-rewrite /knowing_fun /knowing_bool_fun /bool_fun_knowing => /eqP /ffunP H.
-move=> v Fv.
-rewrite /knowing_vec.
-move/(_ v) in H.
-rewrite !ffunE in H.
-(*apply/eqP/ffunP => v; rewrite !ffunE.
-move(*/forallP*)/(_ v): H; rewrite /knowing_vec => H.
-case: (boolP (bool_vec_knowing (knowing_bool_vec v) bs == v));
-  first by move/eqP ->.
-move/negbTE => K; rewrite K in H.
-have nFv : F v = false by apply/negbTE/negP => K'; apply/notF/H.
-rewrite nFv.
- *)
-Abort.
-
-Lemma bool_vec_knowing_onK (bs : bg_known_StratB) (f : bool_fun n) :
-  knowing_fun bs f ->
-  {on [pred x | f x], bijective (bool_vec_knowing ^~ bs)}.
-Proof.
-move=> Hf; exists knowing_bool_vec => v; first by rewrite bool_vec_knowingK.
-rewrite inE; rewrite /knowing_fun in Hf.
-rewrite -(eqP Hf).
-rewrite /knowing_bool_fun /bool_fun_knowing !ffunE.
-Abort.
-
-Lemma Pr_isom_knowing_Bern bs Q :
-  Pr P [set F | Q (bool_fun_knowing F bs) && knowing_fun bs F] =
-  @Pr _ (@dist_Bernoulli (n - s) p Hp) [set F | Q F].
-Proof.
-rewrite /P /Pr.
-under big a _ rewrite dist_BernoulliE.
-under big a _ rewrite dist_BernoulliE.
-underp big a rewrite in_set.
-underp big a rewrite in_set.
-simpl.
-rewrite (reindex_onto
-           (fun a : {ffun bool ^ (n) -> bool} => bool_fun_knowing a bs)
-           (fun a : {ffun bool ^ (n - s) -> bool} => knowing_bool_fun a)
-        ); last first.
-{ by move=> i Hi; rewrite knowing_bool_funK. }
-(* { by move=> f; case/andP => _; rewrite /knowing_fun; move/eqP. } *)
-simpl.
-apply eq_big => f // Hf.
-repeat f_equal.
-{ rewrite /num_true.
-  (* rewrite -{1}(eqP (proj2 (andP (Hf)))).
-  rewrite /knowing_bool_fun. *)
-  rewrite /bool_fun_knowing.
-  rewrite on_card_preimset; last by apply: onW_bij; exists id; move=> *.
-  rewrite on_card_preimset; last by apply: onW_bij; exists id; move=> *.
-  rewrite -(on_card_preimset (f := bool_vec_knowing ^~ bs) (R := f)).
-  { by apply: eq_card => i; rewrite /preimset !inE !unfold_in !ffunE. }
-  admit.
-  (*
-  rewrite knowing_bool_vecK.
-  have->: #|finset_of_bool_fun f| = #|[set bool_vec_knowing x bs | x in finset_of_bool_fun f]|.
-  rewrite on
-  rewrite card_imset; last by apply: onW_bij; exists id; move=> *.
-  rewrite /bool_fun_knowing /finset_of_bool_fun.
-  symmetry; erewrite eq_set; last first.
-  by move=> w; rewrite ffunE.
-
-  apply: eq_card.
-  rewrite ffunE.
-  rewrite -{1}[bool_fun_knowing f bs]finset_of_bool_funK.
-  pose f0 t := @finset_of_bool_fun n (knowing_bool_fun (@bool_fun_of_finset (n - s) t)).
-  rewrite -/(f0 (finset_of_bool_fun (bool_fun_knowing f bs))).
-  rewrite -cardsE.
-  Check finset_of_bool_fun (bool_fun_knowing f bs).
-  Check imset.
-  have := (on_card_preimset (f := f0)).
-  symmetry; erewrite <-card_imset.
-  Check (f0 @: ).
-  rewrite (card_imset (f := f0)).
-    rewrite (on_card_preimset (f := f0)).
-  rewrite -Imset.imsetE.
-  rewrite [LHS]card_imset.
-  rewrite imset_card
-  Set Printing All.
-  rewrite card_image.
-  rewrite (on_card_preimset (f := f0)).
-  ; last by apply: onW_bij; exists id; move=> *.
-  rewrite on_card_preimset; last by apply: onW_bij; exists id; move=> *.
-  set lhs := LHS.
-  have->: lhs = #|preimset (bool_fun_knowing f bs) (finset_of_bool_fun f)|.
-  rewrite on_card_preimset /lhs /=.
-Check  f0 @^-1: (finset_of_bool_fun (bool_fun_knowing f bs)).
-  have := (on_card_preimset (f := knowing_bool_fun)).
-
-  (R:= mem (finset_of_bool_fun (bool_fun_knowing f bs)))).
-  rewrite (
-  rewrite /knowing in Hf.
-  symmetry; erewrite <-on_card_preimset.
-  2: exists (Q).
-       2: red=>*.
-       3: red=>*.
-       Unshelve.
-       4: exact ((bool_fun_knowing f bs)).
-       2: apply knowing_bool_funK.
-  rewrite card_imset.
-  rewrite on_card_preimset; last by apply: onW_bij; exists id; move=> *.
-  f_equal; rewrite card_image //; exact/bij_inj/enum_rank_bij. }
-
-  rewrite card
-  rewrite -{1}[bool_fun_knowing i bs](knowing_bool_funK bs).
-  admit. }
-rewrite /num_false.
-admit.
-Admitted.
-  apply eq_card.
-Check (knowing, knowing_bool_funK). 
-rewrite 
-admit. *)
-Abort.
 
 Lemma bool_fun_of_Omega'E (S : Omega') bs :
   bool_fun_knowing (bool_fun_of_Omega' S) bs = 
@@ -3014,7 +2579,6 @@ stepr (Pr P [set F | [forall bs, exists a, winA (bool_game_of_bool_fun (bool_fun
   apply: eq_forallb => bs.
   apply: eq_existsb => a.
   by rewrite winA_knowingE bool_game_knowingE. }
-(* case: isom_dist_Omega => _ _ _ HP. *)
 pose HP := isom_dist_Omega'.
 rewrite (eq_Pr HP).
 rewrite Pr_dist_imgE.
