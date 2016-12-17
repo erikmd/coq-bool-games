@@ -2487,10 +2487,8 @@ End vecS.
 
 Definition OmegaS bs := {set (vecS bs)}.
 
-(*
-Lemma inj_vec bs : injective (@vec bs).
+Lemma vec_inj bs : injective (@vec bs).
 Proof. exact: val_inj. Qed.
- *)
 
 Definition imgOmegaS bs (S : OmegaS bs) := [set vec s | s in S].
 
@@ -2521,7 +2519,18 @@ apply: (iffP idP) => Hmain.
   rewrite ffunE; case: ifP => /= K; f_equal; apply: ord_inj =>//=.
   exfalso; by rewrite ltnNge leq_addr in K.
   by rewrite Hj Hl !addnA (addnC s k). }
-Admitted.
+apply/forallP => i.
+rewrite -Hmain.
+rewrite /bool_vec_snd /= !ffunE.
+case: splitP => j /= Hj.
+{ exfalso; have : (k + i < k)%N by rewrite Hj; apply: ltn_ord.
+  by rewrite ltnNge leq_addr. }
+case: splitP => l /= Hl.
+  by apply/eqP; f_equal; apply: ord_inj; rewrite -Hl; symmetry; apply: addnI Hj.
+move/addnI in Hj.
+exfalso; have : (s + l < s)%N by rewrite -Hl -Hj.
+by rewrite ltnNge leq_addr.
+Qed.
 
 Lemma bool_fun_of_OmegaSK bs : cancel (@bool_fun_of_OmegaS bs) (OmegaS_of_bool_fun bs).
 Proof.
@@ -2532,7 +2541,15 @@ apply/imsetP; case: ifP => Hv.
   clear Hv; have [/= x Hx] := SubP v.
   rewrite /S_ inE in Hx.
   exact/compat_knowingP. }
-Admitted.
+case => [y Hy Hbs].
+have : y = v.
+{ apply: vec_inj.
+  rewrite -Hbs.
+  apply/compat_knowingP.
+  have {Hbs Hv} [/= w Hw] := SubP v.
+  by rewrite /S_ inE in Hw. }
+by move=> K; rewrite K in Hy; rewrite Hy in Hv.
+Qed.
 
 Lemma OmegaS_of_bool_funK bs : cancel (OmegaS_of_bool_fun bs) (@bool_fun_of_OmegaS bs).
 Proof.
