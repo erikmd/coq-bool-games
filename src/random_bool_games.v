@@ -2551,12 +2551,25 @@ have : y = v.
 by move=> K; rewrite K in Hy; rewrite Hy in Hv.
 Qed.
 
+Program Definition vecS_bool_vec_knowing bs (v : bool_vec (n - s)) : vecS bs :=
+  @Build_vecS _ (bool_vec_knowing v bs) _.
+Next Obligation.
+rewrite /S_ inE.
+apply/compat_knowingP.
+by rewrite bool_vec_knowingK.
+Defined.
+
 Lemma OmegaS_of_bool_funK bs : cancel (OmegaS_of_bool_fun bs) (@bool_fun_of_OmegaS bs).
 Proof.
 move=> f; rewrite /bool_fun_of_OmegaS /OmegaS_of_bool_fun /imgOmegaS.
 apply/ffunP => v; rewrite !(inE, ffunE).
 apply/imsetP; case: ifP => Hf.
-Admitted.
+{ exists (vecS_bool_vec_knowing bs v) =>//.
+  by rewrite inE /= bool_vec_knowingK. }
+case => [y Hy Hbs].
+rewrite inE /= -Hbs bool_vec_knowingK in Hy.
+by rewrite Hy in Hf.
+Qed.
 
 Lemma bool_fun_of_OmegaS_bij bs : bijective (@bool_fun_of_OmegaS bs).
 Proof.
