@@ -2494,7 +2494,7 @@ Proof. exact: val_inj. Qed.
 
 Definition imgOmegaS bs (S : OmegaS bs) := [set vec s | s in S].
 
-(** [OmegaS bs] is isomorphic to [bool_fun (n - s)] *)
+(** [OmegaS bs] is isomorphic to [{set bool_vec (n - s)}] *)
 
 Definition bool_fun_of_OmegaS bs (S : OmegaS bs) : bool_fun (n - s) :=
   [ffun v : bool_vec (n - s) => bool_vec_knowing v bs \in imgOmegaS S].
@@ -2502,16 +2502,43 @@ Definition bool_fun_of_OmegaS bs (S : OmegaS bs) : bool_fun (n - s) :=
 Definition OmegaS_of_bool_fun bs (f : bool_fun (n - s)) : OmegaS bs :=
   [set v : vecS bs | f (knowing_bool_vec (val v))].
 
+Lemma compat_knowingP bs (x : bool_vec n) :
+  reflect (bool_vec_knowing (knowing_bool_vec x) bs = x)
+          (compat_knowing bs (bool_vec_snd x)).
+Proof.
+apply: (iffP idP) => Hmain.
+{ apply/ffunP => i.
+  rewrite /compat_knowing in Hmain.
+  rewrite /knowing_bool_vec /bool_vec_knowing ffunE.
+  case: splitP => j /= Hj.
+  { rewrite ffunE /=; case: ifP => Hjk; f_equal; apply: ord_inj =>//=.
+    by exfalso; rewrite ltn_ord in Hjk. }
+  case: splitP => l /= Hl.
+  { move/forallP/(_ l)/eqP: Hmain <-.
+    rewrite /bool_vec_snd /= ffunE.
+    f_equal; apply: ord_inj =>//=.
+    by rewrite -Hl Hj. }
+  rewrite ffunE; case: ifP => /= K; f_equal; apply: ord_inj =>//=.
+  exfalso; by rewrite ltnNge leq_addr in K.
+  by rewrite Hj Hl !addnA (addnC s k). }
+Admitted.
+
 Lemma bool_fun_of_OmegaSK bs : cancel (@bool_fun_of_OmegaS bs) (OmegaS_of_bool_fun bs).
 Proof.
 move=> S; rewrite /bool_fun_of_OmegaS /OmegaS_of_bool_fun /imgOmegaS.
 apply/setP => v; rewrite !(inE, ffunE).
+apply/imsetP; case: ifP => Hv.
+{ exists v =>//.
+  clear Hv; have [/= x Hx] := SubP v.
+  rewrite /S_ inE in Hx.
+  exact/compat_knowingP. }
 Admitted.
 
 Lemma OmegaS_of_bool_funK bs : cancel (OmegaS_of_bool_fun bs) (@bool_fun_of_OmegaS bs).
 Proof.
 move=> f; rewrite /bool_fun_of_OmegaS /OmegaS_of_bool_fun /imgOmegaS.
 apply/ffunP => v; rewrite !(inE, ffunE).
+apply/imsetP; case: ifP => Hf.
 Admitted.
 
 Lemma bool_fun_of_OmegaS_bij bs : bijective (@bool_fun_of_OmegaS bs).
