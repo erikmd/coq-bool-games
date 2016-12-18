@@ -825,7 +825,7 @@ Qed.
 Definition W_ (a : bg_StratA) : sigmA :=
   [set w : Omega | (w_ a) ⇒0 w].
 
-Fact winA_eq :
+Lemma winA_eq :
   forall (f : Omega) (a : bg_StratA),
   winA (bool_game_of_bool_fun f) a = (f \in W_ a).
 Proof.
@@ -1117,7 +1117,7 @@ Definition num_false (f : bool_fun n) := #|~: finset_of_bool_fun f|.
 Lemma num_falseE f : num_false f = (2^n - num_true f)%N.
 Proof. by rewrite /num_false /num_true cardsCs card_bool_vec setCK. Qed.
 
-Fact dist_BernoulliE f :
+Lemma dist_BernoulliE f :
   dist_Bernoulli f = p ^ (num_true f) * (1 - p) ^ (num_false f).
 Proof.
 underp big a rewrite in_set.
