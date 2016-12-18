@@ -230,39 +230,6 @@ Notation "[ 'fprod' i => F ]" := [fprod i : _ => F]
 Notation "[ 'fprod' => F ]" := [fprod : _ => F]
   (at level 0, format "[ 'fprod' =>  F ]") : fun_scope.
 
-(* UNNEEDED
-
-Section Subtag.
-Variables (I : finType) (T_ : I -> finType).
-(* Context {i : I}. *)
-Context (i : I).
-Record subtag : predArgType :=
-  { subtag0 :> {i : I & T_ i} ;
-    subtag_prop : tag (subtag0) == i }.
-Canonical subtag_subType := Eval hnf in [subType for subtag0].
-Definition subtag_eqm := Eval hnf in [eqMixin of subtag by <:].
-Canonical subtag_eqType := Eval hnf in EqType subtag subtag_eqm.
-Definition subtag_chm := [choiceMixin of subtag by <:].
-Canonical subtag_choiceType := Eval hnf in ChoiceType subtag subtag_chm.
-Definition subtag_cntm := [countMixin of subtag by <:].
-Canonical subtag_countType := Eval hnf in CountType subtag subtag_cntm.
-Canonical subtag_subCountType := Eval hnf in [subCountType of subtag].
-Definition subtag_finm := [finMixin of subtag by <:].
-Canonical subtag_finType := Eval hnf in FinType subtag subtag_finm.
-Canonical subtag_subFinType := Eval hnf in [subFinType of subtag_finType].
-
-Definition tagged_sub (sti : subtag) := tagged' (subtag_prop sti).
-
-Program Definition Tagged_sub (sti : T_ i) : subtag.
-eapply Build_subtag.
-Unshelve.
-2: eapply Tagged.
-2: eapply sti.
-done.
-Defined.
-End Subtag.
-*)
-
 Lemma big_tag_cond (R : Type) (idx : R) (op : Monoid.com_law idx)
   (I : finType) (T_ : I -> finType) (Q_ : forall i, {set T_ i})
   (P_ : forall i : I, T_ i -> R) (i : I) (E : (0 < #|fprod T_|)%N) :
