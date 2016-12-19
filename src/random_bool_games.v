@@ -518,7 +518,7 @@ refine (mkDist (pmf := (mkPosFun (pos_f := fun b => Pr PA [set x | X x == b])
 exact: dist_img_proof.
 Defined.
 
-Lemma Pr_dist_imgE {A B : finType} (X : A -> B) (PA : {dist A}) (E : {set B}):
+Lemma Pr_dist_img {A B : finType} (X : A -> B) (PA : {dist A}) (E : {set B}):
   Pr (dist_img X PA) E = Pr PA (X @^-1: E).
 Proof.
 rewrite /dist_img /Pr /=.
@@ -2227,7 +2227,7 @@ stepr (Pr P [set F | [forall bs, exists a, winA (bool_game_of_bool_fun (bool_fun
   by rewrite winA_knowingE bool_game_knowingE. }
 pose HP := isom_dist_Omega'.
 rewrite (eq_Pr HP).
-rewrite Pr_dist_imgE.
+rewrite Pr_dist_img.
 rewrite (_: bool_fun_of_Omega' @^-1: _ =
   [set B : Omega' | [forall bs, B bs \in
   [set s | [exists a, winA (bool_game_of_bool_fun (bool_fun_of_OmegaB s)) a]]]]).
@@ -2236,7 +2236,7 @@ rewrite (_: bool_fun_of_Omega' @^-1: _ =
     apply: prodn_cond_gt0 => i _.
     by apply/card_gt0P; exists set0. }
   rewrite /dist_OmegaB.
-  under big i _ rewrite Pr_dist_imgE.
+  under big i _ rewrite Pr_dist_img.
   under big i _ rewrite (_: OmegaB_of_bool_fun i @^-1: _ =
     [set F | [exists a, winA (bool_game_of_bool_fun F) a]]).
   { under big i _ rewrite Pr_ex_winA_Bern.
