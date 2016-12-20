@@ -24,3 +24,13 @@ then "untar" the archive, "cd" into the infotheo folder, and type
 
 Lastly, "cd" into the directory that contains this README and type
     $ ./configure && make -j2
+
+Documentation
+-------------
+
+To generate documentation from the Coq code using coqdoc and graphviz:
+
+    $ make doc
+
+The documentation can then be browsed from html/toc.html with
+your favorite browser.
