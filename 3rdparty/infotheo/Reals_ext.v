@@ -100,10 +100,7 @@ Proof. move=> *. fourier. Qed.
 Lemma INR_Zabs_nat x : (0 <= x)%Z -> INR (Zabs_nat x) = IZR x.
 Proof.
 move=> Hx.
-destruct x => //.
-suff : False by done.
-suff : ~ (0 <= Zneg p)%Z by contradiction.
-by apply Zlt_not_le.
+by destruct x.
 Qed.
 
 Lemma Rmax_Rle_in r1 r2 r : Rmax r1 r2 <= r -> r1 <= r /\ r2 <= r.
