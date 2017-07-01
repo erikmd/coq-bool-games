@@ -630,8 +630,8 @@ rewrite -lt0n.
 apply: prodn_gt0.
 move/forallP in Hall.
 by move=> i; rewrite lt0n.
-Qed.  
-  
+Qed.
+
 Lemma indep (Q_ : forall i, {set T_ i}) :
   (* (0 < #|I|)%N -> *)
   (0 < #|T|)%N ->
@@ -667,7 +667,7 @@ move=> H; split.
 apply/forallP => i; move/(_ i) in H.
 rewrite unfold_in in H.
 by rewrite (proj2 (andP H)).
-Qed.  
+Qed.
 
 End ProductDist.
 
@@ -2126,7 +2126,7 @@ rewrite !ffunE; case: splitP => m /= Hm.
   by rewrite Hm. }
 f_equal; apply: ord_inj =>/=.
 by rewrite Hj Hl (addnI Hm) !addnA (addnC s k).
-Qed.  
+Qed.
 
 Lemma bool_fun_of_Omega'K : cancel bool_fun_of_Omega' Omega'_of_bool_fun.
 Proof.
@@ -2138,7 +2138,7 @@ apply/ffunP => v.
 rewrite /bool_fun_knowing !ffunE.
 rewrite /bool_fun_knowing /knowing_bool_fun /OmegaB_of_bool_fun.
 by rewrite bool_vec_snd_sE bool_vec_knowingK.
-Qed. 
+Qed.
 
 Lemma Omega'_of_bool_funK : cancel Omega'_of_bool_fun bool_fun_of_Omega'.
 Proof.
@@ -2236,7 +2236,7 @@ apply: eq_big => [v|v Hv].
 { by rewrite bool_vec_knowingK bool_vec_snd_sE !eqxx. }
 rewrite /pow_of_bool_fun /bool_fun_knowing !fprodE ffunE.
 by rewrite !ord_of_bool_vecK.
-Qed.  
+Qed.
 Transparent distb.
 
 Definition knowing_vec (bs : bg_known_StratB) (v : bool_vec n) : bool :=
@@ -2246,7 +2246,7 @@ Definition knowing_fun (bs : bg_known_StratB) (F : bool_fun n) : bool :=
   knowing_bool_fun (bool_fun_knowing F bs) == F.
 
 Lemma bool_fun_of_Omega'E (B : Omega') bs :
-  bool_fun_knowing (bool_fun_of_Omega' B) bs = 
+  bool_fun_knowing (bool_fun_of_Omega' B) bs =
   bool_fun_of_OmegaB (B bs).
 Proof.
 apply/ffunP => v.
