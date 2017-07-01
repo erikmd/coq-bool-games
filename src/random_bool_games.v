@@ -1172,6 +1172,19 @@ Lemma swap_fun'E (f : bool_fun n) (v : bool_vec n) :
   swap_fun' f v = ~~ @bool_fun_sym' f v.
 Proof. by rewrite /swap_fun' /swap_vec' /bool_fun_sym' !ffunE negbK. Qed.
 
+Variable P : {dist bool_fun n}.
+
+Theorem Pr_ex_winB :
+  Pr P [set F | [exists b : bg_StratB n k, winB (game_of F) b]] =
+  Pr P [set F | [exists b, @winA n (n - k) (game_of (bool_fun_sym F)) b]].
+Proof.
+apply: eq_bigl.
+{ move=> F; rewrite !in_set !bool_fun_of_bool_gameK.
+  apply/existsP/existsP => -[x Hx]; exists x.
+  by rewrite -winB_eq.
+    by rewrite winB_eq. }
+Qed.
+
 (** [card_swap_fun] and (card_swap_fun'] will be useful to prove
     [dist_Bernoulli_symE] and [dist_Bernoulli_sym'E]. *)
 
@@ -1625,24 +1638,16 @@ rewrite /num_false /num_true card_swap_fun.
 by apply: eq_card => v; rewrite !inE swap_funE bool_fun_sym'K.
 Qed.
 
-Let P := @dist_Bernoulli n p Hp.
-
 Notation game_of := bool_game_of_bool_fun (only parsing).
+
+Let P := @dist_Bernoulli n p Hp.
 
 Corollary Pr_ex_winB_Bern :
   Pr P [set F | [exists b : bg_StratB n k, winB (game_of F) b]] =
   1 - (1 - (1 - p) ^ (2 ^ k)) ^ (2 ^ (n - k)).
 Proof.
+rewrite Pr_ex_winB.
 rewrite /Pr.
-set lhs := LHS.
-have->: lhs = \rsum_(a in [set F |
-    [exists b, @winA n (n - k) (game_of (bool_fun_sym F)) b]]) P a.
-rewrite /lhs.
-apply: eq_bigl.
-{ move=> F; rewrite !in_set !bool_fun_of_bool_gameK.
-  apply/existsP/existsP => -[x Hx]; exists x.
-  by rewrite -winB_eq.
-    by rewrite winB_eq. }
 rewrite (reindex (fun F => bool_fun_sym' F)); last exact/onW_bij/bool_fun_sym'_bij.
 underp big j rewrite inE bool_fun_sym'K.
 under big j _ rewrite dist_Bernoulli_sym'E.
