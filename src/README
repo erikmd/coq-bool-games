@@ -1,7 +1,7 @@
 Random Boolean games
 ====================
 
-The Random Boolean games library for the Coq proof assistant provides a formalisation of Boolean games with random formulas as pay functions.
+The Random Boolean games library for the Coq proof assistant provides a formalisation of Boolean games with random formulas as payoff functions.
 
 It has been tested with Coq 8.5pl2, MathComp 1.6 and Infotheo (as of 2016-07-31).
 

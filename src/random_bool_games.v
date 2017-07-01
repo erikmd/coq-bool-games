@@ -680,8 +680,8 @@ Section Proba_games.
 Variable n : nat.
 
 (** Let us consider Boolean Games of two players A and B with a random
-    Boolean function of [n] variables as the pay function of A, and
-    its negation as the pay function for B.
+    Boolean function of [n] variables as the payoff function of A, and
+    its negation as the payoff function for B.
 
     We shall assume that A controls the first [k] variables, and B the
     remaining [n-k] variables.
