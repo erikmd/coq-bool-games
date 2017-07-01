@@ -825,9 +825,11 @@ Qed.
 Definition W_ (a : bg_StratA) : sigmA :=
   [set w : Omega | (w_ a) ⇒0 w].
 
+Notation game_of := bool_game_of_bool_fun (only parsing).
+
 Lemma winA_eq :
   forall (f : Omega) (a : bg_StratA),
-  winA (bool_game_of_bool_fun f) a = (f \in W_ a).
+  winA (game_of f) a = (f \in W_ a).
 Proof.
 move=> f a; rewrite /winA /W_.
 apply/forallP/idP =>/= H.
@@ -918,11 +920,11 @@ by exists set_ord_of_StratA; [apply: set_StratA_of_ordK|apply: set_ord_of_StratA
 Qed.
 
 Theorem Pr_ex_winA :
-  Pr P [set F | [exists a : bg_StratA, winA (bool_game_of_bool_fun F) a]] =
+  Pr P [set F | [exists a : bg_StratA, winA (game_of F) a]] =
   \rsum_(1 <= i < (2^k).+1) (-1)^(i-1) *
   \rsum_(J in {set bg_StratA} | #|J| == i) Pr P (\bigcap_(a in J) W_ a).
 Proof.
-have->: [set F | [exists a, winA (bool_game_of_bool_fun F) a]] =
+have->: [set F | [exists a, winA (game_of F) a]] =
   \bigcup_(a in bg_StratA) W_ a.
 { apply/setP => f; rewrite !inE.
   apply/existsP/bigcupP.
@@ -950,6 +952,24 @@ move=> x; rewrite /set_ord_of_StratA !inE.
 rewrite -(mem_map (f := StratA_of_ord)); last exact/bij_inj/StratA_of_ord_bij.
 rewrite -map_comp; rewrite (eq_map (f2 := id)); last exact: ord_of_StratAK.
 by rewrite map_id mem_enum_setE.
+Qed.
+
+Definition winB (g : bool_game) (b : bg_StratB) : bool :=
+  [forall a : bg_StratA, g (a, b) == false].
+
+Theorem Pr_ex_winA_winB_disj :
+  Pr P [set F | [exists a : bg_StratA, winA (game_of F) a] ||
+                [exists b : bg_StratB, winB (game_of F) b]] =
+  Pr P [set F | [exists a : bg_StratA, winA (game_of F) a]] +
+  Pr P [set F | [exists b : bg_StratB, winB (game_of F) b]].
+Proof.
+rewrite -Pr_union_disj.
+{ underp big a rewrite inE.
+  by underp big a rewrite !inE. }
+apply/setP => F; rewrite !inE.
+apply negbTE; apply/negP; case/andP.
+case/existsP => a /forallP Ha; case/existsP => b /forallP Hb.
+by move/(_ a) in Hb; move/(_ b) in Ha; rewrite Ha in Hb.
 Qed.
 
 End Proba_games.
@@ -1257,8 +1277,10 @@ apply/forallP/imageP => /=.
   by rewrite Hj ltnNge leq_addr in Hi.
 Qed.
 
+Notation game_of := bool_game_of_bool_fun (only parsing).
+
 Theorem Pr_winA_Bern :
-  Pr P [set F | winA (bool_game_of_bool_fun F) a] =
+  Pr P [set F | winA (game_of F) a] =
   p ^ (2 ^ (n - k)).
 Proof.
 set setF := [set F | _ _ a].
@@ -1298,8 +1320,10 @@ move: Hxa Hxb; rewrite /w_ !inE !ffunE.
 by do 2![move/forallP/(_ v)/eqP <-].
 Qed.
 
+Notation game_of := bool_game_of_bool_fun (only parsing).
+
 Theorem Pr_ex_winA_Bern :
-  Pr P [set F | [exists a : bg_StratA k, winA (bool_game_of_bool_fun F) a]] =
+  Pr P [set F | [exists a : bg_StratA k, winA (game_of F) a]] =
   1 - (1 - p ^ (2 ^ (n - k))) ^ (2 ^ k).
 Proof.
 rewrite Pr_ex_winA /W_.
@@ -1333,9 +1357,6 @@ apply: eq_bigr => i _; rewrite /bump add1n subn1 /=.
 rewrite pow1 [(i.+1 * _)%N]mulnC pow_muln [in RHS]pow_opp /=.
 ring.
 Qed.
-
-Definition winB (g : bool_game n k) (b : bg_StratB n k) : bool :=
-  [forall a : bg_StratA k, g (a, b) == false].
 
 (** [bg_StratB n (n - k)] is isomorphic to [bg_StratA k] *)
 
@@ -1425,10 +1446,10 @@ Qed.
 (** The dual of a boolean function [F] w.r.t parameter [k] *)
 
 Definition bool_fun_sym (F : bool_fun n) : bool_fun n :=
-  bool_fun_of_bool_game (bool_game_sym (@bool_game_of_bool_fun n k Hkn F)).
+  bool_fun_of_bool_game (bool_game_sym (@game_of n k Hkn F)).
 
 Definition bool_fun_sym' (F : bool_fun n) : bool_fun n :=
-  bool_fun_of_bool_game (bool_game_sym' (@bool_game_of_bool_fun n _ Hnkn F)).
+  bool_fun_of_bool_game (bool_game_sym' (@game_of n _ Hnkn F)).
 
 Lemma bool_fun_symK : cancel bool_fun_sym bool_fun_sym'.
 Proof.
@@ -1591,14 +1612,16 @@ Qed.
 
 Let P := @dist_Bernoulli n p Hp.
 
+Notation game_of := bool_game_of_bool_fun (only parsing).
+
 Corollary Pr_ex_winB_Bern :
-  Pr P [set F | [exists b : bg_StratB n k, winB (bool_game_of_bool_fun F) b]] =
+  Pr P [set F | [exists b : bg_StratB n k, winB (game_of F) b]] =
   1 - (1 - (1 - p) ^ (2 ^ k)) ^ (2 ^ (n - k)).
 Proof.
 rewrite /Pr.
 set lhs := LHS.
 have->: lhs = \rsum_(a in [set F |
-    [exists b, @winA n (n - k) (bool_game_of_bool_fun (bool_fun_sym F)) b]]) P a.
+    [exists b, @winA n (n - k) (game_of (bool_fun_sym F)) b]]) P a.
 rewrite /lhs.
 apply: eq_bigl.
 { move=> F; rewrite !in_set !bool_fun_of_bool_gameK.
@@ -1769,8 +1792,8 @@ Definition bool_fun_knowing (F : bool_fun n) (bs : bg_known_StratB)
   [ffun v : bool ^ (n - s) =>  F (bool_vec_knowing v bs)].
 
 Lemma bool_game_knowingE F bs :
-  (bool_game_knowing (bool_game_of_bool_fun F) bs)
-  = @bool_game_of_bool_fun (n - s) k _ (bool_fun_knowing F bs).
+  (bool_game_knowing (game_of F) bs)
+  = @game_of (n - s) k _ (bool_fun_knowing F bs).
 Proof.
 rewrite /bool_game_of_bool_fun /bool_game_knowing.
 apply/ffunP => c; rewrite !ffunE.
@@ -2217,10 +2240,10 @@ by rewrite bool_vec_snd_sE.
 Qed.
 
 Theorem Pr_ex_winA_knowing_Bern :
-  Pr P [set F | [forall bs, exists a : bg_StratA k, winA_knowing (bool_game_of_bool_fun F) bs a]] =
+  Pr P [set F | [forall bs, exists a : bg_StratA k, winA_knowing (game_of F) bs a]] =
   (1 - (1 - p ^ (2 ^ (n - s - k))) ^ (2 ^ k)) ^ 2 ^ s.
 Proof.
-stepr (Pr P [set F | [forall bs, exists a, winA (bool_game_of_bool_fun (bool_fun_knowing F bs)) a]]).
+stepr (Pr P [set F | [forall bs, exists a, winA (game_of (bool_fun_knowing F bs)) a]]).
 { apply: eq_bigl => F; rewrite !inE.
   apply: eq_forallb => bs.
   apply: eq_existsb => a.
@@ -2230,7 +2253,7 @@ rewrite (eq_Pr HP).
 rewrite Pr_dist_img.
 rewrite (_: bool_fun_of_Omega' @^-1: _ =
   [set B : Omega' | [forall bs, B bs \in
-  [set s | [exists a, winA (bool_game_of_bool_fun (bool_fun_of_OmegaB s)) a]]]]).
+  [set s | [exists a, winA (game_of (bool_fun_of_OmegaB s)) a]]]]).
 { rewrite ProductDist.indep; last first.
   { rewrite card_fprod.
     apply: prodn_cond_gt0 => i _.
@@ -2238,7 +2261,7 @@ rewrite (_: bool_fun_of_Omega' @^-1: _ =
   rewrite /dist_OmegaB.
   under big i _ rewrite Pr_dist_img.
   under big i _ rewrite (_: OmegaB_of_bool_fun i @^-1: _ =
-    [set F | [exists a, winA (bool_game_of_bool_fun F) a]]).
+    [set F | [exists a, winA (game_of F) a]]).
   { under big i _ rewrite Pr_ex_winA_Bern.
     by rewrite bigmul_card_constE card_bool_vec. }
   apply/setP => F; rewrite !inE.
