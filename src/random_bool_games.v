@@ -1176,7 +1176,7 @@ Variable P : {dist bool_fun n}.
 
 Theorem Pr_ex_winB :
   Pr P [set F | [exists b : bg_StratB n k, winB (game_of F) b]] =
-  Pr P [set F | [exists b : bg_StratA (n - k), winA (game_of (bool_fun_sym F)) b]].
+  Pr P [set F | [exists a : bg_StratA (n - k), winA (game_of (bool_fun_sym F)) a]].
 Proof.
 apply: eq_bigl.
 { move=> F; rewrite !in_set !bool_fun_of_bool_gameK.
@@ -1187,7 +1187,7 @@ Qed.
 
 Theorem Pr_ex_winB_alt :
   Pr P [set F | [exists b : bg_StratB n k, winB (game_of F) b]] =
-  Pr P [set F | [exists b : bg_StratA (n - k), winA (bool_game_sym (game_of F)) b]].
+  Pr P [set F | [exists a : bg_StratA (n - k), winA (bool_game_sym (game_of F)) a]].
 Proof.
 rewrite Pr_ex_winB.
 apply: eq_bigl => F; rewrite !inE.
