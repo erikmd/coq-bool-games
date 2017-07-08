@@ -1668,7 +1668,7 @@ have <- := @Pr_ex_winA_Bern n (1 - p)%Re (@q_0_1 p Hp) (n - k) (Hnkn _ _).
 by underp big j rewrite inE.
 Qed.
 
-Corollary Pr_nex_winA_winB_disj_Bern :
+Corollary Pr_nex_winA_winB_Bern :
   Pr P [set F | ~~ ([exists a : bg_StratA k, winA (game_of F) a] ||
                     [exists b : bg_StratB n k, winB (game_of F) b])] =
   (1 - p ^ (2 ^ (n - k))) ^ (2 ^ k) + (1 - (1 - p) ^ (2 ^ k)) ^ (2 ^ (n - k)) - 1.
