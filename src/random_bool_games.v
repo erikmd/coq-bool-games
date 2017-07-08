@@ -1174,6 +1174,7 @@ Proof. by rewrite /swap_fun' /swap_vec' /bool_fun_sym' !ffunE negbK. Qed.
 
 Variable P : {dist bool_fun n}.
 
+(* (* First version *)
 Theorem Pr_ex_winB :
   Pr P [set F | [exists b : bg_StratB n k, winB (game_of F) b]] =
   Pr P [set F | [exists a : bg_StratA (n - k), winA (game_of (bool_fun_sym F)) a]].
@@ -1184,15 +1185,15 @@ apply: eq_bigl.
   by rewrite -winB_eq.
     by rewrite winB_eq. }
 Qed.
+ *)
 
-Theorem Pr_ex_winB_alt :
+Theorem Pr_ex_winB :
   Pr P [set F | [exists b : bg_StratB n k, winB (game_of F) b]] =
   Pr P [set F | [exists a : bg_StratA (n - k), winA (bool_game_sym (game_of F)) a]].
 Proof.
-rewrite Pr_ex_winB.
 apply: eq_bigl => F; rewrite !inE.
-apply: eq_existsb.
-by rewrite /bool_fun_sym bool_fun_of_bool_gameK.
+apply: eq_existsb => x.
+by rewrite winB_eq.
 Qed.
 
 (** [card_swap_fun] and (card_swap_fun'] will be useful to prove
@@ -1659,7 +1660,8 @@ Proof.
 rewrite Pr_ex_winB.
 rewrite /Pr.
 rewrite (reindex (fun F => bool_fun_sym' F)); last exact/onW_bij/bool_fun_sym'_bij.
-underp big j rewrite inE bool_fun_sym'K.
+rewrite /bool_fun_sym /bool_fun_sym'.
+underp big j rewrite inE bool_fun_of_bool_gameK bool_game_sym'K.
 under big j _ rewrite dist_Bernoulli_sym'E.
 rewrite -{7}[k](subKn Hkn).
 have <- := @Pr_ex_winA_Bern n (1 - p)%Re (@q_0_1 p Hp) (n - k) (Hnkn _ _).
