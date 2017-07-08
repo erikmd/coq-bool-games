@@ -957,7 +957,7 @@ Qed.
 Definition winB (g : bool_game) (b : bg_StratB) : bool :=
   [forall a : bg_StratA, g (a, b) == false].
 
-Theorem Pr_ex_winA_winB_disj :
+Lemma Pr_ex_winA_winB_disj :
   Pr P [set F | [exists a : bg_StratA, winA (game_of F) a] ||
                 [exists b : bg_StratB, winB (game_of F) b]] =
   Pr P [set F | [exists a : bg_StratA, winA (game_of F) a]] +
