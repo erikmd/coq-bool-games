@@ -46,6 +46,41 @@ Qed.
 
 Definition Rle_sub_addl := (Rle_subl_addl, Rle_subr_addl).
 
+Lemma Rlt_subl_addr x y z : (x - y < z) <-> (x < z + y).
+Proof.
+split=> H.
+  rewrite -(Rplus_0_r x) -(Rplus_opp_l y) -Rplus_assoc.
+  by apply Rplus_lt_compat_r.
+rewrite -(Rplus_0_r z) -(Rplus_opp_r y) -Rplus_assoc.
+by apply Rplus_lt_compat_r.
+Qed.
+
+Lemma Rlt_subr_addr x y z : (x < y - z) <-> (x + z < y).
+Proof.
+split=> H.
+  rewrite -(Rplus_0_r y) -(Rplus_opp_l z) -Rplus_assoc.
+  by apply Rplus_lt_compat_r.
+rewrite -(Rplus_0_r x) -(Rplus_opp_r z) -Rplus_assoc.
+by apply Rplus_lt_compat_r.
+Qed.
+
+Definition Rlt_sub_addr := (Rlt_subl_addr, Rlt_subr_addr).
+
+Lemma Rlt_subl_addl x y z : (x - y < z) <-> (x < y + z).
+Proof.
+split=> H.
+  by rewrite Rplus_comm -Rlt_sub_addr.
+by rewrite -Rlt_sub_addr /Rminus Ropp_involutive Rplus_comm.
+Qed.
+
+Lemma Rlt_subr_addl x y z : (x < y - z) <-> (z + x < y).
+split=> H.
+  by rewrite Rplus_comm -Rlt_sub_addr.
+by rewrite -Rlt_sub_addr /Rminus Ropp_involutive Rplus_comm.
+Qed.
+
+Definition Rlt_sub_addl := (Rlt_subl_addl, Rlt_subr_addl).
+
 (** Support results to transpose terms w.r.t equality over reals.
     To this aim, we reuse MathComp naming conventions. *)
 
