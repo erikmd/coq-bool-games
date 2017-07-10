@@ -28,3 +28,5 @@ QUOT = "$(shell printf '\x22')"
 	  -e 's,id=.main.>,&<img src='\''deps.png'\'' border=0 usemap='\''#coq_dependencies'\'' />,' \
 	  -e '/<img src='\''deps.png'\''/r deps.html';\
 	fi"
+
+-extra-phony dist "$(VFILES) AUTHORS README configure _CoqProject coqgraph.ml" "T=$$(mktemp -d ../dist0.XXX) && S=$$T/rand-bool-games && mkdir -p $$S && rsync -rlpgoDvR $^ $$S && rm -f ../dist0 && ln -rsv $$T ../dist0"
