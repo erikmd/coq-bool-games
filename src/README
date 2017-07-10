@@ -3,7 +3,7 @@ Random Boolean games
 
 The Random Boolean games library for the Coq proof assistant provides a formalisation of Boolean games with random formulas as payoff functions.
 
-It has been tested with Coq 8.5pl2, MathComp 1.6 and Infotheo (as of 2016-07-31).
+It has been tested with Coq 8.6, MathComp 1.6.1 and Infotheo (as of 2017-01-06).
 
 Installation instructions
 -------------------------
@@ -15,7 +15,7 @@ https://math-comp.github.io/math-comp).
 
 Once OPAM is installed, type
     $ opam repo add coq-released https://coq.inria.fr/opam/released
-    $ opam install coq.8.5.2 coq-mathcomp-ssreflect.1.6 coq-mathcomp-algebra coq-mathcomp-field
+    $ opam install coq.8.6 coq-mathcomp-ssreflect.1.6.1 coq-mathcomp-algebra coq-mathcomp-field
 
 When this installation step is completed, download
 http://staff.aist.go.jp/reynald.affeldt/shannon/infotheo.tar.gz
