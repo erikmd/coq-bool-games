@@ -1,5 +1,7 @@
 # Boolean games
 
+[![DOI](https://zenodo.org/badge/141577629.svg)](https://zenodo.org/badge/latestdoi/141577629)
+
 The **BoolGames** library for the Coq proof assistant gathers a formalisation of Boolean games with random formulas as payoff functions.
 
 ## Dependencies
