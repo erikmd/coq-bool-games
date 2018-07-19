@@ -22,19 +22,25 @@ https://math-comp.github.io/math-comp)
 
 Once OPAM is installed, type
 
-    $ opam repo add coq-released https://coq.inria.fr/opam/released
-    $ opam install coq.8.8.0 coq-mathcomp-character.1.7.0
+```
+$ opam repo add coq-released https://coq.inria.fr/opam/released
+$ opam install coq.8.8.0 coq-mathcomp-character.1.7.0
+```
 
 When this installation step is completed, compile and install Infotheo
 from the external directory:
 
-    $ cd external/infotheo
-    $ coq_makefile -f _CoqProject -o Makefile && make -j2 && make install
+```
+$ cd external/infotheo
+$ coq_makefile -f _CoqProject -o Makefile && make -j2 && make install
+```
 
 Then, you should just have to type the following in the root directory
 containing this README.md:
 
-    $ ./configure && make -j2 && make install
+```
+$ ./configure && make -j2 && make install
+```
 
 ## Documentation
 
