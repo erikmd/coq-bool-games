@@ -22,7 +22,7 @@ doc: gallinahtml deps.png deps.html
 	fi
 
 clean::
-	$(HIDE)rm -f coqgraph
+	$(HIDE)rm -f coqgraph coqgraph.cmi coqgraph.cmo
 	$(HIDE)rm -f deps.dot deps.png deps.html
 
 dist: $(VFILES) AUTHORS README configure _CoqProject Makefile.local coqgraph.ml
