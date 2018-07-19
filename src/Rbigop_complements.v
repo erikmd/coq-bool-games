@@ -2,11 +2,11 @@ From mathcomp Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div choi
 From mathcomp Require Import tuple finfun bigop prime binomial ssralg finset fingroup finalg.
 From mathcomp Require Import matrix.
 Require Import Reals Fourier.
-From Infotheo Require Import Rssr Reals_ext log2 ssr_ext ssralg_ext tuple_prod Rbigop.
+From infotheo Require Import Reals_ext ssrR logb ssr_ext ssralg_ext Rbigop.
 
 Local Open Scope reals_ext_scope.
 
-(** Generalization of section [sum_dom_codom] in [Infotheo.Rbigop] *)
+(** Generalization of section [sum_dom_codom] in [infotheo.Rbigop] *)
 
 Section sum_dom_codom_generalized.
 
@@ -20,9 +20,9 @@ move Hn : (undup (map X (p))) => n.
 move: n p X Hn.
 elim => [p X HA F Hp | h t IH p X H F Hp].
 - rewrite big_nil.
-  move/undup_nil_inv : HA.
-  move/map_nil_inv => ->.
-  by rewrite big_nil.
+  move/undup_nil in HA.
+  suff: p = [::] by move ->; rewrite big_nil.
+  by apply size0nil; rewrite -(size_map X) HA.
 - rewrite big_cons.
   have [preh [pret [H1 [H2 H3]]]] : exists preh pret,
     perm_eq p (preh ++ pret) /\ undup (map X preh) = [:: h] /\ undup (map X pret) = t.

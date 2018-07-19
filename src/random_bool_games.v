@@ -2,7 +2,7 @@ Require Import Reals Psatz.
 From mathcomp Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq.
 From mathcomp Require Import div choice fintype tuple finfun bigop.
 From mathcomp Require Import prime binomial ssralg finset ssrint matrix.
-From Infotheo Require Import Reals_ext Rssr ssr_ext ssralg_ext Rbigop proba num_occ.
+From infotheo Require Import Reals_ext ssrR ssr_ext ssralg_ext Rbigop proba num_occ.
 Require Import Rbigop_complements bigop_tactics reals_complements.
 Require Import fprod.
 
@@ -159,329 +159,10 @@ Proof. move=> *; exact: le_0_Pr. Qed.
 
 End Proba_example.
 
-(** ** An algebraic proof of the formula of inclusion-exclusion *)
+(** ** An algebraic proof of the formula of inclusion-exclusion
 
-Section probability_inclusion_exclusion.
-(** In this section we prove the formula of inclusion-exclusion.
-    This result is more general than lemma [Pr_bigcup] in Infotheo. *)
-Variable A : finType.
-Variable P : dist A.
-
-Lemma bigmul_eq0 (C : finType) (p : pred C) (F : C -> R) :
-  (exists2 i : C, p i & F i = R0) <-> \big[Rmult/R1]_(i : C | p i) F i = R0.
-Proof.
-split.
-{ by case => [i Hi Hi0]; rewrite (bigD1 i) //= Hi0 Rmult_0_l. }
-apply big_ind.
-- by move=> K; exfalso; auto with real.
-- move=> x y Hx Hy Hxy.
-  have [Hx0|Hy0] := Rmult_integral _ _ Hxy; [exact: Hx|exact: Hy].
-- move=> i Hi Hi0; by exists i.
-Qed.
-
-Lemma Pr_union_eq (E1 E2 : {set A}) :
-  Pr P (E1 :|: E2) = Pr P E1 + Pr P E2 - Pr P (E1 :&: E2).
-Proof.
-rewrite -[E1 :|: E2](setID _ E1) Pr_union_disj; last first.
-{ rewrite setDE -setIA [E1 :&: _]setIC -setIA [~: E1 :&: _]setIC setICr.
-  by rewrite !setI0. }
-rewrite setUK setDUKl -{1}[E2 in RHS](setID _ E1) Pr_union_disj; last first.
-{ rewrite setDE -setIA [E1 :&: _]setIC -setIA [~: E1 :&: _]setIC setICr.
-  by rewrite !setI0. }
-by rewrite setIC; ring.
-Qed.
-
-Lemma Rplus_minus_assoc (r1 r2 r3 : R) : r1 + r2 - r3 = r1 + (r2 - r3).
-Proof. by rewrite /Rminus Rplus_assoc. Qed.
-
-(** *** A theory of indicator functions from [A : finType] to [R] *)
-
-Definition Ind (s : {set A}) (x : A) : R := if x \in s then R1 else R0.
-
-Lemma Ind_set0 (x : A) : Ind set0 x = R0.
-Proof. by rewrite /Ind inE. Qed.
-
-Lemma Ind_inP (s : {set A}) (x : A) : reflect (Ind s x = R1) (x \in s).
-Proof.
-apply: (iffP idP); rewrite /Ind; first by move->.
-by case: ifP =>//; auto with real.
-Qed.
-
-Lemma Ind_notinP (s : {set A}) (x : A) : reflect (Ind s x = R0) (x \notin s).
-Proof.
-apply: (iffP idP); rewrite /Ind => Hmain.
-  by rewrite ifF //; exact: negbTE.
-by apply: negbT; case: ifP Hmain =>// _ H10; exfalso; auto with real.
-Qed.
-
-Lemma Ind_cap (S1 S2 : {set A}) (x : A) :
-  Ind (S1 :&: S2) x = Ind S1 x * Ind S2 x.
-Proof. by rewrite /Ind inE; case: in_mem; case: in_mem=>/=; auto with real. Qed.
-
-Lemma Ind_bigcap I (e : I -> {set A}) (r : seq I) (p : pred I) x :
-  Ind (\bigcap_(j <- r | p j) e j) x = \big[Rmult/R1]_(j <- r | p j) (Ind (e j) x).
-Proof.
-apply (big_ind2 (R1 := {set A}) (R2 := R)); last done.
-- by rewrite /Ind inE.
-- by move=> sa a sb b Ha Hb; rewrite -Ha -Hb; apply: Ind_cap.
-Qed.
-
-(** *** Extra support results for the expected value *)
-
-(** Remark:
-
-    In Infotheo, random variables [X : rvar A] are defined as a record
-    gathering a distribution [P : dist A] and a function [f : A -> R].
-
-    For convenience, we locally define the function [rv] for building
-    such random variables, endowed with the ambient distribution [P]. *)
-
-Let rv : (A -> R) -> rvar A := mkRvar P.
-
-Lemma Ex_altE (X : A -> R) : `E (rv X) = \rsum_(a in A) X a * P a.
-Proof. done. Qed.
-
-Lemma E_Ind s : `E (rv (Ind s)) = Pr P s.
-Proof.
-rewrite /Ex_alt /Ind /Pr (bigID (mem s)) /=.
-rewrite [X in _ + X = _]big1; last by move=> i /negbTE ->; rewrite Rmult_0_l.
-by rewrite Rplus_0_r; apply: eq_bigr => i ->; rewrite Rmult_1_l.
-Qed.
-
-Lemma E_ext X2 X1 : X1 =1 X2 -> `E (rv X1) = `E (rv X2).
-Proof.
-by move=> Heq; rewrite /Ex_alt; apply: eq_bigr => i Hi /=; rewrite Heq.
-Qed.
-
-Lemma E_add X1 X2 : `E (rv (fun w => X1 w + X2 w)) = `E (rv X1) + `E (rv X2).
-Proof.
-rewrite /Ex_alt; set b := LHS; under b ? _ rewrite Rmult_plus_distr_r.
-by rewrite big_split.
-Qed.
-
-Lemma E_rsum I r p (X : I -> A -> R) :
-  `E (rv (fun x => \big[Rplus/R0]_(i <- r | p i) X i x)) =
-  \big[Rplus/R0]_(i <- r | p i) (`E (rv (X i))).
-Proof.
-rewrite /Ex_alt exchange_big /=; apply: eq_bigr => i Hi.
-by rewrite big_distrl /=.
-Qed.
-
-Lemma E_scaler X1 r2 : `E (rv (fun w => X1 w * r2)) = `E (rv X1) * r2.
-Proof.
-rewrite /Ex_alt big_distrl /=; apply: eq_bigr => i Hi.
-by rewrite !Rmult_assoc; congr Rmult; rewrite Rmult_comm.
-Qed.
-
-Lemma E_scalel r1 X2 : `E (rv (fun w => r1 * X2 w)) = r1 * `E (rv X2).
-Proof.
-rewrite /Ex_alt big_distrr /=; apply: eq_bigr => i Hi.
-by rewrite !Rmult_assoc; congr Rmult; rewrite Rmult_comm.
-Qed.
-
-(** [bigA_distr] is a specialization of [bigA_distr_bigA] and at the same
-    time a generalized version of [GRing.exprDn] for iterated prod. *)
-Lemma bigA_distr (R : Type) (zero one : R) (times : Monoid.mul_law zero)
-    (plus : Monoid.add_law zero times)
-    (I : finType)
-    (F1 F2 : I -> R) :
-  \big[times/one]_(i in I) plus (F1 i) (F2 i) =
-  \big[plus/zero]_(0 <= k < #|I|.+1)
-  \big[plus/zero]_(J in {set I} | #|J| == k)
-  \big[times/one]_(j in I) (if j \notin J then F1 j else F2 j).
-Proof.
-pose F12 i (j : bool) := if ~~ j then F1 i else F2 i.
-under big i Hi
-  rewrite (_: plus (F1 i) (F2 i) = \big[plus/zero]_(j : bool) F12 i j).
-rewrite bigA_distr_bigA big_mkord (partition_big
-  (fun i : {ffun I -> _} => inord #|[set x | i x]|)
-  (fun j : [finType of 'I_#|I|.+1] => true)) //=.
-{ eapply eq_big =>// i _.
-  rewrite (reindex (fun s : {set I} => [ffun x => x \in s])); last first.
-  { apply: onW_bij.
-    exists (fun f : {ffun I -> bool} => [set x | f x]).
-    by move=> s; apply/setP => v; rewrite inE ffunE.
-    by move=> f; apply/ffunP => v; rewrite ffunE inE. }
-  eapply eq_big.
-  { move=> s; apply/eqP/eqP.
-      move<-; rewrite -[#|s|](@inordK #|I|) ?ltnS ?max_card //.
-      by congr inord; apply: eq_card => v; rewrite inE ffunE.
-    move=> Hi; rewrite -[RHS]inord_val -{}Hi.
-    by congr inord; apply: eq_card => v; rewrite inE ffunE. }
-  by move=> j Hj; apply: eq_bigr => k Hk; rewrite /F12 ffunE. }
-rewrite (reindex (fun x : 'I_2 => (x : nat) == 1%N)); last first.
-  { apply: onW_bij.
-    exists (fun b : bool => inord (nat_of_bool b)).
-    by move=> [x Hx]; rewrite -[RHS]inord_val; case: x Hx =>// x Hx; case: x Hx.
-    by case; rewrite inordK. }
-rewrite 2!big_ord_recl big_ord0 /F12 /=.
-by rewrite Monoid.mulm1.
-Qed.
-
-Lemma bigID2 (R : Type) (I : finType) (J : {set I}) (F1 F2 : I -> R)
-    (idx : R) (op : Monoid.com_law idx) :
-  \big[op/idx]_(j in I) (if j \notin J then F1 j else F2 j) =
-  op (\big[op/idx]_(j in ~: J) F1 j) (\big[op/idx]_(j in J) F2 j).
-Proof.
-rewrite (bigID (mem (setC J)) predT); apply: congr2.
-by apply: eq_big =>// i /andP [H1 H2]; rewrite inE in_setC in H2; rewrite H2.
-apply: eq_big => [i|i /andP [H1 H2]] /=; first by rewrite inE negbK.
-by rewrite ifF //; apply: negbTE; rewrite inE in_setC in H2.
-Qed.
-
-(* TODO: to move *)
-Lemma bigcap_seq_const I (B : {set A}) (r : seq I) :
-  (0 < size r)%N -> \bigcap_(i <- r) B = B.
-Proof.
-elim: r => [//|a r IHr] _; rewrite big_cons.
-case: r IHr => [|b r] IHr; first by rewrite big_nil setIT.
-by rewrite IHr // setIid.
-Qed.
-
-Lemma bigcap_ord_const n' (B : {set A}) :
-  \bigcap_(i < n'.+1) B = B.
-Proof. by rewrite bigcap_seq_const // /index_enum -enumT size_enum_ord. Qed.
-
-Lemma bigcap_const (I : eqType) (B : {set A}) (r : seq I) (p : pred I) :
-  (exists2 i : I, i \in r & p i) ->
-  \bigcap_(i <- r | p i) B = B.
-Proof.
-case=> i H1 H2; rewrite -big_filter bigcap_seq_const //.
-rewrite size_filter- has_count.
-by apply/hasP; exists i.
-Qed.
-
-Lemma m1powD k : k <> 0%N -> (-1)^(k-1) = - (-1)^k.
-Proof.
-by case: k => [//|k _]; rewrite subn1 /= Ropp_mult_distr_l oppRK Rmult_1_l.
-Qed.
-
-Lemma bigsum_card_constE (I : finType) (B : pred I) x0 :
-  \rsum_(i in B) x0 = (INR #|B| * x0)%Re.
-Proof. by rewrite big_const iter_Rplus. Qed.
-
-Lemma bigmul_constE (x0 : R) (k : nat) : \rmul_(i < k) x0 = (x0 ^ k)%Re.
-Proof.
-rewrite big_const cardT size_enum_ord.
-elim: k => [//|k IHk].
-by rewrite /= IHk /= Rmult_comm.
-Qed.
-
-Lemma bigmul_card_constE (I : finType) (B : pred I) x0 : \rmul_(i in B) x0 = x0 ^ #|B|.
-Proof.
-rewrite big_const.
-elim: #|B| => [//|k IHk].
-by rewrite /= IHk /= Rmult_comm.
-Qed.
-
-(** [bigmul_m1pow] is the Reals counterpart of lemma [GRing.prodrN] *)
-Lemma bigmul_m1pow (I : finType) (p : pred I) (F : I -> R) :
-  \rmul_(i in p) - F i = (-1) ^ #|p| * \rmul_(i in p) F i.
-Proof.
-rewrite -bigmul_card_constE.
-apply: (big_rec3 (fun a b c => a = b * c)).
-{ by rewrite Rmult_1_l. }
-move=> i a b c Hi Habc; rewrite Habc; ring.
-Qed.
-
-Let SumIndCap (n : nat) (S : 'I_n -> {set A}) (k : nat) (x : A) :=
-  \rsum_(J in {set 'I_n} | #|J| == k) (Ind (\bigcap_(j in J) S j) x).
-
-Lemma Ind_bigcup_incl_excl (n : nat) (S : 'I_n -> {set A}) (x : A) :
-  Ind (\bigcup_(i < n) S i) x =
-  (\rsum_(1 <= k < n.+1) ((-1)^(k-1) * (SumIndCap S k x)))%Re.
-Proof.
-case: n S => [|n] S; first by rewrite big_ord0 big_geq // Ind_set0.
-set Efull := \bigcup_(i < n.+1) S i.
-have Halg : \big[Rmult/R1]_(i < n.+1) (Ind Efull x - Ind (S i) x) = 0.
-  case Ex : (x \in Efull); last first.
-  { have /Ind_notinP Ex0 := Ex.
-    under big ? _ rewrite Ex0.
-    have Ex00 : forall i : 'I_n.+1, Ind (S i) x = 0.
-      move=> i; apply/Ind_notinP.
-      by move/negbT: Ex; rewrite -!in_setC setC_bigcup; move/bigcapP; apply.
-    under big ? _ rewrite Ex00; rewrite Rminus_0_r.
-    by apply/bigmul_eq0; exists ord0. }
-  { rewrite /Efull in Ex.
-    have /bigcupP [i Hi Hi0] := Ex.
-    apply/bigmul_eq0; exists i =>//.
-    by rewrite /Efull (Ind_inP _ _ Ex) (Ind_inP _ _ Hi0) /Rminus Rplus_opp_r. }
-rewrite bigA_distr in Halg.
-under big in Halg k _ under big J _ rewrite bigID2.
-rewrite big_ltn //= in Halg.
-rewrite -> addR_eq0 in Halg.
-rewrite cardT size_enum_ord (big_pred1 set0) in Halg; last first.
-  by move=> i; rewrite pred1E [RHS]eq_sym; apply: cards_eq0.
-rewrite [in X in _ * X = _]big_pred0 in Halg; last by move=> i; rewrite inE.
-underp big in Halg j rewrite !inE /negb /=.
-rewrite Rmult_1_r -Ind_bigcap bigcap_ord_const in Halg.
-rewrite {}Halg.
-rewrite (big_morph Ropp (id1 := R0) (op1 := Rplus)); first last.
-  by rewrite Ropp_0.
-  by move=> *; rewrite Ropp_plus_distr.
-rewrite big_nat [RHS]big_nat.
-apply: eq_bigr => i Hi; rewrite /SumIndCap /Efull.
-rewrite m1powD; last first.
-  by case/andP: Hi => Hi _ K0; rewrite K0 in Hi.
-rewrite -Ropp_mult_distr_l.
-rewrite [in RHS](big_morph _ (id1 := R0) (op1 := Rplus)); first last.
-  by rewrite Rmult_0_r.
-  by move=> *; rewrite Rmult_plus_distr_l.
-congr Ropp; apply: eq_bigr => j Hj.
-rewrite bigmul_m1pow (eqP Hj).
-rewrite (_ : ?[a] * ((-1)^i * ?[b]) = (-1)^i * (?a * ?b)); last by ring.
-congr Rmult.
-have [Hlt|Hn1] := ltnP i n.+1; last first.
-{ rewrite big1; last first.
-  { move=> k Hk; rewrite inE in Hk.
-    rewrite (_: j = [set: 'I_n.+1]) ?inE // in Hk.
-    apply/setP/subset_cardP =>//.
-    rewrite (eqP Hj) cardsT /= card_ord.
-    by apply/anti_leq/andP; split; first by case/andP: Hi =>//. }
-  by rewrite Rmult_1_l Ind_bigcap. }
-rewrite -!Ind_bigcap bigcap_const; last first.
-{ exists (odflt ord0 (pick [pred x | x \notin j])); first exact: mem_index_enum.
-  case: pickP; first by move=> y Hy; rewrite !inE -in_setC in Hy.
-  move=> /pred0P K; exfalso.
-  rewrite /pred0b in K.
-  have Hcard := cardsC j.
-  rewrite cardsE (eqP K) (eqP Hj) cardT size_enum_ord addn0 in Hcard.
-  by rewrite Hcard ltnn in Hlt. }
-rewrite -Ind_cap -/Efull.
-suff : \bigcap_(j0 in j) S j0 \subset Efull by move/setIidPr->.
-rewrite /Efull.
-pose i0 := odflt ord0 (pick (mem j)).
-have Hi0 : i0 \in j.
-{ rewrite /i0; case: pickP =>//.
-  move=> /pred0P K; exfalso.
-  rewrite /pred0b (eqP Hj) in K.
-  by rewrite (eqP K) /= in Hi. }
-apply: (subset_trans (bigcap_inf i0 Hi0)).
-exact: (bigcup_sup i0).
-Qed.
-
-Let SumPrCap (n : nat) (S : 'I_n -> {set A}) (k : nat) :=
-  \rsum_(J in {set 'I_n} | #|J| == k) Pr P (\bigcap_(j in J) S j).
-
-Lemma E_SumIndCap n (S : 'I_n -> {set A}) k :
-  `E (rv (SumIndCap S k)) = SumPrCap S k.
-Proof.
-rewrite /SumIndCap /SumPrCap E_rsum; apply: eq_bigr => i Hi.
-by rewrite E_Ind.
-Qed.
-
-Theorem Pr_bigcup_incl_excl n (S : 'I_n -> {set A}) :
-  Pr P (\bigcup_(i < n) S i) =
-  \big[Rplus/0]_(1 <= k < n.+1) ((-1)^(k-1) * SumPrCap S k).
-Proof.
-rewrite -E_Ind.
-under big ? _ rewrite /= Ind_bigcup_incl_excl.
-rewrite -Ex_altE E_rsum.
-apply: eq_bigr => i _.
-by rewrite E_scalel E_SumIndCap.
-Qed.
-
-End probability_inclusion_exclusion.
+  This proof is now part of infotheo:
+  https://github.com/affeldt-aist/infotheo/pull/1 *)
 
 (** ** Push-forward distribution w.r.t [X : A -> B] where [A, B : finType] *)
 
@@ -494,7 +175,7 @@ Lemma dist_img_proof {A B : finType} (X : A -> B) (PA : dist A) :
   \rsum_(a in B)
      {|
      pos_f := fun b : B => Pr PA [set x | X x == b];
-     Rle0f := fun c : B => le_0_Pr PA [set x | X x == c] |} a = 1
+     pos_f_ge0 := fun c : B => le_0_Pr PA [set x | X x == c] |} a = 1
 .
 Proof.
 rewrite -[RHS](pmf1 PA) (sum_parti'_finType _ _ X).
@@ -546,10 +227,10 @@ Let T := fprod T_.
 
 (** Define the product distribution for the dep. product of finite spaces. *)
 
-Definition P (t : T) := \rmul_(i : I) P_ i (t i).
+Definition P (t : T) := \rprod_(i : I) P_ i (t i).
 
 Lemma P0 (t : T) : 0 <= P t.
-Proof. apply Rle_0_big_mult => ?; by apply Rle0f. Qed.
+Proof. apply rprodr_ge0 => ?; by apply pos_f_ge0. Qed.
 
 Definition ofprod (idx : fprod T_) (f : {ffun I -> {i : I & T_ i}}) :=
   match sumb ([forall i : I, tag (f i) == i]) with
@@ -612,7 +293,7 @@ Lemma P1 : \rsum_(t : T) P t = 1.
 Proof.
 rewrite /P big_fprod /=.
 rewrite -(bigA_distr_big_dep _ (fun i j => otagged (P_ i) R0 j)).
-rewrite [X in _ = X](_ : 1 = \rmul_(i in I) 1)%Re; last by rewrite big1.
+rewrite [X in _ = X](_ : 1 = \rprod_(i in I) 1)%Re; last by rewrite big1.
 apply eq_bigr => i _ /=.
 rewrite (big_tag P_).
 exact: pmf1.
@@ -636,7 +317,7 @@ Lemma indep (Q_ : forall i, {set T_ i}) :
   (* (0 < #|I|)%N -> *)
   (0 < #|T|)%N ->
   Pr d [set S : T | [forall i : I, S i \in Q_ i]] =
-  \rmul_(i : I) Pr (P_ i) (Q_ i).
+  \rprod_(i : I) Pr (P_ i) (Q_ i).
 Proof.
 move=> Hcard.
 rewrite /Pr /d /= /P.
@@ -1255,7 +936,7 @@ Proof. by case: p_0_1 => H1 H2; split; lra. Qed.
 
 (** Bernoulli distribution "B(p)": a distribution over {true, false}
 such that [P(true) = p]. *)
-Definition distb : {dist bool} := bdist card_bool q_0_1.
+Definition distb : {dist bool} := Binary.d card_bool q_0_1.
 
 Lemma qqE : 1 - (1 - p) = p.
 Proof. lra. Qed.
@@ -1266,21 +947,21 @@ Proof. lra. Qed.
 Lemma enum_bool : enum bool_finType = [:: true; false].
 Proof. by rewrite /enum_mem Finite.EnumDef.enumDef. Qed.
 
-Lemma val0_bool : Two_set.val0 card_bool = true.
+Lemma val0_bool : Set2.a card_bool = true.
 Proof.
-by rewrite /ssr_ext.Two_set.val0 /= (enum_val_nth true) /= enum_bool.
+by rewrite /ssr_ext.Set2.a /= (enum_val_nth true) /= enum_bool.
 Qed.
 
-Lemma val1_bool : Two_set.val1 card_bool = false.
+Lemma val1_bool : Set2.b card_bool = false.
 Proof.
-by rewrite /ssr_ext.Two_set.val1 /= (enum_val_nth true) /= enum_bool.
+by rewrite /ssr_ext.Set2.b /= (enum_val_nth true) /= enum_bool.
 Qed.
 
 Lemma distbT : distb true = p.
-Proof. by rewrite /= ffunE val0_bool qqE. Qed.
+Proof. by rewrite /= /Binary.f val0_bool eqxx qqE. Qed.
 
 Lemma distbF : distb false = 1 - p.
-Proof. by rewrite /= ffunE val0_bool. Qed.
+Proof. by rewrite /= /Binary.f val0_bool eq_sym eqbF_neg qqE. Qed.
 
 Section Bernoulli_process_def.
 (** Definition of a Bernoulli process: independent repetition of [2^n]
@@ -1404,9 +1085,9 @@ rewrite (reindex ord_of_bool_vec) /=; last first.
   apply: onW_bij; exact: ord_of_bool_vec_bij.
 under big j _ rewrite ord_of_bool_vecK val0_bool.
 rewrite (bigID f predT) /=.
-under big i Hi rewrite ffunE Hi eqxx qqE.
+under big i Hi rewrite Hi /Binary.f eqxx qqE.
 rewrite bigmul_card_constE.
-under big i Hi rewrite ffunE (negbTE Hi) /=.
+under big i Hi rewrite (negbTE Hi) /=.
 rewrite bigmul_card_constE /=.
 rewrite /num_true.
 congr Rmult; congr pow.
