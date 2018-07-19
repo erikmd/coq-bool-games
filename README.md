@@ -52,6 +52,17 @@ To generate documentation from the Coq code using coqdoc and
 The documentation can then be browsed from html/toc.html with
 your favorite browser.
 
+## License
+
+Given its dependencies:
+
+- Coq (distributed under the LGPLv2.1 license)
+- MathComp (distributed under the CeCILL-B license)
+- Infotheo (distributed under the GPLv3 license)
+- [coqgraph.ml](./coqgraph.ml) (distributed under the GPLv3 license)
+
+the **BoolGames** library is distributed under the [GPLv3](./LICENSE) license.
+
 ## Authors
 
 It was developed by [Erik Martin-Dorel](https://github.com/erikmd),
