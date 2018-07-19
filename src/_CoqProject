@@ -1,4 +1,4 @@
--R . RandBoolGames
+-R . BoolGames
 bigop_tactics.v
 fprod.v
 reals_complements.v
