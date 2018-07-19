@@ -1,9 +1,0 @@
--R . BoolGames
-bigop_tactics.v
-fprod.v
-reals_complements.v
-Rbigop_complements.v
-random_bool_games.v
-growth_rate.v
-
-COQDOCFLAGS = "-interpolate -utf8 --external http://math-comp.github.io/math-comp/htmldoc/ mathcomp"

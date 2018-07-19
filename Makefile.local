@@ -2,7 +2,8 @@ coqgraph: coqgraph.ml
 	ocamlc.opt -o $@ $<
 
 deps.dot: $(VFILES) coqgraph
-	./coqgraph $(VDFILE).d |\
+	sed -e 's,src/,,g' $(VDFILE).d |\
+	./coqgraph - |\
 	sed -e 's/color \?= \?grey95,/& URL="BoolGames.\\N.html",/' |\
 	tred > $@
 
@@ -25,4 +26,4 @@ clean::
 	$(HIDE)rm -f deps.dot deps.png deps.html
 
 dist: $(VFILES) AUTHORS README configure _CoqProject Makefile.local coqgraph.ml
-	T=$$(mktemp -d ../dist0.XXX) && S=$$T/BoolGames && mkdir -p $$S && rsync -rlpgoDvR $^ $$S && rm -f ../dist0 && ln -rsv $$T ../dist0
+	T=$$(mktemp -d ./dist0.XXX) && S=$$T/BoolGames && mkdir -p $$S && rsync -rlpgoDvR $^ $$S && rm -f ./dist0 && ln -rsv $$T ./dist0
