@@ -183,6 +183,8 @@ Tactic Notation "underp" open_constr(pat) "in" hyp(H) simple_intropattern(i) tac
   then underp_big_in H pat i tac
   else find_pat_in H pat ltac:(fun b => underp_big_in H b i tac).
 
+
+(*
 (** * Tests and examples *)
 
 Section Tests.
@@ -260,3 +262,4 @@ done.
 Qed.
 
 End Tests.
+ *)

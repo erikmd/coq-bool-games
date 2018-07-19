@@ -1,6 +1,6 @@
 Require Import Reals.
 From mathcomp Require Import ssreflect.
-From Infotheo Require Import Reals_ext.
+From infotheo Require Import Reals_ext.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -127,8 +127,10 @@ Qed.
 
 Lemma pow_opp r m : (-r) ^ m = (-1) ^ m * r ^ m.
 Proof.
-by rewrite -[- r]Rmult_1_l -Ropp_mult_distr_r -pow_mult Ropp_mult_distr_l.
+by rewrite -[- r]Rmult_1_l -Ropp_mult_distr_r -Rpow_mult_distr Ropp_mult_distr_l.
 Qed.
 
 Lemma pow_muln r m1 m2 : r ^ (m1 * m2) = (r ^ m1) ^ m2.
-Proof (Rfunctions.pow_mult r m1 m2).
+Proof.
+exact: Rfunctions.pow_mult r m1 m2.
+Qed.

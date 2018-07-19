@@ -1,5 +1,4 @@
-deps/infotheo/Makefile
-src/Makefile
+/Makefile
 
 ### Coq ###
 *.vo
@@ -8,6 +7,8 @@ src/Makefile
 .*.aux
 lia.cache
 Makefile.bak
+Makefile.conf
+.coqdeps.d
 
 ### Emacs ###
 # -*- mode: gitignore; -*-

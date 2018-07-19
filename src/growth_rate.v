@@ -2,7 +2,7 @@ Require Import Reals Psatz.
 From mathcomp Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq.
 From mathcomp Require Import div choice fintype tuple finfun bigop.
 From mathcomp Require Import prime binomial ssralg.
-From Infotheo Require Import Reals_ext Rssr ssr_ext ssralg_ext Rbigop proba num_occ.
+From infotheo Require Import Reals_ext ssrR ssr_ext ssralg_ext Rbigop proba num_occ.
 Require Import Rbigop_complements bigop_tactics reals_complements.
 
 Set Implicit Arguments.
@@ -100,13 +100,15 @@ Qed.
 
 Lemma binSm_div n m : INR 'C(n, m.+1) = INR 'C(n, m) * (INR n - INR m) / (1 + INR m).
 Proof.
-have := mul_Sm_binm n m.
-rewrite binS mulnDr.
+have := mul_bin_left n m.
 move/(congr1 INR).
-rewrite !(plus_INR,mult_INR) => H.
-simpdiv_cut (1 + INR m); try lra.
-change 1 with (INR 1); rewrite -plus_INR.
-exact/lt_0_INR/ltP.
+have [Hle|Hgt] := leqP m n.
+{ rewrite !(plus_INR,mult_INR) minus_INR; [move=> H|exact/leP].
+  simpdiv_cut (1 + INR m); try lra.
+  change 1 with (INR 1); rewrite -plus_INR.
+  exact/lt_0_INR/ltP. }
+rewrite !(bin_small Hgt) !mult_INR -[INR 0]/(0) /Rdiv !(Rmult_0_r, Rmult_0_l).
+by move/eqP; rewrite mulR_eq0 INR_eq0' /=; move/eqP.
 Qed.
 
 Lemma Rmult_minus1 r : -1 * r = - r.
@@ -283,16 +285,15 @@ have H9 : forall s,  (1 - (1 - t s) ^ 2 ^ k) =
   ring. }
 have H10 : (1 - (1 - t s) ^ 2 ^ k) > 2^(k-1) * t s.
 { apply Rge_gt_trans with (2^k * t s - (2^k * t s)^2 * (1 / 2)); last first.
-  { rewrite -Rmult_pow_inv; discrR; trivial.
-    simpdiv_cut 2; auto with real.
+  { simpdiv_cut 2; auto with real.
     rewrite -Rlt_subl_addr.
-    ring_simplify.
     rewrite ![pow _ 2]/=; rewrite !Rsimpl.
     rewrite -!Ropp_mult_distr_l.
-    apply Ropp_lt_contravar.
+    apply ltR_oppr.
+    fold (t s) in H6.
     pose proof Rmult_lt_compat_r _ _ _ Pkt H6 as H.
     rewrite Rsimpl in H.
-    fold (t s) in H.
+    rewrite tech_pow_Rmult -subSn // subn1 /=.
     lra. }
   rewrite {}H9 /Rminus.
   apply Rplus_ge_compat_l.
@@ -304,7 +305,7 @@ have H10 : (1 - (1 - t s) ^ 2 ^ k) > 2^(k-1) * t s.
   { rewrite /= !Rsimpl INR_bin2.
     simpdiv_cut 2; auto with real.
     simpdiv_cut (2 ^ (2 * k)); auto with real.
-    rewrite -!INR_pow_expn /INR.
+    rewrite -!INR_pow_expn INR_IZR_INZ /=.
     rewrite Rdef_pow_add plusE addn0 /= Rsimpl.
     pose proof pow_gt0 Pr k; lra. }
   (* The sum is less than its first term *)
@@ -358,7 +359,7 @@ have H11 : (1 - (1 - t s) ^ 2 ^ k) ^ 2 ^ s > 2 ^ ((k - 1) * (2 ^ s)) * p ^ 2 ^ (
   - exact: expn_gt0.
   - apply Rmult_le_pos; last 1 [exact: Rlt_le] || apply: pow_ge0; lra.
   - exact: Rlt_gt.
-  rewrite /lhs pow_mult pow_muln /t.
+  rewrite /lhs !(pow_mult,Rpow_mult_distr) /t.
   congr Rmult.
   rewrite -pow_muln.
   congr pow.
